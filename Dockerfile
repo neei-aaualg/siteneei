@@ -36,8 +36,8 @@ USER node
 
 EXPOSE 3000
 
-# Healthcheck para o Coolify
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+# Healthcheck para o Coolify (usa 127.0.0.1 para evitar problemas com IPv6 no Alpine)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/health || exit 1
 
 CMD ["node", "server.js"]
