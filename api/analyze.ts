@@ -21,7 +21,7 @@ export default async function handler(request: Request) {
   try {
     const body = await request.json();
     const { code, language, context } = body;
-    
+
     // 1. Validação de Input (Security & Anti-Abuse)
     if (!code || typeof code !== 'string') {
       return new Response(JSON.stringify({ status: 'ERROR', details: 'Código inválido.' }), { status: 400 });
@@ -29,8 +29,8 @@ export default async function handler(request: Request) {
 
     // Limite de caracteres para evitar exaustão de tokens (max 5000 chars)
     if (code.length > 5000) {
-      return new Response(JSON.stringify({ 
-        status: 'ERROR', 
+      return new Response(JSON.stringify({
+        status: 'ERROR',
         details: 'O código é demasiado longo para análise (máx 5000 caracteres).',
         hint: 'Tenta analisar funções mais pequenas individualmente.'
       }), { status: 400 });
@@ -51,7 +51,7 @@ export default async function handler(request: Request) {
     // 3. Configuração da API
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ 
+      return new Response(JSON.stringify({
         status: 'ERROR',
         details: 'Erro de configuração no servidor (API Key em falta).',
         hint: 'Contacta o administrador do sistema.'
@@ -61,23 +61,23 @@ export default async function handler(request: Request) {
     // 4. Construção do Prompt (Server-Side para evitar Injection)
     // O cliente envia apenas o contexto do erro, nós construímos a instrução
     let promptInstruction = "";
-    
+
     if (context.hasError) {
-        promptInstruction = `
+      promptInstruction = `
         O código FALHOU na execução real.
         Erro reportado: "${context.errorMessage.substring(0, 1000)}" 
         Output parcial: "${context.output.substring(0, 500)}"
         TAREFA: Explica o erro de compilação ou execução em Português de Portugal.
         `;
     } else if (context.output !== context.expected) {
-        promptInstruction = `
+      promptInstruction = `
         O código correu mas o output está INCORRETO.
         Output Obtido: "${context.output.substring(0, 500)}"
         Output Esperado: "${context.expected}"
         TAREFA: Explica a falha lógica.
         `;
     } else {
-        promptInstruction = `
+      promptInstruction = `
         O servidor de execução está indisponível. Simula a execução e age como compilador.
         Caso de Teste - Input: "${context.input}" | Esperado: "${context.expected}"
         `;
@@ -112,7 +112,7 @@ export default async function handler(request: Request) {
     };
 
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: fullPrompt,
       config: {
         responseMimeType: 'application/json',

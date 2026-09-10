@@ -145,7 +145,7 @@ async function handleAnalyze(req, res) {
       };
 
       const result = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: fullPrompt,
         config: {
           responseMimeType: 'application/json',
