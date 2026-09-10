@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, Users, Calendar, MapPin, Terminal } from 'lucide-react';
+import { ArrowRight, Code, Users, Calendar, MapPin, Terminal, Box, ExternalLink } from 'lucide-react';
 
 const Home: React.FC = () => {
   return (
@@ -19,7 +19,7 @@ const Home: React.FC = () => {
             <p className="text-lg text-text-200 max-w-lg mx-auto md:mx-0">
               Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a inovação e preparamos o teu futuro.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center md:justify-start">
               <Link to="/pertencer" className="bg-accent-200 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:bg-accent-100 hover:-translate-y-1 transition-all duration-300">
                 Ser Colaborador
               </Link>
@@ -27,6 +27,16 @@ const Home: React.FC = () => {
                 <Code size={20} />
                 Quack (Online Judge)
               </Link>
+              <a
+                href="https://box.neei.online"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white text-text-100 border border-primary-200 hover:border-accent-200 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
+              >
+                <Box size={20} className="text-accent-200" />
+                Ir para o NEEIBox
+                <ExternalLink size={16} className="text-text-200 opacity-70" />
+              </a>
             </div>
           </div>
           <div className="md:w-1/2 mt-12 md:mt-0 flex justify-center">

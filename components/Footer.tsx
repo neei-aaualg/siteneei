@@ -1,5 +1,5 @@
 import React from 'react';
-import { Github, Linkedin, Mail, MapPin } from 'lucide-react';
+import { Github, Linkedin, Mail, MapPin, ExternalLink } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -22,6 +22,17 @@ const Footer: React.FC = () => {
               <li><a href="#/projetos" className="hover:text-accent-100 transition-colors">Projetos</a></li>
               <li><a href="#/vagas" className="hover:text-accent-100 transition-colors">Oportunidades</a></li>
               <li><a href="#/quack" className="hover:text-accent-100 transition-colors">Quack</a></li>
+              <li>
+                <a
+                  href="https://box.neei.online"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-accent-100 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span>NEEIBox</span>
+                  <ExternalLink size={12} className="opacity-75" />
+                </a>
+              </li>
             </ul>
           </div>
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Terminal, GraduationCap } from 'lucide-react';
+import { Menu, X, Terminal, GraduationCap, Box, ExternalLink } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,12 +33,12 @@ const Header: React.FC = () => {
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex space-x-6">
+          <nav className="hidden md:flex space-x-1 lg:space-x-3 xl:space-x-6">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                className={`px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${
                   isActive(item.path)
                     ? 'text-accent-200 bg-primary-100'
                     : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
@@ -49,11 +49,23 @@ const Header: React.FC = () => {
             ))}
           </nav>
 
-          {/* Quack Button */}
-          <div className="hidden md:flex items-center">
+          {/* Action Buttons */}
+          <div className="hidden md:flex items-center gap-2 lg:gap-3">
+            <a
+              href="https://box.neei.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm bg-accent-200 text-white hover:bg-accent-100 hover:shadow-md"
+              title="Ir para o NEEIBox (box.neei.online)"
+            >
+              <Box size={16} />
+              <span>Ir para o NEEIBox</span>
+              <ExternalLink size={14} className="opacity-80" />
+            </a>
+
             <Link
               to="/quack"
-              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-sm ${
+              className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${
                 isActive('/quack') 
                 ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100' 
                 : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
@@ -94,14 +106,29 @@ const Header: React.FC = () => {
                 {item.name}
               </Link>
             ))}
-            <Link
-              to="/quack"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-2 w-full text-left px-3 py-2 mt-4 rounded-md text-base font-bold bg-primary-300 text-white"
-            >
-              <Terminal size={18} />
-              Quack Executor
-            </Link>
+            <div className="pt-2 space-y-2 border-t border-primary-200 mt-2">
+              <a
+                href="https://box.neei.online"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-between px-3 py-2 rounded-md text-base font-bold bg-accent-200 text-white hover:bg-accent-100 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Box size={18} />
+                  <span>Ir para o NEEIBox</span>
+                </div>
+                <ExternalLink size={16} />
+              </a>
+              <Link
+                to="/quack"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-md text-base font-bold bg-primary-300 text-white"
+              >
+                <Terminal size={18} />
+                Quack Executor
+              </Link>
+            </div>
           </div>
         </div>
       )}
