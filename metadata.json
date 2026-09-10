@@ -1,0 +1,5 @@
+{
+  "name": "NEEI Web Portal",
+  "description": "Institutional website for the Student Nucleus (NEEI) featuring the Quack Code Executor and Jobs Board.",
+  "requestFramePermissions": []
+}
