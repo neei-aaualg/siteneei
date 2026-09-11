@@ -104,50 +104,54 @@ const About: React.FC = () => {
         </div>
 
         {/* Direção */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center text-text-100 mb-10 border-b border-bg-300 pb-2 mx-auto max-w-xs">Direção</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+        <div className="mb-14">
+          <h3 className="text-xl font-bold text-center text-text-100 mb-8 border-b border-bg-300 pb-2 mx-auto max-w-xs">Direção</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-items-center">
             {direcao.map((member) => (
-              <div key={member.name} className="flex flex-col items-center text-center group w-full max-w-[240px]">
-                <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-52 md:h-52 mb-4 overflow-hidden rounded-full border-4 border-primary-100 group-hover:border-accent-200 transition-all duration-300 shadow-lg bg-bg-200 group-hover:shadow-2xl">
+              <div key={member.name} className="flex flex-col items-center text-center group">
+                <div className="relative w-32 h-32 md:w-36 md:h-36 mb-4 overflow-hidden rounded-full border-4 border-primary-100 group-hover:border-accent-200 transition-all duration-300 shadow-md bg-white">
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
                     onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
                       const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
                       const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
+                      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-lg sm:text-xl text-text-100">{member.name}</h4>
-                <p className="text-accent-200 text-sm sm:text-base font-semibold mt-1">{member.role}</p>
+                <h4 className="font-bold text-base md:text-lg text-text-100">{member.name}</h4>
+                <p className="text-accent-200 text-xs md:text-sm font-semibold mt-0.5">{member.role}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Mesa do Plenário */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold text-center text-text-100 mb-10 border-b border-bg-300 pb-2 mx-auto max-w-xs">Mesa do Plenário</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
+        <div className="mb-14">
+          <h3 className="text-xl font-bold text-center text-text-100 mb-8 border-b border-bg-300 pb-2 mx-auto max-w-xs">Mesa do Plenário</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-items-center">
             {mesaPlenario.map((member) => (
-              <div key={member.name} className="flex flex-col items-center text-center group w-full max-w-[220px]">
-                <div className="relative w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 mb-4 overflow-hidden rounded-full border-4 border-bg-200 group-hover:border-accent-200 transition-all duration-300 shadow-md bg-bg-200 group-hover:shadow-xl">
+              <div key={member.name} className="flex flex-col items-center text-center group">
+                <div className="relative w-28 h-28 md:w-32 md:h-32 mb-4 overflow-hidden rounded-full border-4 border-bg-200 group-hover:border-accent-200 transition-all duration-300 shadow-sm bg-white">
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
                     onError={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
                       const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
                       const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
+                      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-base sm:text-lg text-text-100">{member.name}</h4>
-                <p className="text-text-200 text-xs sm:text-sm font-medium mt-1">{member.role}</p>
+                <h4 className="font-bold text-sm md:text-base text-text-100">{member.name}</h4>
+                <p className="text-text-200 text-xs font-medium mt-0.5">{member.role}</p>
               </div>
             ))}
           </div>
@@ -155,22 +159,24 @@ const About: React.FC = () => {
 
         {/* Vogais */}
         <div className="mb-12">
-          <h3 className="text-2xl font-bold text-center text-text-100 mb-10 border-b border-bg-300 pb-2 mx-auto max-w-xs">Vogais da Direção</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6 sm:gap-8 justify-center justify-items-center">
+          <h3 className="text-xl font-bold text-center text-text-100 mb-8 border-b border-bg-300 pb-2 mx-auto max-w-xs">Vogais da Direção</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-center justify-items-center">
             {vogais.map((name) => (
-              <div key={name} className="flex flex-col items-center text-center group w-full max-w-[180px]">
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 mb-3 overflow-hidden rounded-full border-4 border-bg-200 group-hover:border-accent-200 transition-all duration-300 shadow-sm bg-bg-200 group-hover:shadow-md">
+              <div key={name} className="flex flex-col items-center text-center group">
+                <div className="relative w-24 h-24 md:w-28 md:h-28 mb-3 overflow-hidden rounded-full border-4 border-bg-200 group-hover:border-accent-200 transition-all duration-300 shadow-sm bg-white">
                   <img
                     src={getMemberPhoto(name, "Vogal")}
                     alt={name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=b6ccd8&color=1d1c1c`;
+                      const img = e.target as HTMLImageElement;
+                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
+                      img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=b6ccd8&color=1d1c1c`;
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-sm sm:text-base text-text-100">{name}</h4>
-                <p className="text-text-200 text-xs font-medium mt-0.5">Vogal</p>
+                <h4 className="font-bold text-xs md:text-sm text-text-100">{name}</h4>
+                <p className="text-text-200 text-[11px] font-medium mt-0.5">Vogal</p>
               </div>
             ))}
           </div>
