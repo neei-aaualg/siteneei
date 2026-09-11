@@ -230,7 +230,7 @@ const HighlightsCarousel: React.FC = () => {
       icon: <Code className="text-accent-200" size={32} />,
       title: "Apresentação do NEEI-Box e update do site",
       desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
-      date: "Ago 2026"
+      date: "Set 2026"
     }
   ];
 
