@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink } from 'lucide-react';
+import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -151,6 +151,186 @@ const InteractiveTerminal: React.FC = () => {
   );
 };
 
+// --- Componente do Carrossel de Destaques do Mandato ---
+const HighlightsCarousel: React.FC = () => {
+  const highlights = [
+    {
+      icon: <Code className="text-accent-200" size={32} />,
+      title: "Apresentação do Site",
+      desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
+      date: "Nov 2025"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Aprovação do PAO",
+      desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Novo Regulamento Interno",
+      desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
+      icon: <Shirt className="text-accent-200" size={32} />,
+      title: "Entrega de Sweats",
+      desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
+      date: "Fev 2026"
+    },
+    {
+      icon: <ShieldCheck className="text-accent-200" size={32} />,
+      title: "Aprovação Fiscal do Regulamento",
+      desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
+      date: "Fev 2026"
+    },
+    {
+      icon: <Users className="text-accent-200" size={32} />,
+      title: "Mudança de Presidência",
+      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
+      date: "Mar 2026"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Pré-Candidatura ao ENEI",
+      desc: "NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).",
+      date: "Abr 2026"
+    },
+    {
+      icon: <Sparkles className="text-accent-200" size={32} />,
+      title: "Concurso de Logos",
+      desc: "Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.",
+      date: "Mai 2026"
+    },
+    {
+      icon: <UtensilsCrossed className="text-accent-200" size={32} />,
+      title: "Jantar de Finalistas",
+      desc: "Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Modificações no Regulamento Interno",
+      desc: "O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <PartyPopper className="text-accent-200" size={32} />,
+      title: "Vitória na candidatura ao ENEI",
+      desc: "O COENEI vence o concurso para a realização do ENEI 2027 em Faro.",
+      date: "Ago 2026"
+    },
+    {
+      icon: <Users className="text-accent-200" size={32} />,
+      title: "Mudança da Mesa da Direção",
+      desc: "José Tico resigna do cargo e David Cruz termina os estudos. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.",
+      date: "Ago 2026"
+    },
+    {
+      icon: <Code className="text-accent-200" size={32} />,
+      title: "Apresentação do NEEI-Box e update do site",
+      desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
+      date: "Ago 2026"
+    }
+  ];
+
+  const ITEMS_PER_PAGE = 3;
+  const totalPages = Math.ceil(highlights.length / ITEMS_PER_PAGE);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const prevSlide = () => {
+    setCurrentPage(prev => (prev > 0 ? prev - 1 : totalPages - 1));
+  };
+
+  const nextSlide = () => {
+    setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+  };
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl md:text-4xl font-bold text-text-100">Destaques do Mandato</h2>
+      </div>
+
+      {/* Carrossel com setas laterais flutuantes */}
+      <div className="relative group/carousel">
+        {/* Seta esquerda flutuante */}
+        <button
+          onClick={prevSlide}
+          aria-label="Página anterior"
+          className="flex absolute -left-3 sm:-left-5 lg:-left-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+        >
+          <ChevronLeft size={22} />
+        </button>
+
+        {/* Seta direita flutuante */}
+        <button
+          onClick={nextSlide}
+          aria-label="Próxima página"
+          className="flex absolute -right-3 sm:-right-5 lg:-right-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+        >
+          <ChevronRight size={22} />
+        </button>
+
+        {/* Viewport do Carrossel */}
+        <div className="overflow-hidden py-2 px-1">
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentPage * 100}%)` }}
+          >
+            {Array.from({ length: totalPages }).map((_, pageIdx) => {
+              const pageItems = highlights.slice(pageIdx * ITEMS_PER_PAGE, (pageIdx + 1) * ITEMS_PER_PAGE);
+              return (
+                <div
+                  key={pageIdx}
+                  className="w-full flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-6 px-1"
+                >
+                  {pageItems.map((item, i) => (
+                    <div
+                      key={i}
+                      className="h-full bg-white p-6 rounded-2xl shadow-sm border border-primary-200 hover:border-accent-200/50 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
+                    >
+                      <div>
+                        <div className="flex justify-between items-start mb-5">
+                          <div className="p-3.5 bg-primary-100 rounded-xl group-hover:bg-accent-200/10 group-hover:scale-110 transition-all duration-300 text-accent-200">
+                            {item.icon}
+                          </div>
+                          <span className="text-xs font-bold text-accent-200 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-full">
+                            {item.date}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-text-100 mb-2.5 group-hover:text-accent-200 transition-colors leading-snug">
+                          {item.title}
+                        </h3>
+                        <p className="text-text-200 text-sm leading-relaxed">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Indicadores de Paginação (Dots) */}
+      <div className="flex justify-center items-center gap-2 mt-8">
+        {Array.from({ length: totalPages }).map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentPage(idx)}
+            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx ? 'w-8 bg-accent-200' : 'w-2.5 bg-primary-200 hover:bg-accent-100'
+              }`}
+            aria-label={`Ir para página ${idx + 1}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const Home: React.FC = () => {
   return (
     <div className="flex flex-col gap-16">
@@ -220,30 +400,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Features / News */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <h2 className="text-3xl font-bold text-text-100 mb-12 text-center">Destaques do Mandato</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              icon: <Code className="text-accent-200" size={32} />,
-              title: "Apresentação do Site",
-              desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
-              date: "Nov 2025"
-            }
-          ].map((item, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-primary-200 hover:shadow-lg transition-shadow duration-300">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-primary-100 rounded-lg">
-                  {item.icon}
-                </div>
-                <span className="text-xs font-semibold text-text-200 bg-bg-200 px-2 py-1 rounded">{item.date}</span>
-              </div>
-              <h3 className="text-xl font-bold text-text-100 mb-2">{item.title}</h3>
-              <p className="text-text-200 mb-4">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HighlightsCarousel />
     </div>
   );
 };
