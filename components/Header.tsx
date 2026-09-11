@@ -32,7 +32,6 @@ const Header: React.FC = () => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
-              {/* <span className="font-bold text-xl text-text-100 tracking-tight">NEEI</span> */}
             </Link>
           </div>
 
