@@ -156,69 +156,9 @@ const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
       icon: <Code className="text-accent-200" size={32} />,
-      title: "Apresentação do Site",
-      desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
-      date: "Nov 2025"
-    },
-    {
-      icon: <FileCheck className="text-accent-200" size={32} />,
-      title: "Aprovação do PAO",
-      desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
-      date: "Jan 2026"
-    },
-    {
-      icon: <ScrollText className="text-accent-200" size={32} />,
-      title: "Novo Regulamento Interno",
-      desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
-      date: "Jan 2026"
-    },
-    {
-      icon: <Shirt className="text-accent-200" size={32} />,
-      title: "Entrega de Sweats",
-      desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
-      date: "Fev 2026"
-    },
-    {
-      icon: <ShieldCheck className="text-accent-200" size={32} />,
-      title: "Aprovação Fiscal do Regulamento",
-      desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
-      date: "Fev 2026"
-    },
-    {
-      icon: <Users className="text-accent-200" size={32} />,
-      title: "Mudança de Presidência",
-      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
-      date: "Mar 2026"
-    },
-    {
-      icon: <FileCheck className="text-accent-200" size={32} />,
-      title: "Pré-Candidatura ao ENEI",
-      desc: "NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).",
-      date: "Abr 2026"
-    },
-    {
-      icon: <Sparkles className="text-accent-200" size={32} />,
-      title: "Concurso de Logos",
-      desc: "Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.",
-      date: "Mai 2026"
-    },
-    {
-      icon: <UtensilsCrossed className="text-accent-200" size={32} />,
-      title: "Jantar de Finalistas",
-      desc: "Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.",
-      date: "Jun 2026"
-    },
-    {
-      icon: <ScrollText className="text-accent-200" size={32} />,
-      title: "Modificações no Regulamento Interno",
-      desc: "O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.",
-      date: "Jun 2026"
-    },
-    {
-      icon: <PartyPopper className="text-accent-200" size={32} />,
-      title: "Vitória na candidatura ao ENEI",
-      desc: "O COENEI vence o concurso para a realização do ENEI 2027 em Faro.",
-      date: "Ago 2026"
+      title: "Apresentação do NEEI-Box e update do site",
+      desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
+      date: "Set 2026"
     },
     {
       icon: <Users className="text-accent-200" size={32} />,
@@ -227,10 +167,70 @@ const HighlightsCarousel: React.FC = () => {
       date: "Ago 2026"
     },
     {
+      icon: <PartyPopper className="text-accent-200" size={32} />,
+      title: "Vitória na candidatura ao ENEI",
+      desc: "O COENEI vence o concurso para a realização do ENEI 2027 em Faro.",
+      date: "Ago 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Modificações no Regulamento Interno",
+      desc: "O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <UtensilsCrossed className="text-accent-200" size={32} />,
+      title: "Jantar de Finalistas",
+      desc: "Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <Sparkles className="text-accent-200" size={32} />,
+      title: "Concurso de Logos",
+      desc: "Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.",
+      date: "Mai 2026"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Pré-Candidatura ao ENEI",
+      desc: "NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).",
+      date: "Abr 2026"
+    },
+    {
+      icon: <Users className="text-accent-200" size={32} />,
+      title: "Mudança de Presidência",
+      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
+      date: "Mar 2026"
+    },
+    {
+      icon: <ShieldCheck className="text-accent-200" size={32} />,
+      title: "Aprovação Fiscal do Regulamento",
+      desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
+      date: "Fev 2026"
+    },
+    {
+      icon: <Shirt className="text-accent-200" size={32} />,
+      title: "Entrega de Sweats",
+      desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
+      date: "Fev 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Novo Regulamento Interno",
+      desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Aprovação do PAO",
+      desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
       icon: <Code className="text-accent-200" size={32} />,
-      title: "Apresentação do NEEI-Box e update do site",
-      desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
-      date: "Set 2026"
+      title: "Apresentação do Site",
+      desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
+      date: "Nov 2025"
     }
   ];
 
