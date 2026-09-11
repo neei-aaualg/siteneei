@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -155,7 +155,7 @@ const InteractiveTerminal: React.FC = () => {
 const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
-      icon: <Users className="text-accent-200" size={32} />,
+      icon: <Sparkles className="text-accent-200" size={32} />,
       title: "Novo logo do NEEI é apresentado",
       desc: "Apresentamos com orgulho a nova identidade visual do NEEI, simbolizando uma nova era de inovação e união para o nosso curso.",
       date: "Nov 2025"
@@ -189,6 +189,18 @@ const HighlightsCarousel: React.FC = () => {
       title: "Aprovação Fiscal do Regulamento",
       desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
       date: "Fev 2026"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Pré-Candidatura ao ENEI",
+      desc: "Realizada a pré-candidatura ao Encontro Nacional de Estudantes de Informática.",
+      date: "Abr 2026"
+    },
+    {
+      icon: <User className="text-accent-200" size={32} />,
+      title: "Mudança de Presidência",
+      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
+      date: "Mai 2026"
     }
   ];
 
@@ -282,9 +294,8 @@ const HighlightsCarousel: React.FC = () => {
           <button
             key={idx}
             onClick={() => setCurrentPage(idx)}
-            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-              currentPage === idx ? 'w-8 bg-accent-200' : 'w-2.5 bg-primary-200 hover:bg-accent-100'
-            }`}
+            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx ? 'w-8 bg-accent-200' : 'w-2.5 bg-primary-200 hover:bg-accent-100'
+              }`}
             aria-label={`Ir para página ${idx + 1}`}
           />
         ))}
