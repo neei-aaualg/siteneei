@@ -50,7 +50,7 @@ const About: React.FC = () => {
   // Função para obter foto do membro (foto local com fallback para avatar gerado)
   const getMemberPhoto = (name: string, role?: string) => {
     if (memberPhotos[name]) {
-      return memberPhotos[name];
+      return `${memberPhotos[name]}?v=2`;
     }
     const bg = role?.includes('Presidente') ? '00668c' : 'b6ccd8';
     const color = role?.includes('Presidente') ? 'fff' : '1d1c1c';

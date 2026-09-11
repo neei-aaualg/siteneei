@@ -195,11 +195,19 @@ function serveStaticFile(req, res, filePath) {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const isAsset = filePath.includes(path.join(BUILD_DIR, 'assets'));
+    const isImmutableAsset = filePath.includes(path.join(BUILD_DIR, 'assets')) && (ext === '.js' || ext === '.css');
+    const isStaticAsset = filePath.includes(path.join(BUILD_DIR, 'assets'));
+
+    let cacheControl = 'no-cache';
+    if (isImmutableAsset) {
+      cacheControl = 'public, max-age=31536000, immutable';
+    } else if (isStaticAsset) {
+      cacheControl = 'public, max-age=3600, stale-while-revalidate=86400';
+    }
 
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': isAsset ? 'public, max-age=31536000, immutable' : 'no-cache'
+      'Cache-Control': cacheControl
     });
 
     const stream = fs.createReadStream(filePath);
