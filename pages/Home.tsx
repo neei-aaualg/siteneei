@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink } from 'lucide-react';
+import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -222,24 +222,44 @@ const Home: React.FC = () => {
       {/* Features / News */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <h2 className="text-3xl font-bold text-text-100 mb-12 text-center">Destaques do Mandato</h2>
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
-              icon: <Code className="text-accent-200" size={32} />,
-              title: "Apresentação do Site",
-              desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
-              date: "Nov 2025"
+              icon: <FileCheck className="text-accent-200" size={32} />,
+              title: "Aprovação do PAO",
+              desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
+              date: "Jan 2026"
+            },
+            {
+              icon: <ScrollText className="text-accent-200" size={32} />,
+              title: "Novo Regulamento Interno",
+              desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
+              date: "Jan 2026"
+            },
+            {
+              icon: <Shirt className="text-accent-200" size={32} />,
+              title: "Entrega de Sweats",
+              desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
+              date: "Fev 2026"
+            },
+            {
+              icon: <ShieldCheck className="text-accent-200" size={32} />,
+              title: "Aprovação Fiscal do Regulamento",
+              desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
+              date: "Fev 2026"
             }
           ].map((item, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-primary-200 hover:shadow-lg transition-shadow duration-300">
-              <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-primary-100 rounded-lg">
-                  {item.icon}
+            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-primary-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div className="p-3 bg-primary-100 rounded-lg">
+                    {item.icon}
+                  </div>
+                  <span className="text-xs font-semibold text-text-200 bg-bg-200 px-2 py-1 rounded">{item.date}</span>
                 </div>
-                <span className="text-xs font-semibold text-text-200 bg-bg-200 px-2 py-1 rounded">{item.date}</span>
+                <h3 className="text-lg font-bold text-text-100 mb-2">{item.title}</h3>
+                <p className="text-text-200 text-sm leading-relaxed">{item.desc}</p>
               </div>
-              <h3 className="text-xl font-bold text-text-100 mb-2">{item.title}</h3>
-              <p className="text-text-200 mb-4">{item.desc}</p>
             </div>
           ))}
         </div>
