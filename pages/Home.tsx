@@ -223,7 +223,13 @@ const HighlightsCarousel: React.FC = () => {
     {
       icon: <Users className="text-accent-200" size={32} />,
       title: "Mudança da Mesa da Direção",
-      desc: "José Tico resigna do cargo e David Cruz termina o curso. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.",
+      desc: "José Tico resigna do cargo e David Cruz termina os estudos. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.",
+      date: "Ago 2026"
+    },
+    {
+      icon: <Code className="text-accent-200" size={32} />,
+      title: "Apresentação do NEEI-Box e update do site",
+      desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
       date: "Ago 2026"
     }
   ];
