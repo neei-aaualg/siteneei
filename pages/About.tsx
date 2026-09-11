@@ -113,10 +113,10 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
-                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
+                    className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
-                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
+                      img.classList.remove('scale-[1.02]', 'group-hover:scale-105');
                       const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
                       const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
                       img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
@@ -140,10 +140,10 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
-                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
+                    className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
-                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
+                      img.classList.remove('scale-[1.02]', 'group-hover:scale-105');
                       const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
                       const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
                       img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
@@ -167,10 +167,10 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(name, "Vogal")}
                     alt={name}
-                    className="w-full h-full object-cover scale-[1.48] transition-transform duration-300 group-hover:scale-[1.55]"
+                    className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
-                      img.classList.remove('scale-[1.48]', 'group-hover:scale-[1.55]');
+                      img.classList.remove('scale-[1.02]', 'group-hover:scale-105');
                       img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=b6ccd8&color=1d1c1c`;
                     }}
                   />
