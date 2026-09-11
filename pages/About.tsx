@@ -4,10 +4,10 @@ import { Target, Eye, Award, MapPin } from 'lucide-react';
 const About: React.FC = () => {
   // Equipa Atualizada para o Mandato 2025/2026
   const direcao = [
-    { name: 'Afonso Bitoque', role: 'Presidente' },
-    { name: 'José Tico', role: 'Vice-Presidente' },
+    { name: 'David Rodrigues', role: 'Presidente' },
+    { name: 'Martim Neves', role: 'Vice-Presidente' },
     { name: 'David Gonçalves', role: 'Tesoureiro' },
-    { name: 'David Cruz', role: 'Secretário' },
+    { name: 'João Maria Baptista', role: 'Secretário' },
   ];
 
   const mesaPlenario = [
@@ -18,18 +18,16 @@ const About: React.FC = () => {
   ];
 
   const vogais = [
-    'Barbara Pereira', 'Beatriz Mateia', 'David Rodrigues', 'David Silvestre',
-    'Francisco Neves', 'Gonçalo Agostinho', 'João Maria Batista', 'João Miguel Batista',
-    'Leonardo Albudane', 'Martim Neves', 'Miguel Alvito', 'Raquel Nunes',
-    'Ricardo Vicente'
+    'Barbara Pereira', 'Beatriz Mateia', 'David Silvestre',
+    'Francisco Neves', 'Gonçalo Agostinho', 'João Miguel Batista',
+    'José Tico', 'Leonardo Albudane', 'Miguel Alvito',
+    'Raquel Nunes', 'Ricardo Vicente'
   ];
 
   // Mapeamento de fotos reais dos membros armazenadas em /assets/
   const memberPhotos: Record<string, string> = {
-    'Afonso Bitoque': '/assets/afonsobitoque.png',
     'José Tico': '/assets/josetico.png',
     'David Gonçalves': '/assets/davidgoncalves.png',
-    'David Cruz': '/assets/davidcruz.png',
     'Francisco Molo': '/assets/franciscomolo.png',
     'Leonardo Cantachini': '/assets/leonardocantachini.png',
     'Afonso Francisco': '/assets/afonsofrancisco.png',
@@ -40,6 +38,7 @@ const About: React.FC = () => {
     'David Silvestre': '/assets/davidsilvestre.png',
     'Francisco Neves': '/assets/francisconeves.png',
     'João Maria Batista': '/assets/joaomariabatista.png',
+    'João Maria Baptista': '/assets/joaomariabatista.png',
     'João Miguel Batista': '/assets/joaomiguelbatista.png',
     'Leonardo Albudane': '/assets/leonardoalbudane.png',
     'Martim Neves': '/assets/martimneves.png',
