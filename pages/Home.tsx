@@ -11,13 +11,13 @@ const Home: React.FC = () => {
           <div className="md:w-1/2 space-y-6 text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-primary-200 text-accent-200 text-xs font-bold uppercase tracking-wider mb-2">
               <MapPin size={12} />
-              Universidade do Algarve - FCT Gambelas
+              Sala 0.18, Edifício 1, Campus de Gambelas, Faro
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-text-100 leading-tight">
               <span className="text-accent-200">N</span>úcleo de <span className="text-accent-200">E</span>studantes de <span className="text-accent-200">E</span>ngenharia <span className="text-accent-200">I</span>nformática da <span className="text-accent-200">UAlg</span>
             </h1>
             <p className="text-lg text-text-200 max-w-lg mx-auto md:mx-0">
-              Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a inovação e preparamos o teu futuro.
+              Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a integração e a cooperação para uma experiência académica completa.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center md:justify-start">
               <Link to="/pertencer" className="bg-accent-200 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:bg-accent-100 hover:-translate-y-1 transition-all duration-300">
@@ -40,27 +40,27 @@ const Home: React.FC = () => {
             </div>
           </div>
           <div className="md:w-1/2 mt-12 md:mt-0 flex justify-center">
-             <div className="relative">
-                <div className="absolute -inset-4 bg-accent-100/20 rounded-full blur-xl"></div>
-                <div className="relative rounded-2xl shadow-2xl border-4 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500 max-w-md w-full overflow-hidden bg-gradient-to-br from-primary-200 to-accent-200 p-1 flex items-center justify-center aspect-square md:aspect-auto md:h-96">
-                  {/* Logo do NEEI */}
-                  <div className="bg-bg-100 w-full h-full rounded-xl flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent-200 to-transparent"></div>
-                      <img 
-                        src="/assets/logoneeigrande-removebg-preview.png" 
-                        alt="NEEI UAlg Logo" 
-                        className="max-h-48 w-auto object-contain mb-4 relative z-10 drop-shadow-md"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <h3 className="text-2xl font-bold text-text-100 mb-2 relative z-10">NEEI UAlg</h3>
-                      <p className="text-text-200 font-mono text-sm relative z-10">&lt;Estudantes /&gt;</p>
-                      <p className="text-text-200 font-mono text-sm relative z-10">&lt;Inovação /&gt;</p>
-                      <p className="text-text-200 font-mono text-sm relative z-10">&lt;Futuro /&gt;</p>
-                  </div>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-accent-100/20 rounded-full blur-xl"></div>
+              <div className="relative rounded-2xl shadow-2xl border-4 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500 max-w-md w-full overflow-hidden bg-gradient-to-br from-primary-200 to-accent-200 p-1 flex items-center justify-center aspect-square md:aspect-auto md:h-96">
+                {/* Logo do NEEI */}
+                <div className="bg-bg-100 w-full h-full rounded-xl flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent-200 to-transparent"></div>
+                  <img
+                    src="/assets/logoneeigrande-removebg-preview.png"
+                    alt="NEEI UAlg Logo"
+                    className="max-h-48 w-auto object-contain mb-4 relative z-10 drop-shadow-md"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <h3 className="text-2xl font-bold text-text-100 mb-2 relative z-10">NEEI UAlg</h3>
+                  <p className="text-text-200 font-mono text-sm relative z-10">&lt;Estudantes /&gt;</p>
+                  <p className="text-text-200 font-mono text-sm relative z-10">&lt;Inovação /&gt;</p>
+                  <p className="text-text-200 font-mono text-sm relative z-10">&lt;Futuro /&gt;</p>
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
