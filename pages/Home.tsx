@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
+import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -155,12 +155,6 @@ const InteractiveTerminal: React.FC = () => {
 const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
-      icon: <Sparkles className="text-accent-200" size={32} />,
-      title: "Novo logo do NEEI é apresentado",
-      desc: "Apresentamos com orgulho a nova identidade visual do NEEI, simbolizando uma nova era de inovação e união para o nosso curso.",
-      date: "Nov 2025"
-    },
-    {
       icon: <Code className="text-accent-200" size={32} />,
       title: "Apresentação do Site",
       desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
@@ -191,16 +185,46 @@ const HighlightsCarousel: React.FC = () => {
       date: "Fev 2026"
     },
     {
+      icon: <Users className="text-accent-200" size={32} />,
+      title: "Mudança de Presidência",
+      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
+      date: "Mar 2026"
+    },
+    {
       icon: <FileCheck className="text-accent-200" size={32} />,
       title: "Pré-Candidatura ao ENEI",
-      desc: "Realizada a pré-candidatura ao Encontro Nacional de Estudantes de Informática.",
+      desc: "NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).",
       date: "Abr 2026"
     },
     {
-      icon: <User className="text-accent-200" size={32} />,
-      title: "Mudança de Presidência",
-      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
+      icon: <Sparkles className="text-accent-200" size={32} />,
+      title: "Concurso de Logos",
+      desc: "Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.",
       date: "Mai 2026"
+    },
+    {
+      icon: <UtensilsCrossed className="text-accent-200" size={32} />,
+      title: "Jantar de Finalistas",
+      desc: "Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Modificações no Regulamento Interno",
+      desc: "O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.",
+      date: "Jun 2026"
+    },
+    {
+      icon: <PartyPopper className="text-accent-200" size={32} />,
+      title: "Vitória na candidatura ao ENEI",
+      desc: "O COENEI vence o concurso para a realização do ENEI 2027 em Faro.",
+      date: "Ago 2026"
+    },
+    {
+      icon: <Users className="text-accent-200" size={32} />,
+      title: "Mudança da Mesa da Direção",
+      desc: "José Tico resigna do cargo e David Cruz termina o curso. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.",
+      date: "Ago 2026"
     }
   ];
 
@@ -218,11 +242,8 @@ const HighlightsCarousel: React.FC = () => {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-text-100 text-center sm:text-left">Destaques do Mandato</h2>
-          <p className="text-text-200 text-sm mt-1 text-center sm:text-left">Os marcos e conquistas mais recentes do nosso núcleo.</p>
-        </div>
+      <div className="text-center mb-12">
+        <h2 className="text-3xl md:text-4xl font-bold text-text-100">Destaques do Mandato</h2>
       </div>
 
       {/* Carrossel com setas laterais flutuantes */}
@@ -272,7 +293,7 @@ const HighlightsCarousel: React.FC = () => {
                             {item.date}
                           </span>
                         </div>
-                        <h3 className="text-lg font-bold text-text-100 mb-2 group-hover:text-accent-200 transition-colors">
+                        <h3 className="text-xl font-bold text-text-100 mb-2.5 group-hover:text-accent-200 transition-colors leading-snug">
                           {item.title}
                         </h3>
                         <p className="text-text-200 text-sm leading-relaxed">
