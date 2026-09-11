@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, ScrollText, Shirt, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -151,6 +151,173 @@ const InteractiveTerminal: React.FC = () => {
   );
 };
 
+// --- Componente do Carrossel de Destaques do Mandato ---
+const HighlightsCarousel: React.FC = () => {
+  const highlights = [
+    {
+      icon: <Code className="text-accent-200" size={32} />,
+      title: "Apresentação do Site",
+      desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
+      date: "Nov 2025"
+    },
+    {
+      icon: <FileCheck className="text-accent-200" size={32} />,
+      title: "Aprovação do PAO",
+      desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
+      icon: <ScrollText className="text-accent-200" size={32} />,
+      title: "Novo Regulamento Interno",
+      desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
+      date: "Jan 2026"
+    },
+    {
+      icon: <Shirt className="text-accent-200" size={32} />,
+      title: "Entrega de Sweats",
+      desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
+      date: "Fev 2026"
+    },
+    {
+      icon: <ShieldCheck className="text-accent-200" size={32} />,
+      title: "Aprovação Fiscal do Regulamento",
+      desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
+      date: "Fev 2026"
+    }
+  ];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(3);
+
+  useEffect(() => {
+    const updateItemsPerPage = () => {
+      if (window.innerWidth < 640) {
+        setItemsPerPage(1);
+      } else if (window.innerWidth < 1024) {
+        setItemsPerPage(2);
+      } else {
+        setItemsPerPage(3);
+      }
+    };
+
+    updateItemsPerPage();
+    window.addEventListener('resize', updateItemsPerPage);
+    return () => window.removeEventListener('resize', updateItemsPerPage);
+  }, []);
+
+  const maxIndex = Math.max(0, highlights.length - itemsPerPage);
+
+  useEffect(() => {
+    setCurrentIndex(prev => Math.min(prev, maxIndex));
+  }, [maxIndex]);
+
+  const prevSlide = () => {
+    setCurrentIndex(prev => (prev > 0 ? prev - 1 : maxIndex));
+  };
+
+  const nextSlide = () => {
+    setCurrentIndex(prev => (prev < maxIndex ? prev + 1 : 0));
+  };
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="flex flex-col sm:flex-row items-center justify-between mb-10 gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-text-100 text-center sm:text-left">Destaques do Mandato</h2>
+          <p className="text-text-200 text-sm mt-1 text-center sm:text-left">Os marcos e conquistas mais recentes do nosso núcleo.</p>
+        </div>
+
+        {/* Setas de navegação no cabeçalho */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={prevSlide}
+            aria-label="Destaque anterior"
+            className="p-2.5 rounded-full bg-white border border-primary-200 text-text-100 shadow-sm hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+          >
+            <ChevronLeft size={22} />
+          </button>
+          <button
+            onClick={nextSlide}
+            aria-label="Próximo destaque"
+            className="p-2.5 rounded-full bg-white border border-primary-200 text-text-100 shadow-sm hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer"
+          >
+            <ChevronRight size={22} />
+          </button>
+        </div>
+      </div>
+
+      {/* Carrossel com setas laterais flutuantes */}
+      <div className="relative group/carousel">
+        {/* Seta esquerda flutuante */}
+        <button
+          onClick={prevSlide}
+          aria-label="Destaque anterior"
+          className="hidden md:flex absolute -left-4 lg:-left-5 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-80 group-hover/carousel:opacity-100"
+        >
+          <ChevronLeft size={22} />
+        </button>
+
+        {/* Seta direita flutuante */}
+        <button
+          onClick={nextSlide}
+          aria-label="Próximo destaque"
+          className="hidden md:flex absolute -right-4 lg:-right-5 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-80 group-hover/carousel:opacity-100"
+        >
+          <ChevronRight size={22} />
+        </button>
+
+        {/* Viewport do Carrossel */}
+        <div className="overflow-hidden -mx-3 py-2 px-1">
+          <div
+            className="flex transition-transform duration-500 ease-out"
+            style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
+          >
+            {highlights.map((item, i) => (
+              <div
+                key={i}
+                className="flex-shrink-0 px-3 w-full sm:w-1/2 lg:w-1/3"
+              >
+                <div className="h-full bg-white p-6 rounded-2xl shadow-sm border border-primary-200 hover:border-accent-200/50 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group">
+                  <div>
+                    <div className="flex justify-between items-start mb-5">
+                      <div className="p-3.5 bg-primary-100 rounded-xl group-hover:bg-accent-200/10 group-hover:scale-110 transition-all duration-300 text-accent-200">
+                        {item.icon}
+                      </div>
+                      <span className="text-xs font-bold text-accent-200 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-full">
+                        {item.date}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-text-100 mb-2 group-hover:text-accent-200 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-text-200 text-sm leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Indicadores de Paginação (Dots) */}
+      <div className="flex justify-center items-center gap-2 mt-8">
+        {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => setCurrentIndex(idx)}
+            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+              currentIndex === idx ? 'w-8 bg-accent-200' : 'w-2.5 bg-primary-200 hover:bg-accent-100'
+            }`}
+            aria-label={`Ir para posição ${idx + 1}`}
+          />
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const Home: React.FC = () => {
   return (
     <div className="flex flex-col gap-16">
@@ -220,50 +387,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Features / News */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <h2 className="text-3xl font-bold text-text-100 mb-12 text-center">Destaques do Mandato</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            {
-              icon: <FileCheck className="text-accent-200" size={32} />,
-              title: "Aprovação do PAO",
-              desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
-              date: "Jan 2026"
-            },
-            {
-              icon: <ScrollText className="text-accent-200" size={32} />,
-              title: "Novo Regulamento Interno",
-              desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
-              date: "Jan 2026"
-            },
-            {
-              icon: <Shirt className="text-accent-200" size={32} />,
-              title: "Entrega de Sweats",
-              desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
-              date: "Fev 2026"
-            },
-            {
-              icon: <ShieldCheck className="text-accent-200" size={32} />,
-              title: "Aprovação Fiscal do Regulamento",
-              desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
-              date: "Fev 2026"
-            }
-          ].map((item, i) => (
-            <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-primary-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-primary-100 rounded-lg">
-                    {item.icon}
-                  </div>
-                  <span className="text-xs font-semibold text-text-200 bg-bg-200 px-2 py-1 rounded">{item.date}</span>
-                </div>
-                <h3 className="text-lg font-bold text-text-100 mb-2">{item.title}</h3>
-                <p className="text-text-200 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HighlightsCarousel />
     </div>
   );
 };
