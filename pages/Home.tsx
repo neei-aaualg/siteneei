@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
+import { ArrowRight, Code, Calendar, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
@@ -353,20 +353,10 @@ const Home: React.FC = () => {
               <Link to="/pertencer" className="bg-accent-200 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:bg-accent-100 hover:-translate-y-1 transition-all duration-300">
                 Ser Colaborador
               </Link>
-              <Link to="/quack" className="bg-white text-accent-200 border border-accent-200 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 transition-all duration-300 flex items-center justify-center gap-2">
-                <Code size={20} />
-                Quack (Online Judge)
+              <Link to="/eventos" className="bg-white text-accent-200 border border-accent-200 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 transition-all duration-300 flex items-center justify-center gap-2">
+                <Calendar size={20} />
+                Calendário
               </Link>
-              <a
-                href="https://box.neei.online"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-white text-text-100 border border-primary-200 hover:border-accent-200 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
-              >
-                <Box size={20} className="text-accent-200" />
-                Ir para o NEEIBox
-                <ExternalLink size={16} className="text-text-200 opacity-70" />
-              </a>
             </div>
           </div>
 

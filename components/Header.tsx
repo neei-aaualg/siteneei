@@ -42,8 +42,8 @@ const Header: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 className={`px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive(item.path)
-                    ? 'text-accent-200 bg-primary-100'
-                    : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 bg-primary-100'
+                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
                   }`}
               >
                 {item.name}
@@ -68,8 +68,8 @@ const Header: React.FC = () => {
             <Link
               to="/quack"
               className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${isActive('/quack')
-                  ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
-                  : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
+                ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
+                : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
                 }`}
             >
               <Terminal size={16} />
@@ -99,8 +99,8 @@ const Header: React.FC = () => {
                 to={item.path}
                 onClick={() => setIsMenuOpen(false)}
                 className={`block px-3 py-2 rounded-md text-base font-medium ${isActive(item.path)
-                    ? 'text-accent-200 bg-primary-100'
-                    : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 bg-primary-100'
+                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
                   }`}
               >
                 {item.name}
