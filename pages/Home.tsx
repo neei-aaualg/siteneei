@@ -226,8 +226,8 @@ const Home: React.FC = () => {
           {[
             {
               icon: <Code className="text-accent-200" size={32} />,
-              title: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção do NEEI",
-              desc: "Hello world!",
+              title: "Apresentação do Site",
+              desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
               date: "Nov 2025"
             }
           ].map((item, i) => (
