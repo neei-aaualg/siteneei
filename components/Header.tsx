@@ -24,10 +24,15 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-accent-200 text-white p-2 rounded-lg shadow-md group-hover:bg-accent-100 transition-colors">
-                <GraduationCap size={24} />
-              </div>
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <img 
+                src="/assets/logoneeipequeno-removebg-preview.png" 
+                alt="NEEI Logo" 
+                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
               <span className="font-bold text-xl text-text-100 tracking-tight">NEEI</span>
             </Link>
           </div>

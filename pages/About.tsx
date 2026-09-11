@@ -24,8 +24,35 @@ const About: React.FC = () => {
     'Ricardo Vicente'
   ];
 
-  // Função para obter avatar gerado (já que ficheiros locais foram removidos)
+  // Mapeamento de fotos reais dos membros armazenadas em /assets/
+  const memberPhotos: Record<string, string> = {
+    'Afonso Bitoque': '/assets/afonsobitoque.png',
+    'José Tico': '/assets/josetico.png',
+    'David Gonçalves': '/assets/davidgoncalves.png',
+    'David Cruz': '/assets/davidcruz.png',
+    'Francisco Molo': '/assets/franciscomolo.png',
+    'Leonardo Cantachini': '/assets/leonardocantachini.png',
+    'Afonso Francisco': '/assets/afonsofrancisco.png',
+    'Simão Reis': '/assets/simaoreis.png',
+    'Barbara Pereira': '/assets/barbarapereira.png',
+    'Beatriz Mateia': '/assets/beatrizmateia.png',
+    'David Rodrigues': '/assets/davidrodrigues.png',
+    'David Silvestre': '/assets/davidsilvestre.png',
+    'Francisco Neves': '/assets/francisconeves.png',
+    'João Maria Batista': '/assets/joaomariabatista.png',
+    'João Miguel Batista': '/assets/joaomiguelbatista.png',
+    'Leonardo Albudane': '/assets/leonardoalbudane.png',
+    'Martim Neves': '/assets/martimneves.png',
+    'Miguel Alvito': '/assets/miguelalvito.png',
+    'Raquel Nunes': '/assets/raquelnunes.png',
+    'Ricardo Vicente': '/assets/ricardovicente.png',
+  };
+
+  // Função para obter foto do membro (foto local com fallback para avatar gerado)
   const getMemberPhoto = (name: string, role?: string) => {
+    if (memberPhotos[name]) {
+      return memberPhotos[name];
+    }
     const bg = role?.includes('Presidente') ? '00668c' : 'b6ccd8';
     const color = role?.includes('Presidente') ? 'fff' : '1d1c1c';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=${bg}&color=${color}`;
@@ -88,6 +115,11 @@ const About: React.FC = () => {
                         src={getMemberPhoto(member.name, member.role)} 
                         alt={member.name} 
                         className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
+                          const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
+                        }}
                     />
                 </div>
                 <h3 className="font-bold text-lg text-text-100">{member.name}</h3>
@@ -108,6 +140,11 @@ const About: React.FC = () => {
                         src={getMemberPhoto(member.name, member.role)} 
                         alt={member.name} 
                         className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          const bg = member.role?.includes('Presidente') ? '00668c' : 'b6ccd8';
+                          const color = member.role?.includes('Presidente') ? 'fff' : '1d1c1c';
+                          (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=${bg}&color=${color}`;
+                        }}
                     />
                 </div>
                 <h3 className="font-bold text-base text-text-100">{member.name}</h3>
@@ -128,6 +165,9 @@ const About: React.FC = () => {
                             src={getMemberPhoto(name, "Vogal")} 
                             alt={name} 
                             className="w-full h-full object-cover" 
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=b6ccd8&color=1d1c1c`;
+                            }}
                         />
                     </div>
                     <h3 className="font-bold text-sm text-text-100">{name}</h3>

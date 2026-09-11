@@ -241,14 +241,19 @@ const server = http.createServer((req, res) => {
   }
 
   // Ficheiros estáticos
-  let safePath = path.normalize(path.join(BUILD_DIR, pathname));
+  let cleanPathname = pathname;
+  if (cleanPathname.startsWith('/public/')) {
+    cleanPathname = cleanPathname.replace('/public/', '/');
+  }
+
+  let safePath = path.normalize(path.join(BUILD_DIR, cleanPathname));
   if (!safePath.startsWith(BUILD_DIR)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('Forbidden');
     return;
   }
 
-  if (pathname === '/' || pathname === '') {
+  if (cleanPathname === '/' || cleanPathname === '') {
     safePath = path.join(BUILD_DIR, 'index.html');
   }
 

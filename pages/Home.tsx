@@ -43,10 +43,17 @@ const Home: React.FC = () => {
              <div className="relative">
                 <div className="absolute -inset-4 bg-accent-100/20 rounded-full blur-xl"></div>
                 <div className="relative rounded-2xl shadow-2xl border-4 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500 max-w-md w-full overflow-hidden bg-gradient-to-br from-primary-200 to-accent-200 p-1 flex items-center justify-center aspect-square md:aspect-auto md:h-96">
-                  {/* Placeholder Gráfico em vez da imagem removida */}
+                  {/* Logo do NEEI */}
                   <div className="bg-bg-100 w-full h-full rounded-xl flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
                       <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent-200 to-transparent"></div>
-                      <Terminal size={80} className="text-accent-200 mb-6 relative z-10" />
+                      <img 
+                        src="/assets/logoneeigrande-removebg-preview.png" 
+                        alt="NEEI UAlg Logo" 
+                        className="max-h-48 w-auto object-contain mb-4 relative z-10 drop-shadow-md"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
                       <h3 className="text-2xl font-bold text-text-100 mb-2 relative z-10">NEEI UAlg</h3>
                       <p className="text-text-200 font-mono text-sm relative z-10">&lt;Estudantes /&gt;</p>
                       <p className="text-text-200 font-mono text-sm relative z-10">&lt;Inovação /&gt;</p>
