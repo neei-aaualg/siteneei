@@ -70,7 +70,7 @@ O portal centraliza a comunicação com a comunidade académica, divulgação e 
 - **Pipeline de Colaboradores:** Acompanhamento de candidaturas com filtros por estado (*Pendente*, *Contactado*, *Aceite*, *Rejeitado*), pesquisa instantânea por texto, notas internas, exportação CSV e eliminação protegida por modal.
 
 ### 5. Hub Académico & Comunidade 🎓
-- **Projetos:** Montra de projetos tecnológicos desenvolvidos pelos estudantes do núcleo.
+- **Projetos:** Montra de projetos tecnológicos desenvolvidos pelos estudantes ligada diretamente ao repositório oficial no GitHub ([student-showcase](https://github.com/neei-aaualg/student-showcase)).
 - **Recursos:** Repositório curado de apontamentos, provas-modelo e materiais de estudo.
 - **Vagas:** Divulgação de ofertas de estágio e propostas de trabalho em empresas parceiras.
 - **Órgãos Sociais:** Apresentação da direção e colaboradores com avatares e ligações diretas.
@@ -327,7 +327,6 @@ siteneei/
 │   ├── Admin.tsx         # Dashboard administrativo (atividades & colaboradores)
 │   ├── Quack.tsx         # Tutor de programação e editor interativo
 │   ├── About.tsx         # Apresentação do núcleo e equipa
-│   ├── Projects.tsx      # Showcase de projetos dos alunos
 │   ├── Jobs.tsx          # Quadro de vagas e estágios
 │   └── Links.tsx         # Agregador de recursos úteis
 ├── server/               # Lógica de backend

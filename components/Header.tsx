@@ -28,9 +28,10 @@ const Header: React.FC = () => {
     },
     {
       name: 'Projetos',
-      path: '/projetos',
+      path: 'https://github.com/neei-aaualg/student-showcase',
       icon: <FolderOpen size={18} />,
-      desc: 'Projetos'
+      desc: 'Showcase de projetos dos alunos',
+      isExternal: true
     },
     {
       name: 'Vagas',

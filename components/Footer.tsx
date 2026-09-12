@@ -33,7 +33,17 @@ const Footer: React.FC = () => {
             <h3 className="text-lg font-semibold mb-4 text-primary-100 dark:text-cyan-300">Links Rápidos</h3>
             <ul className="space-y-2 text-sm text-gray-300 dark:text-slate-400">
               <li><Link to="/sobre" className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Sobre Nós</Link></li>
-              <li><Link to="/projetos" className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Projetos</Link></li>
+              <li>
+                <a
+                  href="https://github.com/neei-aaualg/student-showcase"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span>Projetos</span>
+                  <ExternalLink size={12} className="opacity-75" />
+                </a>
+              </li>
               <li><Link to="/vagas" className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Oportunidades</Link></li>
               <li><Link to="/quack" className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Quack</Link></li>
               <li><Link to="/links" className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Links & QR Codes</Link></li>
