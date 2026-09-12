@@ -242,11 +242,19 @@ const HighlightsCarousel: React.FC = () => {
   });
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const updateMobile = (e: MediaQueryListEvent | MediaQueryList) => {
+      setIsMobile(e.matches);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    setIsMobile(mediaQuery.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', updateMobile);
+      return () => mediaQuery.removeEventListener('change', updateMobile);
+    } else {
+      mediaQuery.addListener(updateMobile);
+      return () => mediaQuery.removeListener(updateMobile);
+    }
   }, []);
 
   const itemsPerPage = isMobile ? 1 : 3;
@@ -402,13 +410,13 @@ const HighlightsCarousel: React.FC = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 overflow-hidden">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">Destaques do Mandato</h2>
       </div>
 
       {/* Carrossel com setas laterais flutuantes e suporte a swipe/arraste */}
-      <div className="relative group/carousel px-2 sm:px-0">
+      <div className="relative group/carousel px-1 sm:px-0">
         {/* Seta esquerda flutuante */}
         <button
           onClick={prevSlide}
@@ -429,7 +437,7 @@ const HighlightsCarousel: React.FC = () => {
 
         {/* Viewport do Carrossel com touch & swipe */}
         <div
-          className="mx-6 sm:mx-0 overflow-hidden py-3 px-1 touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          className="mx-9 sm:mx-0 overflow-hidden py-3 px-1 touch-pan-y select-none cursor-grab active:cursor-grabbing"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -442,7 +450,8 @@ const HighlightsCarousel: React.FC = () => {
           <div
             className="flex"
             style={{
-              transform: `translateX(calc(-${currentPage * 100}% + ${dragOffset}px))`,
+              width: `${totalPages * 100}%`,
+              transform: `translateX(calc(-${(currentPage * 100) / totalPages}% + ${dragOffset}px))`,
               transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.25, 1, 0.5, 1)',
             }}
           >
@@ -451,25 +460,26 @@ const HighlightsCarousel: React.FC = () => {
               return (
                 <div
                   key={pageIdx}
-                  className={`w-full flex-shrink-0 px-2 sm:px-1 ${
+                  style={{ width: `${100 / totalPages}%` }}
+                  className={`flex-shrink-0 px-2 sm:px-1 ${
                     isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
                   }`}
                 >
                   {pageItems.map((item, i) => (
                     <div
                       key={i}
-                      className="w-full h-full min-h-[220px] sm:min-h-[240px] bg-white dark:bg-[#0c1724] p-6 rounded-2xl shadow-sm border border-primary-200 dark:border-cyan-900/50 hover:border-accent-200/50 dark:hover:border-cyan-500/50 hover:shadow-xl dark:hover:shadow-cyan-950/40 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
+                      className="w-full h-full min-h-[220px] sm:min-h-[240px] bg-white dark:bg-[#0c1724] p-5 sm:p-6 rounded-2xl shadow-sm border border-primary-200 dark:border-cyan-900/50 hover:border-accent-200/50 dark:hover:border-cyan-500/50 hover:shadow-xl dark:hover:shadow-cyan-950/40 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
                     >
                       <div>
-                        <div className="flex justify-between items-start mb-5">
-                          <div className="p-3.5 bg-primary-100 dark:bg-cyan-950/60 rounded-xl group-hover:bg-accent-200/10 dark:group-hover:bg-cyan-900/40 group-hover:scale-110 transition-all duration-300 text-accent-200 dark:text-cyan-400">
+                        <div className="flex justify-between items-start mb-4 sm:mb-5">
+                          <div className="p-3 sm:p-3.5 bg-primary-100 dark:bg-cyan-950/60 rounded-xl group-hover:bg-accent-200/10 dark:group-hover:bg-cyan-900/40 group-hover:scale-110 transition-all duration-300 text-accent-200 dark:text-cyan-400">
                             {item.icon}
                           </div>
-                          <span className="text-xs font-bold text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/60 border border-primary-200 dark:border-cyan-900/60 px-2.5 py-1 rounded-full">
+                          <span className="text-xs font-bold text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/60 border border-primary-200 dark:border-cyan-900/60 px-2.5 py-1 rounded-full whitespace-nowrap">
                             {item.date}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-text-100 dark:text-slate-100 mb-2.5 group-hover:text-accent-200 dark:group-hover:text-cyan-300 transition-colors leading-snug">
+                        <h3 className="text-lg sm:text-xl font-bold text-text-100 dark:text-slate-100 mb-2 sm:mb-2.5 group-hover:text-accent-200 dark:group-hover:text-cyan-300 transition-colors leading-snug">
                           {item.title}
                         </h3>
                         <p className="text-text-200 dark:text-slate-400 text-sm leading-relaxed">

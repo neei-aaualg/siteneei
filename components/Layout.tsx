@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [location.pathname]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-100 dark:bg-[#070d14] text-text-100 dark:text-slate-100 transition-colors duration-300 relative">
+    <div className="flex flex-col min-h-screen bg-bg-100 dark:bg-[#070d14] text-text-100 dark:text-slate-100 transition-colors duration-300 relative overflow-x-hidden">
       {/* Subtle Top Route Transition Indicator */}
       {isNavigating && (
         <div className="fixed top-16 left-0 right-0 h-[2.5px] z-50 pointer-events-none overflow-hidden">
@@ -28,8 +28,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       )}
 
       <Header />
-      <main className="flex-grow flex flex-col">
-        <div key={location.pathname} className="page-transition flex-1 flex flex-col">
+      <main className="flex-grow flex flex-col overflow-x-hidden">
+        <div key={location.pathname} className="page-transition flex-1 flex flex-col overflow-x-hidden">
           {children}
         </div>
       </main>
