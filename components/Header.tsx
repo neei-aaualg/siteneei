@@ -24,7 +24,7 @@ const Header: React.FC = () => {
       name: 'Eventos',
       path: '/eventos',
       icon: <Calendar size={18} />,
-      desc: 'Eventos e atividades'
+      desc: 'Atividades e eventos'
     },
     {
       name: 'Projetos',

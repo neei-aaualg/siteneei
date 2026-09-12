@@ -196,7 +196,7 @@ export const Events: React.FC = () => {
                 Atividades & Eventos <span className="text-accent-200 dark:text-cyan-400">NEEI</span>
               </h1>
               <p className="text-lg text-text-200 dark:text-slate-300 leading-relaxed">
-                Participa nos nossos workshops práticos, hackathons, palestras de carreira e torneios de programação.
+                Participa nos nossos workshops práticos, palestras e outras atividades.
                 Garante o teu lugar nas atividades a decorrer com o teu nome e número de aluno.
               </p>
             </div>
