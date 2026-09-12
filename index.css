@@ -61,3 +61,36 @@
   background-color: #0284c7;
   color: #ffffff;
 }
+
+/* View Transitions API - Circular Expanding Theme Switch */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Disable internal component transitions during snapshot capture to prevent frame tearing */
+html.is-view-transitioning,
+html.is-view-transitioning *,
+html.is-view-transitioning *::before,
+html.is-view-transitioning *::after {
+  transition: none !important;
+}
+
+/* Synchronized smooth transition fallback for browsers without View Transitions */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease !important;
+  transition-delay: 0s !important;
+}
+

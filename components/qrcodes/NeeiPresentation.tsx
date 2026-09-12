@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import type { QRCodeCardItem } from '../../types/qrcode'
 import { QRPreview } from './QRPreview'
+import { useTheme } from '../../context/ThemeContext'
 
 const InstagramIcon = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
