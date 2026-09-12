@@ -5,7 +5,11 @@ import {
   removeRegistration,
   saveActivity,
   updateActivityStatus,
-  deleteActivity
+  deleteActivity,
+  createCollaboratorApplication,
+  getAllCollaboratorApplications,
+  updateCollaboratorStatus,
+  deleteCollaboratorApplication
 } from './db.js';
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
@@ -40,7 +44,7 @@ export function sendJson(res, statusCode, data) {
 }
 
 /**
- * Roteador de endpoints REST para Atividades e Administração
+ * Roteador de endpoints REST para Atividades, Colaboradores e Administração
  */
 export async function handleActivitiesApi(req, res, pathname) {
   try {
@@ -70,6 +74,17 @@ export async function handleActivitiesApi(req, res, pathname) {
         success: true,
         message: 'Inscrição confirmada com sucesso!',
         registration: result
+      });
+    }
+
+    // POST /api/collaborators/apply - Submeter candidatura a colaborador
+    if (pathname === '/api/collaborators/apply' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const app = createCollaboratorApplication(body);
+      return sendJson(res, 201, {
+        success: true,
+        message: 'Candidatura enviada com sucesso! Entraremos em contacto brevemente.',
+        application: app
       });
     }
 
@@ -120,6 +135,26 @@ export async function handleActivitiesApi(req, res, pathname) {
         const actId = pathname.replace('/api/admin/activities/', '').trim();
         const removed = deleteActivity(actId);
         return sendJson(res, 200, { success: removed, id: actId });
+      }
+
+      // GET /api/admin/collaborators - Listar todas as candidaturas a colaborador
+      if (pathname === '/api/admin/collaborators' && req.method === 'GET') {
+        const list = getAllCollaboratorApplications();
+        return sendJson(res, 200, list);
+      }
+
+      // POST /api/admin/collaborators/status - Atualizar estado/notas de candidatura
+      if (pathname === '/api/admin/collaborators/status' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const updated = updateCollaboratorStatus(body.id, body.status, body.notes);
+        return sendJson(res, 200, { success: updated });
+      }
+
+      // DELETE /api/admin/collaborators/:id - Eliminar candidatura
+      if (pathname.startsWith('/api/admin/collaborators/') && req.method === 'DELETE') {
+        const collabId = pathname.replace('/api/admin/collaborators/', '').trim();
+        const removed = deleteCollaboratorApplication(collabId);
+        return sendJson(res, 200, { success: removed, id: collabId });
       }
     }
 

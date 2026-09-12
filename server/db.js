@@ -84,8 +84,25 @@ db.exec(`
     UNIQUE(activity_id, student_number)
   );
 
+  CREATE TABLE IF NOT EXISTS collaborator_applications (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    student_number TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    academic_year TEXT NOT NULL,
+    course TEXT NOT NULL DEFAULT 'LEI',
+    areas_of_interest TEXT NOT NULL,
+    motivation TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'contacted', 'accepted', 'rejected')),
+    notes TEXT,
+    created_at TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_registrations_activity ON registrations(activity_id);
   CREATE INDEX IF NOT EXISTS idx_activities_status ON activities(status);
+  CREATE INDEX IF NOT EXISTS idx_collab_status ON collaborator_applications(status);
+  CREATE INDEX IF NOT EXISTS idx_collab_created ON collaborator_applications(created_at);
 `);
 
 // Lista de atividades iniciais oficiais do Calendário NEEI
@@ -532,4 +549,124 @@ export function deleteActivity(activityId) {
   const stmt = db.prepare('DELETE FROM activities WHERE id = ?');
   const result = stmt.run(activityId);
   return result.changes > 0;
+}
+
+/**
+ * Regista uma nova candidatura a colaborador
+ */
+export function createCollaboratorApplication(data) {
+  if (!data.name || typeof data.name !== 'string' || data.name.trim().length < 2) {
+    const err = new Error('Nome inválido (mínimo 2 caracteres)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanNum = (data.student_number || '').trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+  if (!/^a?\d{4,7}$/i.test(cleanNum)) {
+    const err = new Error('Número de aluno inválido (ex.: a74123 ou 74123)');
+    err.statusCode = 400;
+    throw err;
+  }
+  const studentNumber = cleanNum.startsWith('a') ? cleanNum : `a${cleanNum}`;
+
+  const cleanPhone = (data.phone || '').trim();
+  if (cleanPhone.length < 6) {
+    const err = new Error('Número de telemóvel inválido');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const email = (data.email || '').trim() || `${studentNumber}@ualg.pt`;
+  const academicYear = (data.academic_year || '1º Ano').trim();
+  const course = (data.course || 'LEI').trim();
+  const areasOfInterest = Array.isArray(data.areas_of_interest)
+    ? data.areas_of_interest.join(', ')
+    : (data.areas_of_interest || '').trim();
+  const motivation = (data.motivation || '').trim();
+  if (motivation.length < 5) {
+    const err = new Error('Por favor escreve um pequeno texto de motivação');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const id = `collab_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    INSERT INTO collaborator_applications (
+      id, name, student_number, email, phone, academic_year, course, areas_of_interest, motivation, status, notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', '', ?)
+  `);
+
+  stmt.run(
+    id,
+    data.name.trim(),
+    studentNumber,
+    email,
+    cleanPhone,
+    academicYear,
+    course,
+    areasOfInterest,
+    motivation,
+    now
+  );
+
+  return {
+    id,
+    name: data.name.trim(),
+    student_number: studentNumber,
+    email,
+    phone: cleanPhone,
+    academic_year: academicYear,
+    course,
+    areas_of_interest: areasOfInterest,
+    motivation,
+    status: 'pending',
+    notes: '',
+    created_at: now
+  };
+}
+
+/**
+ * Obtém todas as candidaturas a colaborador ordenadas pela data mais recente
+ */
+export function getAllCollaboratorApplications() {
+  const stmt = db.prepare('SELECT * FROM collaborator_applications ORDER BY created_at DESC');
+  return stmt.all();
+}
+
+/**
+ * Atualiza o estado ou notas de uma candidatura a colaborador
+ */
+export function updateCollaboratorStatus(id, status, notes) {
+  const validStatuses = ['pending', 'contacted', 'accepted', 'rejected'];
+  if (status && !validStatuses.includes(status)) {
+    const err = new Error('Estado inválido');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (status && notes !== undefined) {
+    const stmt = db.prepare('UPDATE collaborator_applications SET status = ?, notes = ? WHERE id = ?');
+    const res = stmt.run(status, notes, id);
+    return res.changes > 0;
+  } else if (status) {
+    const stmt = db.prepare('UPDATE collaborator_applications SET status = ? WHERE id = ?');
+    const res = stmt.run(status, id);
+    return res.changes > 0;
+  } else if (notes !== undefined) {
+    const stmt = db.prepare('UPDATE collaborator_applications SET notes = ? WHERE id = ?');
+    const res = stmt.run(notes, id);
+    return res.changes > 0;
+  }
+  return false;
+}
+
+/**
+ * Elimina uma candidatura a colaborador
+ */
+export function deleteCollaboratorApplication(id) {
+  const stmt = db.prepare('DELETE FROM collaborator_applications WHERE id = ?');
+  const res = stmt.run(id);
+  return res.changes > 0;
 }

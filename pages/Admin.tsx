@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Lock,
@@ -20,9 +19,16 @@ import {
   ChevronUp,
   X,
   FileSpreadsheet,
-  Pencil
+  Pencil,
+  UserPlus,
+  Mail,
+  Phone,
+  Search,
+  MessageSquare,
+  GraduationCap
 } from 'lucide-react';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
+import { CollaboratorApplication, CollaboratorStatus } from '../types/collaborators';
 import { formatDateDDMMAAAA, formatDateTimeDDMMAAAA } from '../utils/dateHelpers';
 import {
   adminLogin,
@@ -34,6 +40,11 @@ import {
   getStoredAdminToken,
   clearStoredAdminToken
 } from '../services/activitiesService';
+import {
+  fetchAdminCollaborators,
+  updateCollaboratorStatus as apiUpdateCollaboratorStatus,
+  deleteCollaboratorApplication as apiDeleteCollaboratorApplication
+} from '../services/collaboratorsService';
 
 export const Admin: React.FC = () => {
   const [token, setToken] = useState<string | null>(() => getStoredAdminToken());
@@ -75,14 +86,31 @@ export const Admin: React.FC = () => {
   const [formSpeaker, setFormSpeaker] = useState('');
   const [formRegistrationOpensAt, setFormRegistrationOpensAt] = useState('');
 
+  // Separador Ativo
+  const [activeTab, setActiveTab] = useState<'activities' | 'collaborators'>('activities');
+
+  // Dados de Colaboradores
+  const [collaborators, setCollaborators] = useState<CollaboratorApplication[]>([]);
+  const [collabSearch, setCollabSearch] = useState('');
+  const [collabFilterStatus, setCollabFilterStatus] = useState<'all' | CollaboratorStatus>('all');
+  const [confirmDeleteCollab, setConfirmDeleteCollab] = useState<{ id: string; name: string } | null>(null);
+  const [updatingCollabId, setUpdatingCollabId] = useState<string | null>(null);
+
   const loadDashboardData = async (activeToken: string) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchAdminActivities(activeToken);
-      setActivities(data);
+      const [actData, collabData] = await Promise.all([
+        fetchAdminActivities(activeToken),
+        fetchAdminCollaborators(activeToken).catch(err => {
+          console.error('Error fetching collaborators:', err);
+          return [] as CollaboratorApplication[];
+        })
+      ]);
+      setActivities(actData);
+      setCollaborators(collabData);
       // Expande por padrão a primeira atividade a decorrer se existir
-      const ongoing = data.find(a => a.status === 'ongoing');
+      const ongoing = actData.find(a => a.status === 'ongoing');
       if (ongoing && !expandedActivityId) {
         setExpandedActivityId(ongoing.id);
       }
@@ -284,6 +312,115 @@ export const Admin: React.FC = () => {
     }
   };
 
+  // Ações de Colaboradores
+  const handleUpdateCollabStatus = async (collabId: string, newStatus: CollaboratorStatus) => {
+    if (!token) return;
+    try {
+      setUpdatingCollabId(collabId);
+      await apiUpdateCollaboratorStatus(token, collabId, newStatus);
+      setCollaborators(prev =>
+        prev.map(c => (c.id === collabId ? { ...c, status: newStatus } : c))
+      );
+      showFeedback(collabId, `Estado atualizado para "${getCollabStatusLabel(newStatus)}"`);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao atualizar estado da candidatura');
+    } finally {
+      setUpdatingCollabId(null);
+    }
+  };
+
+  const handleDeleteCollab = async (collabId: string) => {
+    if (!token) return;
+    try {
+      await apiDeleteCollaboratorApplication(token, collabId);
+      setCollaborators(prev => prev.filter(c => c.id !== collabId));
+      setConfirmDeleteCollab(null);
+      showFeedback('collab-deleted', 'Candidatura removida com sucesso!');
+    } catch (err: any) {
+      alert(err.message || 'Erro ao eliminar candidatura');
+    }
+  };
+
+  const copyCollabEmails = () => {
+    if (filteredCollaborators.length === 0) {
+      alert('Não existem candidaturas para copiar.');
+      return;
+    }
+    const emails = filteredCollaborators
+      .map(c => c.email || `${c.student_number}@ualg.pt`)
+      .filter(Boolean)
+      .join('; ');
+    navigator.clipboard.writeText(emails);
+    showFeedback('copy-collabs', `${filteredCollaborators.length} emails de colaboradores copiados!`);
+  };
+
+  const exportCollabCsv = () => {
+    if (filteredCollaborators.length === 0) {
+      alert('Não existem candidaturas para exportar.');
+      return;
+    }
+
+    let csvContent = 'data:text/csv;charset=utf-8,';
+    csvContent += 'Nome,Numero de Aluno,Email,Telemovel,Curso,Ano,Areas de Interesse,Estado,Data Submissao,Motivacao\n';
+
+    filteredCollaborators.forEach(c => {
+      const regDate = formatDateTimeDDMMAAAA(c.created_at);
+      const safeMotiv = (c.motivation || '').replace(/"/g, '""').replace(/\n/g, ' ');
+      const safeAreas = (c.areas_of_interest || '').replace(/"/g, '""');
+      csvContent += `"${c.name}","${c.student_number}","${c.email}","${c.phone}","${c.course}","${c.academic_year}","${safeAreas}","${getCollabStatusLabel(c.status)}","${regDate}","${safeMotiv}"\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `candidaturas_colaboradores_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getCollabStatusLabel = (status: CollaboratorStatus) => {
+    switch (status) {
+      case 'pending':
+        return 'Pendente';
+      case 'contacted':
+        return 'Contactado';
+      case 'accepted':
+        return 'Aceite';
+      case 'rejected':
+        return 'Rejeitado';
+    }
+  };
+
+  const getCollabStatusBadgeClass = (status: CollaboratorStatus) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+      case 'contacted':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-300 dark:border-blue-800';
+      case 'accepted':
+        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800';
+      case 'rejected':
+        return 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400 border-gray-300 dark:border-slate-700';
+    }
+  };
+
+  // Filtragem de Colaboradores
+  const filteredCollaborators = collaborators.filter(c => {
+    const matchesStatus = collabFilterStatus === 'all' || c.status === collabFilterStatus;
+    const q = collabSearch.toLowerCase().trim();
+    const matchesQuery =
+      !q ||
+      c.name.toLowerCase().includes(q) ||
+      c.student_number.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q) ||
+      c.course.toLowerCase().includes(q) ||
+      (c.areas_of_interest && c.areas_of_interest.toLowerCase().includes(q));
+    return matchesStatus && matchesQuery;
+  });
+
+  const pendingCollabCount = collaborators.filter(c => c.status === 'pending').length;
+
   // Cálculos de Resumo
   const totalRegistrations = activities.reduce((acc, a) => acc + (a.registrations?.length || 0), 0);
   const ongoingCount = activities.filter(a => a.status === 'ongoing').length;
@@ -401,13 +538,15 @@ export const Admin: React.FC = () => {
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             </button>
 
-            <button
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white font-semibold text-xs sm:text-sm shadow-md transition"
-            >
-              <Plus size={16} />
-              <span>Nova Atividade</span>
-            </button>
+            {activeTab === 'activities' && (
+              <button
+                onClick={openCreateModal}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white font-semibold text-xs sm:text-sm shadow-md transition"
+              >
+                <Plus size={16} />
+                <span>Nova Atividade</span>
+              </button>
+            )}
 
             <button
               onClick={handleLogout}
@@ -432,308 +571,629 @@ export const Admin: React.FC = () => {
           </div>
         )}
 
-        {/* Resumo Métricas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
-                Total de Inscritos
-              </span>
-              <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
-                {totalRegistrations}
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Users size={24} />
-            </div>
-          </div>
+        {/* Navegação por Separadores */}
+        <div className="flex border-b border-gray-200 dark:border-slate-800 gap-2 sm:gap-6">
+          <button
+            onClick={() => setActiveTab('activities')}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'activities'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              }`}
+          >
+            <Calendar size={18} />
+            <span>Atividades & Inscrições ({activities.length})</span>
+          </button>
 
-          <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
-                Atividades A Decorrer
+          <button
+            onClick={() => setActiveTab('collaborators')}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'collaborators'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              }`}
+          >
+            <UserPlus size={18} />
+            <span>Pedidos de Colaborador</span>
+            {pendingCollabCount > 0 ? (
+              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white animate-pulse">
+                {pendingCollabCount} novo{pendingCollabCount > 1 ? 's' : ''}
               </span>
-              <div className="text-3xl font-extrabold text-accent-200 dark:text-cyan-400 mt-1">
-                {ongoingCount}
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-accent-100/30 dark:bg-cyan-500/10 text-accent-200 dark:text-cyan-400 flex items-center justify-center">
-              <Calendar size={24} />
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
-                Atividades Agendadas
+            ) : (
+              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400">
+                {collaborators.length}
               </span>
-              <div className="text-3xl font-extrabold text-primary-300 dark:text-slate-200 mt-1">
-                {upcomingCount}
-              </div>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-primary-100/50 dark:bg-slate-800 text-primary-300 dark:text-slate-300 flex items-center justify-center">
-              <Clock size={24} />
-            </div>
-          </div>
+            )}
+          </button>
         </div>
 
-        {/* Lista de Atividades & Inscrições */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg sm:text-xl font-bold text-text-100 dark:text-white">
-              Atividades Registadas ({activities.length})
-            </h2>
-            <span className="text-xs text-text-200 dark:text-slate-400">
-              Clica numa atividade para ver os alunos inscritos
-            </span>
-          </div>
-
-          {loading && activities.length === 0 ? (
-            <div className="py-16 text-center">
-              <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
-              <p className="text-sm text-text-200 dark:text-slate-400">A carregar atividades...</p>
-            </div>
-          ) : error ? (
-            <div className="p-6 bg-red-50 dark:bg-red-950/30 border border-red-200 rounded-2xl text-center text-red-600">
-              {error}
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-300 dark:border-slate-800">
-              <p className="text-text-200 dark:text-slate-400">Nenhuma atividade registada.</p>
-              <button
-                onClick={openCreateModal}
-                className="mt-3 px-4 py-2 bg-accent-200 text-white rounded-xl text-sm font-semibold"
-              >
-                Criar Primeira Atividade
-              </button>
-            </div>
-          ) : (
-            activities.map(activity => {
-              const isExpanded = expandedActivityId === activity.id;
-              const registrations = activity.registrations || [];
-
-              return (
-                <div
-                  key={activity.id}
-                  className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
-                    ? 'border-emerald-500/40 dark:border-emerald-500/30'
-                    : 'border-gray-200 dark:border-cyan-950/60'
-                    }`}
-                >
-                  {/* Cabeçalho do Card da Atividade */}
-                  <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
-                    <div
-                      className="flex-1 min-w-[260px] cursor-pointer"
-                      onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                            : activity.status === 'upcoming'
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-                              : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
-                            }`}
-                        >
-                          {activity.status === 'ongoing'
-                            ? '● A Decorrer'
-                            : activity.status === 'upcoming'
-                              ? '○ Futura'
-                              : 'Concluída'}
-                        </span>
-                        <span className="text-xs font-semibold text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                          {activity.category}
-                        </span>
-                        <span className="text-xs text-text-200 dark:text-slate-400 flex items-center gap-1">
-                          <Calendar size={12} /> {formatDateDDMMAAAA(activity.date)}
-                        </span>
-                        {activity.registration_opens_at && (
-                          <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 px-2 py-0.5 rounded-full flex items-center gap-1">
-                            <Calendar size={10} />
-                            Abre a {formatDateDDMMAAAA(activity.registration_opens_at)}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-lg font-bold text-text-100 dark:text-white flex items-center gap-2">
-                        <span>{activity.title}</span>
-                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      </h3>
-
-                      <p className="text-xs text-text-200 dark:text-slate-400 line-clamp-1 mt-1">
-                        {activity.location} • {activity.time}
-                      </p>
-                    </div>
-
-                    {/* Ações e Contagem de Inscritos */}
-                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                      {/* Badge de Inscritos */}
-                      <button
-                        onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-xs font-semibold text-text-100 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
-                      >
-                        <Users size={14} className="text-accent-200 dark:text-cyan-400" />
-                        <span>{registrations.length} inscritos</span>
-                      </button>
-
-                      {/* Botão de Alterar Estado */}
-                      <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
-                        <button
-                          onClick={() => handleToggleStatus(activity, 'ongoing')}
-                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                            }`}
-                        >
-                          A Decorrer
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(activity, 'upcoming')}
-                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                            }`}
-                        >
-                          Futura
-                        </button>
-                      </div>
-
-                      {/* Ações rápidas */}
-                      <button
-                        onClick={() => copyEmailsToClipboard(activity)}
-                        className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                        title="Copiar lista de emails institucionais"
-                      >
-                        <Copy size={16} />
-                      </button>
-
-                      <button
-                        onClick={() => exportCsv(activity)}
-                        className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                        title="Descarregar CSV com nomes e números"
-                      >
-                        <Download size={16} />
-                      </button>
-
-                      <button
-                        onClick={() => openEditModal(activity)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/50 dark:hover:bg-cyan-500/30 shadow-sm transition-all"
-                        title="Editar dados da atividade"
-                      >
-                        <Pencil size={13} className="text-sky-600 dark:text-cyan-400" />
-                        <span>Editar</span>
-                      </button>
-
-                      <button
-                        onClick={() => setConfirmDeleteAct(activity.id)}
-                        className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
-                        title="Eliminar atividade"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+        {activeTab === 'activities' ? (
+          <>
+            {/* Resumo Métricas Atividades */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Total de Inscritos
+                  </span>
+                  <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                    {totalRegistrations}
                   </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Users size={24} />
+                </div>
+              </div>
 
-                  {/* Detalhes Expansíveis: Tabela de Alunos Inscritos */}
-                  {isExpanded && (
-                    <div className="border-t border-gray-100 dark:border-slate-800/80 bg-gray-50/50 dark:bg-slate-900/40 p-5 sm:p-6">
-                      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                        <div className="flex items-center gap-2">
-                          <Users size={16} className="text-emerald-600 dark:text-emerald-400" />
-                          <h4 className="text-sm font-bold text-text-100 dark:text-white">
-                            Estudantes Inscritos ({registrations.length})
-                          </h4>
-                        </div>
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Atividades A Decorrer
+                  </span>
+                  <div className="text-3xl font-extrabold text-accent-200 dark:text-cyan-400 mt-1">
+                    {ongoingCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-accent-100/30 dark:bg-cyan-500/10 text-accent-200 dark:text-cyan-400 flex items-center justify-center">
+                  <Calendar size={24} />
+                </div>
+              </div>
 
-                        {registrations.length > 0 && (
-                          <div className="flex items-center gap-2 text-xs">
-                            <button
-                              onClick={() => copyEmailsToClipboard(activity)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-text-100 dark:text-slate-200 hover:bg-gray-50 transition"
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Atividades Agendadas
+                  </span>
+                  <div className="text-3xl font-extrabold text-primary-300 dark:text-slate-200 mt-1">
+                    {upcomingCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-primary-100/50 dark:bg-slate-800 text-primary-300 dark:text-slate-300 flex items-center justify-center">
+                  <Clock size={24} />
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de Atividades & Inscrições */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg sm:text-xl font-bold text-text-100 dark:text-white">
+                  Atividades Registadas ({activities.length})
+                </h2>
+                <span className="text-xs text-text-200 dark:text-slate-400">
+                  Clica numa atividade para ver os alunos inscritos
+                </span>
+              </div>
+
+              {loading && activities.length === 0 ? (
+                <div className="py-16 text-center">
+                  <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
+                  <p className="text-sm text-text-200 dark:text-slate-400">A carregar atividades...</p>
+                </div>
+              ) : error ? (
+                <div className="p-6 bg-red-50 dark:bg-red-950/30 border border-red-200 rounded-2xl text-center text-red-600">
+                  {error}
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-300 dark:border-slate-800">
+                  <p className="text-text-200 dark:text-slate-400">Nenhuma atividade registada.</p>
+                  <button
+                    onClick={openCreateModal}
+                    className="mt-3 px-4 py-2 bg-accent-200 text-white rounded-xl text-sm font-semibold"
+                  >
+                    Criar Primeira Atividade
+                  </button>
+                </div>
+              ) : (
+                activities.map(activity => {
+                  const isExpanded = expandedActivityId === activity.id;
+                  const registrations = activity.registrations || [];
+
+                  return (
+                    <div
+                      key={activity.id}
+                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
+                        ? 'border-emerald-500/40 dark:border-emerald-500/30'
+                        : 'border-gray-200 dark:border-cyan-950/60'
+                        }`}
+                    >
+                      {/* Cabeçalho do Card da Atividade */}
+                      <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
+                        <div
+                          className="flex-1 min-w-[260px] cursor-pointer"
+                          onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <span
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                : activity.status === 'upcoming'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                                  : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
+                                }`}
                             >
-                              <Copy size={12} />
-                              <span>Copiar Emails</span>
-                            </button>
-                            <button
-                              onClick={() => exportCsv(activity)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-text-100 dark:text-slate-200 hover:bg-gray-50 transition"
-                            >
-                              <FileSpreadsheet size={12} />
-                              <span>Exportar CSV</span>
-                            </button>
+                              {activity.status === 'ongoing'
+                                ? '● A Decorrer'
+                                : activity.status === 'upcoming'
+                                  ? '○ Futura'
+                                  : 'Concluída'}
+                            </span>
+                            <span className="text-xs font-semibold text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                              {activity.category}
+                            </span>
+                            <span className="text-xs text-text-200 dark:text-slate-400 flex items-center gap-1">
+                              <Calendar size={12} /> {formatDateDDMMAAAA(activity.date)}
+                            </span>
+                            {activity.registration_opens_at && (
+                              <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <Calendar size={10} />
+                                Abre a {formatDateDDMMAAAA(activity.registration_opens_at)}
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {registrations.length === 0 ? (
-                        <div className="py-8 text-center bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-gray-200 dark:border-slate-800">
-                          <Users size={28} className="mx-auto text-gray-300 dark:text-slate-600 mb-2" />
-                          <p className="text-xs font-medium text-text-200 dark:text-slate-400">
-                            Ainda não existem inscrições registadas para esta atividade.
+                          <h3 className="text-lg font-bold text-text-100 dark:text-white flex items-center gap-2">
+                            <span>{activity.title}</span>
+                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                          </h3>
+
+                          <p className="text-xs text-text-200 dark:text-slate-400 line-clamp-1 mt-1">
+                            {activity.location} • {activity.time}
                           </p>
                         </div>
-                      ) : (
-                        <div className="overflow-x-auto bg-white dark:bg-slate-900/80 rounded-xl border border-gray-200 dark:border-slate-800">
-                          <table className="w-full text-left text-xs">
-                            <thead className="bg-gray-50 dark:bg-slate-800/80 text-text-200 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
-                              <tr>
-                                <th className="py-3 px-4 font-semibold">#</th>
-                                <th className="py-3 px-4 font-semibold">Nome Completo</th>
-                                <th className="py-3 px-4 font-semibold">Nº de Aluno</th>
-                                <th className="py-3 px-4 font-semibold">Email Institucional</th>
-                                <th className="py-3 px-4 font-semibold">Data / Hora</th>
-                                <th className="py-3 px-4 font-semibold text-right">Ação</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
-                              {registrations.map((reg, index) => {
-                                const regDate = formatDateTimeDDMMAAAA(reg.registered_at);
 
-                                return (
-                                  <tr key={reg.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition">
-                                    <td className="py-3 px-4 text-gray-400 font-mono">{index + 1}</td>
-                                    <td className="py-3 px-4 font-semibold text-text-100 dark:text-white">
-                                      {reg.student_name}
-                                    </td>
-                                    <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
-                                      {reg.student_number}
-                                    </td>
-                                    <td className="py-3 px-4 text-text-200 dark:text-slate-400 font-mono">
-                                      {reg.student_number}@ualg.pt
-                                    </td>
-                                    <td className="py-3 px-4 text-text-200 dark:text-slate-400">
-                                      {regDate}
-                                    </td>
-                                    <td className="py-3 px-4 text-right">
-                                      <button
-                                        onClick={() =>
-                                          setConfirmDeleteReg({
-                                            regId: reg.id,
-                                            studentName: reg.student_name,
-                                            studentNumber: reg.student_number,
-                                            activityId: activity.id
-                                          })
-                                        }
-                                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition font-medium text-[11px]"
-                                      >
-                                        <Trash2 size={12} />
-                                        <span>Desinscrever</span>
-                                      </button>
-                                    </td>
+                        {/* Ações e Contagem de Inscritos */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                          {/* Badge de Inscritos */}
+                          <button
+                            onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-xs font-semibold text-text-100 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                          >
+                            <Users size={14} className="text-accent-200 dark:text-cyan-400" />
+                            <span>{registrations.length} inscritos</span>
+                          </button>
+
+                          {/* Botão de Alterar Estado */}
+                          <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
+                            <button
+                              onClick={() => handleToggleStatus(activity, 'ongoing')}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                                }`}
+                            >
+                              A Decorrer
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(activity, 'upcoming')}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                                }`}
+                            >
+                              Futura
+                            </button>
+                          </div>
+
+                          {/* Ações rápidas */}
+                          <button
+                            onClick={() => copyEmailsToClipboard(activity)}
+                            className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                            title="Copiar lista de emails institucionais"
+                          >
+                            <Copy size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => exportCsv(activity)}
+                            className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                            title="Descarregar CSV com nomes e números"
+                          >
+                            <Download size={16} />
+                          </button>
+
+                          <button
+                            onClick={() => openEditModal(activity)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/50 dark:hover:bg-cyan-500/30 shadow-sm transition-all"
+                            title="Editar dados da atividade"
+                          >
+                            <Pencil size={13} className="text-sky-600 dark:text-cyan-400" />
+                            <span>Editar</span>
+                          </button>
+
+                          <button
+                            onClick={() => setConfirmDeleteAct(activity.id)}
+                            className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                            title="Eliminar atividade"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Detalhes Expansíveis: Tabela de Alunos Inscritos */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 dark:border-slate-800/80 bg-gray-50/50 dark:bg-slate-900/40 p-5 sm:p-6">
+                          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Users size={16} className="text-emerald-600 dark:text-emerald-400" />
+                              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                                Estudantes Inscritos ({registrations.length})
+                              </h4>
+                            </div>
+
+                            {registrations.length > 0 && (
+                              <div className="flex items-center gap-2 text-xs">
+                                <button
+                                  onClick={() => copyEmailsToClipboard(activity)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-text-100 dark:text-slate-200 hover:bg-gray-50 transition"
+                                >
+                                  <Copy size={12} />
+                                  <span>Copiar Emails</span>
+                                </button>
+                                <button
+                                  onClick={() => exportCsv(activity)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg text-text-100 dark:text-slate-200 hover:bg-gray-50 transition"
+                                >
+                                  <FileSpreadsheet size={12} />
+                                  <span>Exportar CSV</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {registrations.length === 0 ? (
+                            <div className="py-8 text-center bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-gray-200 dark:border-slate-800">
+                              <Users size={28} className="mx-auto text-gray-300 dark:text-slate-600 mb-2" />
+                              <p className="text-xs font-medium text-text-200 dark:text-slate-400">
+                                Ainda não existem inscrições registadas para esta atividade.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto bg-white dark:bg-slate-900/80 rounded-xl border border-gray-200 dark:border-slate-800">
+                              <table className="w-full text-left text-xs">
+                                <thead className="bg-gray-50 dark:bg-slate-800/80 text-text-200 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
+                                  <tr>
+                                    <th className="py-3 px-4 font-semibold">#</th>
+                                    <th className="py-3 px-4 font-semibold">Nome Completo</th>
+                                    <th className="py-3 px-4 font-semibold">Nº de Aluno</th>
+                                    <th className="py-3 px-4 font-semibold">Email Institucional</th>
+                                    <th className="py-3 px-4 font-semibold">Data / Hora</th>
+                                    <th className="py-3 px-4 font-semibold text-right">Ação</th>
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+                                  {registrations.map((reg, index) => {
+                                    const regDate = formatDateTimeDDMMAAAA(reg.registered_at);
+
+                                    return (
+                                      <tr key={reg.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition">
+                                        <td className="py-3 px-4 text-gray-400 font-mono">{index + 1}</td>
+                                        <td className="py-3 px-4 font-semibold text-text-100 dark:text-white">
+                                          {reg.student_name}
+                                        </td>
+                                        <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                                          {reg.student_number}
+                                        </td>
+                                        <td className="py-3 px-4 text-text-200 dark:text-slate-400 font-mono">
+                                          {reg.student_number}@ualg.pt
+                                        </td>
+                                        <td className="py-3 px-4 text-text-200 dark:text-slate-400">
+                                          {regDate}
+                                        </td>
+                                        <td className="py-3 px-4 text-right">
+                                          <button
+                                            onClick={() =>
+                                              setConfirmDeleteReg({
+                                                regId: reg.id,
+                                                studentName: reg.student_name,
+                                                studentNumber: reg.student_number,
+                                                activityId: activity.id
+                                              })
+                                            }
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition font-medium text-[11px]"
+                                          >
+                                            <Trash2 size={12} />
+                                            <span>Desinscrever</span>
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+        ) : (
+          /* SEPARADOR: CANDIDATURAS A COLABORADOR */
+          <div className="space-y-6">
+            {/* Métricas de Colaboradores */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Total Pedidos
+                  </span>
+                  <div className="text-3xl font-extrabold text-accent-200 dark:text-cyan-400 mt-1">
+                    {collaborators.length}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-accent-100/30 dark:bg-cyan-500/10 text-accent-200 dark:text-cyan-400 flex items-center justify-center">
+                  <UserPlus size={24} />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Pendentes
+                  </span>
+                  <div className="text-3xl font-extrabold text-amber-500 mt-1">
+                    {pendingCollabCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-500 flex items-center justify-center">
+                  <Clock size={24} />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Contactados
+                  </span>
+                  <div className="text-3xl font-extrabold text-blue-500 mt-1">
+                    {collaborators.filter(c => c.status === 'contacted').length}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-500 flex items-center justify-center">
+                  <Mail size={24} />
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Aceites / Ativos
+                  </span>
+                  <div className="text-3xl font-extrabold text-emerald-500 mt-1">
+                    {collaborators.filter(c => c.status === 'accepted').length}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-500 flex items-center justify-center">
+                  <Check size={24} />
+                </div>
+              </div>
+            </div>
+
+            {/* Barra de Filtros e Ações */}
+            <div className="bg-white dark:bg-[#0c1724] p-4 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="w-full md:w-auto flex flex-wrap items-center gap-3 flex-1">
+                <div className="relative w-full sm:w-72">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar candidato, nº, curso..."
+                    value={collabSearch}
+                    onChange={e => setCollabSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-text-100 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-200/30"
+                  />
+                  {collabSearch && (
+                    <button
+                      onClick={() => setCollabSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={14} />
+                    </button>
                   )}
                 </div>
-              );
-            })
-          )}
-        </div>
+
+                {/* Filtros de Estado */}
+                <div className="flex flex-wrap gap-1.5">
+                  {(['all', 'pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
+                    const label = st === 'all' ? 'Todos' : getCollabStatusLabel(st as CollaboratorStatus);
+                    const count = st === 'all' ? collaborators.length : collaborators.filter(c => c.status === st).length;
+                    const isSelected = collabFilterStatus === st;
+
+                    return (
+                      <button
+                        key={st}
+                        onClick={() => setCollabFilterStatus(st)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
+                            ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
+                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          }`}
+                      >
+                        {label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Botões de Ação em Lote */}
+              <div className="w-full md:w-auto flex items-center justify-end gap-2 shrink-0">
+                <button
+                  onClick={copyCollabEmails}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-xs font-semibold text-text-100 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                  title="Copiar emails dos candidatos filtrados"
+                >
+                  <Copy size={14} />
+                  <span>Copiar Emails</span>
+                </button>
+                <button
+                  onClick={exportCollabCsv}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm transition"
+                  title="Exportar tabela de candidatos para CSV"
+                >
+                  <FileSpreadsheet size={14} />
+                  <span>Exportar CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Lista de Pedidos de Colaborador */}
+            {loading && collaborators.length === 0 ? (
+              <div className="py-16 text-center">
+                <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
+                <p className="text-sm text-text-200 dark:text-slate-400">A carregar candidaturas a colaborador...</p>
+              </div>
+            ) : filteredCollaborators.length === 0 ? (
+              <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-300 dark:border-slate-800">
+                <UserPlus size={40} className="mx-auto text-gray-300 dark:text-slate-700 mb-3" />
+                <p className="text-base font-semibold text-text-100 dark:text-white">
+                  Nenhuma candidatura a colaborador encontrada.
+                </p>
+                <p className="text-xs text-text-200 dark:text-slate-400 mt-1">
+                  {collabSearch || collabFilterStatus !== 'all'
+                    ? 'Tenta ajustar os filtros de pesquisa.'
+                    : 'Os pedidos submetidos na página de colaboração surgirão aqui.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredCollaborators.map(collab => {
+                  const regDate = formatDateTimeDDMMAAAA(collab.created_at);
+                  const isUpdating = updatingCollabId === collab.id;
+                  const areasList = collab.areas_of_interest
+                    ? collab.areas_of_interest.split(',').map(s => s.trim()).filter(Boolean)
+                    : [];
+
+                  return (
+                    <div
+                      key={collab.id}
+                      className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-cyan-950/70 p-5 sm:p-6 shadow-sm hover:border-gray-300 dark:hover:border-cyan-800/80 transition-all space-y-4"
+                    >
+                      {/* Top Header do Cartão */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-slate-800">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="text-base font-bold text-text-100 dark:text-white">
+                              {collab.name}
+                            </span>
+                            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300">
+                              {collab.student_number}
+                            </span>
+                            <span className="text-xs text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                              {collab.academic_year} • {collab.course}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-text-200 dark:text-slate-400 flex items-center gap-1">
+                            <Clock size={12} />
+                            Submetido a {regDate}
+                          </span>
+                        </div>
+
+                        {/* Seletor de Estado Rápido */}
+                        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+                          {(['pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
+                            const isCurrent = collab.status === st;
+                            return (
+                              <button
+                                key={st}
+                                disabled={isUpdating}
+                                onClick={() => handleUpdateCollabStatus(collab.id, st)}
+                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
+                                    ? getCollabStatusBadgeClass(st)
+                                    : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
+                                  }`}
+                              >
+                                {isCurrent && isUpdating ? (
+                                  <Loader2 size={12} className="animate-spin inline mr-1" />
+                                ) : null}
+                                {getCollabStatusLabel(st)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Contactos & Áreas de Interesse */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-text-200 dark:text-slate-300 bg-gray-50/70 dark:bg-[#081320]/60 p-3.5 rounded-xl border border-gray-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-2 truncate">
+                          <Mail size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <a
+                            href={`mailto:${collab.email}`}
+                            className="hover:text-accent-200 dark:hover:text-cyan-400 truncate"
+                          >
+                            {collab.email}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 truncate">
+                          <Phone size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <a
+                            href={`tel:${collab.phone}`}
+                            className="hover:text-accent-200 dark:hover:text-cyan-400 truncate"
+                          >
+                            {collab.phone}
+                          </a>
+                        </div>
+                        <div className="flex items-center gap-2 truncate">
+                          <GraduationCap size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <span className="truncate">{collab.course}</span>
+                        </div>
+                      </div>
+
+                      {/* Áreas de Interesse */}
+                      {areasList.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 mr-1">
+                            Áreas de Interesse:
+                          </span>
+                          {areasList.map(area => (
+                            <span
+                              key={area}
+                              className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-primary-100/70 dark:bg-slate-800 text-primary-300 dark:text-cyan-300 border border-transparent dark:border-slate-700"
+                            >
+                              {area}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Texto de Motivação */}
+                      <div className="space-y-1.5">
+                        <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 flex items-center gap-1">
+                          <MessageSquare size={13} className="text-accent-200 dark:text-cyan-400" />
+                          <span>Texto de Motivação:</span>
+                        </span>
+                        <div className="p-3 rounded-xl bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 text-xs text-text-100 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
+                          {collab.motivation}
+                        </div>
+                      </div>
+
+                      {/* Ações do Cartão */}
+                      <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-slate-800/80">
+                        <a
+                          href={`mailto:${collab.email}?subject=NEEI%20-%20Candidatura%20a%20Colaborador`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-200 dark:text-cyan-400 hover:underline"
+                        >
+                          <Mail size={13} />
+                          <span>Enviar Email ao Candidato</span>
+                        </a>
+
+                        <button
+                          onClick={() => setConfirmDeleteCollab({ id: collab.id, name: collab.name })}
+                          className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition text-xs font-semibold flex items-center gap-1"
+                          title="Eliminar esta candidatura"
+                        >
+                          <Trash2 size={14} />
+                          <span className="hidden sm:inline">Eliminar</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO DE INSCRIÇÃO */}

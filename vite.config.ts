@@ -9,7 +9,12 @@ function activitiesApiPlugin() {
       server.middlewares.use(async (req: any, res: any, next: any) => {
         try {
           const url = new URL(req.url, 'http://localhost');
-          if (url.pathname.startsWith('/api/activities') || url.pathname.startsWith('/api/admin/')) {
+          if (
+            url.pathname.startsWith('/api/activities') ||
+            url.pathname.startsWith('/api/admin/') ||
+            url.pathname.startsWith('/api/collaborators') ||
+            url.pathname === '/api/config'
+          ) {
             const { handleActivitiesApi } = await import('./server/api.js');
             const handled = await handleActivitiesApi(req, res, url.pathname);
             if (handled !== false) return;

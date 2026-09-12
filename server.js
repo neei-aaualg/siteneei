@@ -238,8 +238,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API Atividades e Administração NEEI
-  if (pathname.startsWith('/api/activities') || pathname.startsWith('/api/admin/')) {
+  // API Atividades, Colaboradores e Administração NEEI
+  if (
+    pathname.startsWith('/api/activities') ||
+    pathname.startsWith('/api/admin/') ||
+    pathname.startsWith('/api/collaborators') ||
+    pathname === '/api/config'
+  ) {
     const handled = await handleActivitiesApi(req, res, pathname);
     if (handled !== false) return;
   }
