@@ -377,7 +377,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
 
               <div className="flex items-center gap-2.5 shrink-0">
                 <a
-                  href="https://neei.online/#/links"
+                  href="https://neei.online/links"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-mono text-sm sm:text-base font-bold transition-all group cursor-pointer border shadow-md ${
@@ -387,15 +387,15 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                   }`}
                 >
                   <Globe className="w-4 h-4 transition-transform group-hover:rotate-12" />
-                  <span>neei.online/#/links</span>
+                  <span>neei.online/links</span>
                   <ExternalLink className="w-3.5 h-3.5 opacity-80" />
                 </a>
 
                 <button
                   type="button"
-                  onClick={() => handleCopy('https://neei.online/#/links', 'neei.online/#/links')}
+                  onClick={() => handleCopy('https://neei.online/links', 'neei.online/links')}
                   className={`flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-xs font-semibold border transition-all cursor-pointer ${
-                    copiedLink === 'https://neei.online/#/links'
+                    copiedLink === 'https://neei.online/links'
                       ? 'bg-emerald-600 text-white border-emerald-500'
                       : isDark
                       ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
@@ -403,7 +403,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                   }`}
                   title="Copiar link"
                 >
-                  {copiedLink === 'https://neei.online/#/links' ? (
+                  {copiedLink === 'https://neei.online/links' ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-white" />
                       <span>Copiado</span>
