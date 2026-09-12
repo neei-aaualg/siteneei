@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase } from 'lucide-react';
+import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, QrCode } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,6 +27,12 @@ const Header: React.FC = () => {
       path: '/vagas',
       icon: <Briefcase size={18} />,
       desc: 'Estágios e oportunidades'
+    },
+    {
+      name: 'Links',
+      path: '/links',
+      icon: <QrCode size={18} />,
+      desc: 'Canais oficiais e QR Codes'
     },
   ];
 
@@ -69,7 +75,7 @@ const Header: React.FC = () => {
   }, [isExploreActive]);
 
   return (
-    <header className="sticky top-0 z-50 bg-bg-100/90 backdrop-blur-md border-b border-primary-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-bg-100/90 backdrop-blur-md border-b border-primary-200 shadow-sm print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
