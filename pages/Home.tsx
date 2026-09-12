@@ -350,10 +350,10 @@ const Home: React.FC = () => {
               Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a integração e a cooperação para uma experiência académica completa.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center md:justify-start">
-              <Link to="/pertencer" className="bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:-translate-y-1 transition-all duration-300">
+              <Link to="/colaborar" className="bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:-translate-y-1 transition-all duration-300">
                 Ser Colaborador
               </Link>
-              <Link to="/eventos" className="bg-white dark:bg-slate-900 text-accent-200 dark:text-cyan-400 border border-accent-200 dark:border-cyan-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 dark:hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-2">
+              <Link to="/atividades" className="bg-white dark:bg-slate-900 text-accent-200 dark:text-cyan-400 border border-accent-200 dark:border-cyan-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 dark:hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-2">
                 <Calendar size={20} />
                 Calendário
               </Link>

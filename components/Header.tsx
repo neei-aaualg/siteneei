@@ -21,8 +21,8 @@ const Header: React.FC = () => {
 
   const exploreItems: ExploreItem[] = [
     {
-      name: 'Eventos',
-      path: '/eventos',
+      name: 'Atividades',
+      path: '/atividades',
       icon: <Calendar size={18} />,
       desc: 'Atividades e eventos'
     },
@@ -203,8 +203,8 @@ const Header: React.FC = () => {
               </div>
 
               <Link
-                to="/pertencer"
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/pertencer')
+                to="/colaborar"
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/colaborar')
                   ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                   : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
@@ -354,9 +354,9 @@ const Header: React.FC = () => {
             </div>
 
             <Link
-              to="/pertencer"
+              to="/colaborar"
               onClick={() => setIsMenuOpen(false)}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/pertencer')
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/colaborar')
                 ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                 : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}

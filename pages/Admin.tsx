@@ -577,8 +577,8 @@ export const Admin: React.FC = () => {
           <button
             onClick={() => setActiveTab('activities')}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'activities'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <Calendar size={18} />
@@ -588,8 +588,8 @@ export const Admin: React.FC = () => {
           <button
             onClick={() => setActiveTab('collaborators')}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'collaborators'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <UserPlus size={18} />
@@ -1007,8 +1007,8 @@ export const Admin: React.FC = () => {
                         key={st}
                         onClick={() => setCollabFilterStatus(st)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
-                            ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
-                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                           }`}
                       >
                         {label} ({count})
@@ -1091,27 +1091,39 @@ export const Admin: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Seletor de Estado Rápido */}
-                        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
-                          {(['pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
-                            const isCurrent = collab.status === st;
-                            return (
-                              <button
-                                key={st}
-                                disabled={isUpdating}
-                                onClick={() => handleUpdateCollabStatus(collab.id, st)}
-                                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
+                        {/* Seletor de Estado Rápido & Ações */}
+                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {(['pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
+                              const isCurrent = collab.status === st;
+                              return (
+                                <button
+                                  key={st}
+                                  disabled={isUpdating}
+                                  onClick={() => handleUpdateCollabStatus(collab.id, st)}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
                                     ? getCollabStatusBadgeClass(st)
                                     : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
-                                  }`}
-                              >
-                                {isCurrent && isUpdating ? (
-                                  <Loader2 size={12} className="animate-spin inline mr-1" />
-                                ) : null}
-                                {getCollabStatusLabel(st)}
-                              </button>
-                            );
-                          })}
+                                    }`}
+                                >
+                                  {isCurrent && isUpdating ? (
+                                    <Loader2 size={12} className="animate-spin inline mr-1" />
+                                  ) : null}
+                                  {getCollabStatusLabel(st)}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block" />
+
+                          <button
+                            onClick={() => setConfirmDeleteCollab({ id: collab.id, name: collab.name })}
+                            className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+                            title="Eliminar esta candidatura"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
 
@@ -1167,26 +1179,6 @@ export const Admin: React.FC = () => {
                         <div className="p-3 rounded-xl bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-800 text-xs text-text-100 dark:text-slate-200 leading-relaxed whitespace-pre-wrap">
                           {collab.motivation}
                         </div>
-                      </div>
-
-                      {/* Ações do Cartão */}
-                      <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-slate-800/80">
-                        <a
-                          href={`mailto:${collab.email}?subject=NEEI%20-%20Candidatura%20a%20Colaborador`}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-200 dark:text-cyan-400 hover:underline"
-                        >
-                          <Mail size={13} />
-                          <span>Enviar Email ao Candidato</span>
-                        </a>
-
-                        <button
-                          onClick={() => setConfirmDeleteCollab({ id: collab.id, name: collab.name })}
-                          className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition text-xs font-semibold flex items-center gap-1"
-                          title="Eliminar esta candidatura"
-                        >
-                          <Trash2 size={14} />
-                          <span className="hidden sm:inline">Eliminar</span>
-                        </button>
                       </div>
                     </div>
                   );

@@ -17,21 +17,21 @@ const App: React.FC = () => {
     <ThemeProvider>
       <Router>
         <Layout>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/sobre" element={<About />} />
-          <Route path="/eventos" element={<Events />} />
-          <Route path="/atividades" element={<Events />} />
-          <Route path="/projetos" element={<Projects />} />
-          <Route path="/pertencer" element={<Join />} />
-          <Route path="/vagas" element={<Jobs />} />
-          <Route path="/quack" element={<Quack />} />
-          <Route path="/links" element={<Links />} />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-      </Layout>
-    </Router>
-  </ThemeProvider>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/sobre" element={<About />} />
+            <Route path="/eventos" element={<Events />} />
+            <Route path="/atividades" element={<Events />} />
+            <Route path="/projetos" element={<Projects />} />
+            <Route path="/colaborar" element={<Join />} />
+            <Route path="/vagas" element={<Jobs />} />
+            <Route path="/quack" element={<Quack />} />
+            <Route path="/links" element={<Links />} />
+            <Route path="/admin" element={<Admin />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </ThemeProvider>
   );
 };
 
