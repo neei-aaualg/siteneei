@@ -514,11 +514,10 @@ export const Admin: React.FC = () => {
               return (
                 <div
                   key={activity.id}
-                  className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
-                    activity.status === 'ongoing'
-                      ? 'border-emerald-500/40 dark:border-emerald-500/30'
-                      : 'border-gray-200 dark:border-cyan-950/60'
-                  }`}
+                  className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
+                    ? 'border-emerald-500/40 dark:border-emerald-500/30'
+                    : 'border-gray-200 dark:border-cyan-950/60'
+                    }`}
                 >
                   {/* Cabeçalho do Card da Atividade */}
                   <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -528,19 +527,18 @@ export const Admin: React.FC = () => {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span
-                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                            activity.status === 'ongoing'
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                              : activity.status === 'upcoming'
+                          className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                            : activity.status === 'upcoming'
                               ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
                               : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
-                          }`}
+                            }`}
                         >
                           {activity.status === 'ongoing'
                             ? '● A Decorrer'
                             : activity.status === 'upcoming'
-                            ? '○ Futura'
-                            : 'Concluída'}
+                              ? '○ Futura'
+                              : 'Concluída'}
                         </span>
                         <span className="text-xs font-semibold text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                           {activity.category}
@@ -581,21 +579,19 @@ export const Admin: React.FC = () => {
                       <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                         <button
                           onClick={() => handleToggleStatus(activity, 'ongoing')}
-                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                            activity.status === 'ongoing'
-                              ? 'bg-emerald-600 text-white shadow-sm'
-                              : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                          }`}
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                            }`}
                         >
                           A Decorrer
                         </button>
                         <button
                           onClick={() => handleToggleStatus(activity, 'upcoming')}
-                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                            activity.status === 'upcoming'
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                          }`}
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                            }`}
                         >
                           Futura
                         </button>
@@ -876,7 +872,7 @@ export const Admin: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold mb-1">Data (AAAA-MM-DD)</label>
+                  <label className="block font-semibold mb-1">Data (MM-DD-AAAA)</label>
                   <input
                     type="date"
                     required

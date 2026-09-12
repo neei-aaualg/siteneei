@@ -426,9 +426,6 @@ export const Events: React.FC = () => {
                               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100/80 dark:bg-slate-800 text-primary-300 dark:text-cyan-300 border border-transparent dark:border-slate-700">
                                 {activity.category}
                               </span>
-                              <span className="text-[11px] text-gray-500 dark:text-slate-400">
-                                Brevemente
-                              </span>
                             </div>
                           </div>
 
