@@ -569,16 +569,24 @@ export function createCollaboratorApplication(data) {
   }
   const studentNumber = cleanNum.startsWith('a') ? cleanNum : `a${cleanNum}`;
 
-  const cleanPhone = (data.phone || '').trim();
-  if (cleanPhone.length < 6) {
-    const err = new Error('Número de telemóvel inválido');
+  const cleanPhone = (data.phone || '').trim().replace(/\D/g, '');
+  if (!cleanPhone || cleanPhone.length < 9) {
+    const err = new Error('Número de telemóvel inválido (apenas dígitos, mín. 9 algarismos)');
     err.statusCode = 400;
     throw err;
   }
 
   const email = (data.email || '').trim() || `${studentNumber}@ualg.pt`;
-  const academicYear = (data.academic_year || '1º Ano').trim();
-  const course = (data.course || 'LEI').trim();
+  const course = (data.course || 'LEI (Licenciatura em Eng. Informática)').trim();
+  let academicYear = (data.academic_year || '1º Ano').trim();
+
+  // Validar limites de anos consoante o curso:
+  // Mestrado só tem 2 anos, Pós-graduação só tem 1 ano
+  if ((course.includes('Mestrado') || course.includes('MEI')) && !['1º Ano', '2º Ano'].includes(academicYear)) {
+    academicYear = '1º Ano';
+  } else if ((course.includes('Pós Graduação') || course.includes('PSC')) && academicYear !== '1º Ano') {
+    academicYear = '1º Ano';
+  }
   const areasOfInterest = Array.isArray(data.areas_of_interest)
     ? data.areas_of_interest.join(', ')
     : (data.areas_of_interest || '').trim();

@@ -24,6 +24,16 @@ const AVAILABLE_AREAS = [
   'Parcerias & Patrocínios'
 ];
 
+const COURSE_YEARS_MAP: Record<string, string[]> = {
+  'LEI (Licenciatura em Eng. Informática)': ['1º Ano', '2º Ano', '3º Ano'],
+  'MEI (Mestrado em Eng. Informática)': ['1º Ano', '2º Ano'],
+  'PSC (Pós Graduação em Cibersegurança)': ['1º Ano']
+};
+
+const getAvailableYearsForCourse = (selectedCourse: string): string[] => {
+  return COURSE_YEARS_MAP[selectedCourse] || ['1º Ano', '2º Ano', '3º Ano'];
+};
+
 export const Join: React.FC = () => {
   const [name, setName] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
@@ -53,6 +63,22 @@ export const Join: React.FC = () => {
     }
   };
 
+  const handlePhoneChange = (val: string) => {
+    // Aceita exclusivamente dígitos
+    const numericOnly = val.replace(/\D/g, '');
+    setPhone(numericOnly);
+    if (formError) setFormError(null);
+  };
+
+  const handleCourseChange = (newCourse: string) => {
+    setCourse(newCourse);
+    if (formError) setFormError(null);
+    const availableYears = getAvailableYearsForCourse(newCourse);
+    if (!availableYears.includes(academicYear)) {
+      setAcademicYear(availableYears[0]);
+    }
+  };
+
   const toggleArea = (area: string) => {
     setSelectedAreas(prev =>
       prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
@@ -64,7 +90,7 @@ export const Join: React.FC = () => {
 
     const cleanName = name.trim();
     const cleanNum = studentNumber.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
-    const cleanPhone = phone.trim();
+    const cleanPhone = phone.trim().replace(/\D/g, '');
     const cleanEmail = email.trim() || (cleanNum ? `${cleanNum.startsWith('a') ? cleanNum : 'a' + cleanNum}@ualg.pt` : '');
     const cleanMotivation = motivation.trim();
 
@@ -78,8 +104,8 @@ export const Join: React.FC = () => {
       return;
     }
 
-    if (cleanPhone.length < 6) {
-      setFormError('Por favor introduz um número de telemóvel válido');
+    if (!cleanPhone || cleanPhone.length < 9) {
+      setFormError('Por favor introduz um número de telemóvel válido (apenas números, mín. 9 dígitos)');
       return;
     }
 
@@ -301,15 +327,27 @@ export const Join: React.FC = () => {
 
                   <div>
                     <label htmlFor="collab-phone" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
-                      Nº Telemóvel *
+                      Nº Telemóvel (apenas números) *
                     </label>
                     <input
                       id="collab-phone"
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       required
-                      placeholder="ex.: 912 345 678"
+                      placeholder="ex.: 912345678"
                       value={phone}
-                      onChange={e => setPhone(e.target.value)}
+                      onKeyDown={e => {
+                        // Permite apenas dígitos e teclas de controlo/navegação
+                        if (
+                          !/^\d$/.test(e.key) &&
+                          !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(e.key) &&
+                          !e.ctrlKey && !e.metaKey
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onChange={e => handlePhoneChange(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     />
                   </div>
@@ -329,7 +367,7 @@ export const Join: React.FC = () => {
                     <select
                       id="collab-course"
                       value={course}
-                      onChange={e => setCourse(e.target.value)}
+                      onChange={e => handleCourseChange(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     >
                       <option value="LEI (Licenciatura em Eng. Informática)">LEI (Licenciatura em Eng. Informática)</option>
@@ -340,7 +378,7 @@ export const Join: React.FC = () => {
 
                   <div>
                     <label htmlFor="collab-year" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
-                      Ano de Escolaridade
+                      Ano Curricular
                     </label>
                     <select
                       id="collab-year"
@@ -348,9 +386,11 @@ export const Join: React.FC = () => {
                       onChange={e => setAcademicYear(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     >
-                      <option value="1º Ano">1º Ano</option>
-                      <option value="2º Ano">2º Ano</option>
-                      <option value="3º Ano">3º Ano</option>
+                      {getAvailableYearsForCourse(course).map(yr => (
+                        <option key={yr} value={yr}>
+                          {yr}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>
