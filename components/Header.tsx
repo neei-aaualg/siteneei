@@ -45,10 +45,10 @@ const Header: React.FC = () => {
       desc: 'Canais oficiais e QR Codes'
     },
     {
-      name: 'Atas',
-      path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgA-rRiX_klZSoBVtLXO8_yzAShBWJ9h73-Un7de6RtktTQ',
+      name: 'Documentos',
+      path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgCiZkWkiUSDR42VAH_iE99lAXHzPGqNFg-qekFAX2zOGSc?e=7QL1NJ',
       icon: <FileText size={18} />,
-      desc: 'Atas de reuniões e assembleias',
+      desc: 'Documentos oficiais em vigor',
       isExternal: true
     },
   ];
