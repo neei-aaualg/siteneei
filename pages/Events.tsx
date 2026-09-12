@@ -435,15 +435,19 @@ export const Events: React.FC = () => {
                           </div>
 
                           <div className="pt-2 flex items-center justify-between">
-                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded">
-                              Inscrições abrem brevemente
-                            </span>
+                            {Boolean(activity.open_soon) ? (
+                              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/20">
+                                Inscrições abrem brevemente
+                              </span>
+                            ) : (
+                              <span />
+                            )}
 
                             <a
                               href={createGoogleCalendarUrl(activity)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-text-200 dark:text-slate-400 hover:text-accent-200 dark:hover:text-cyan-300 transition-colors p-1"
+                              className="text-text-200 dark:text-slate-400 hover:text-accent-200 dark:hover:text-cyan-300 transition-colors p-1 ml-auto"
                               title="Adicionar lembrete ao Google Calendar"
                             >
                               <CalendarPlus size={16} />

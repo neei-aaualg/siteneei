@@ -36,6 +36,16 @@ try {
   // Ignora se não existir
 }
 
+// Migração: adiciona coluna open_soon à tabela activities se não existir
+try {
+  const actCols = db.prepare('PRAGMA table_info(activities)').all().map(c => c.name);
+  if (actCols.length > 0 && !actCols.includes('open_soon')) {
+    db.exec('ALTER TABLE activities ADD COLUMN open_soon INTEGER DEFAULT 0;');
+  }
+} catch (e) {
+  // Ignora se não existir
+}
+
 // Criação das tabelas
 db.exec(`
   CREATE TABLE IF NOT EXISTS activities (
@@ -49,6 +59,7 @@ db.exec(`
     location TEXT NOT NULL,
     max_capacity INTEGER DEFAULT 0,
     speaker TEXT,
+    open_soon INTEGER DEFAULT 0,
     created_at TEXT NOT NULL
   );
 
@@ -193,8 +204,8 @@ const { count } = countStmt.get();
 if (count === 0) {
   console.log('[DB] A carregar 8 atividades do calendário oficial NEEI...');
   const insertActivity = db.prepare(`
-    INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, open_soon, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -210,6 +221,7 @@ if (count === 0) {
       act.location,
       act.max_capacity,
       act.speaker,
+      act.open_soon ? 1 : 0,
       now
     );
   }
@@ -272,7 +284,7 @@ export function getPublicActivities() {
 
   const stmt = db.prepare(`
     SELECT 
-      a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.created_at,
+      a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.open_soon, a.created_at,
       COUNT(r.id) as registrations_count
     FROM activities a
     LEFT JOIN registrations r ON a.id = r.activity_id
@@ -440,10 +452,12 @@ export function saveActivity(data) {
     finalStatus = 'ongoing';
   }
 
+  const openSoon = data.open_soon ? 1 : 0;
+
   if (existing) {
     const updateStmt = db.prepare(`
       UPDATE activities 
-      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?
+      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?, open_soon = ?
       WHERE id = ?
     `);
     updateStmt.run(
@@ -456,12 +470,13 @@ export function saveActivity(data) {
       data.location,
       data.max_capacity || 0,
       data.speaker || '',
+      openSoon,
       id
     );
   } else {
     const insertStmt = db.prepare(`
-      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, open_soon, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insertStmt.run(
       id,
@@ -474,11 +489,12 @@ export function saveActivity(data) {
       data.location,
       data.max_capacity || 0,
       data.speaker || '',
+      openSoon,
       now
     );
   }
 
-  return { id, ...data };
+  return { id, ...data, open_soon: openSoon };
 }
 
 /**
