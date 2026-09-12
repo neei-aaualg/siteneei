@@ -262,10 +262,10 @@ export const Events: React.FC = () => {
                     return (
                       <div
                         key={activity.id}
-                        className="group relative bg-white dark:bg-[#0c1724] rounded-2xl border border-emerald-500/30 dark:border-emerald-500/30 shadow-lg shadow-emerald-500/5 hover:border-emerald-500/60 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                        className="group relative bg-white dark:bg-[#0c1724] rounded-2xl border border-emerald-500/30 dark:border-emerald-500/30 shadow-lg shadow-emerald-500/5 hover:border-emerald-500/60 transition-all duration-300 flex flex-col justify-between"
                       >
                         {/* Top Accent bar */}
-                        <div className="h-2 w-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500" />
+                        <div className="h-2 w-full rounded-t-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500" />
 
                         <div className="p-6 sm:p-8 flex-1">
                           <div className="flex items-start justify-between gap-4 mb-4">
@@ -329,6 +329,7 @@ export const Events: React.FC = () => {
                             label="Adicionar ao Calendário"
                             variant="button"
                             align="right"
+                            direction="up"
                           />
                         </div>
                       </div>
@@ -449,6 +450,7 @@ export const Events: React.FC = () => {
                               activity={activity}
                               variant="icon"
                               align="right"
+                              direction="up"
                               className="ml-auto"
                             />
                           </div>
@@ -511,6 +513,7 @@ export const Events: React.FC = () => {
                       label="Adicionar ao Calendário"
                       variant="button"
                       align="left"
+                      direction="up"
                     />
                     <button
                       onClick={closeRegisterModal}

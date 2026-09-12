@@ -12,6 +12,7 @@ interface CalendarDropdownProps {
   label?: string;
   variant?: 'button' | 'icon';
   align?: 'left' | 'right';
+  direction?: 'down' | 'up';
   className?: string;
 }
 
@@ -44,6 +45,7 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   label = 'Adicionar ao Calendário',
   variant = 'button',
   align = 'right',
+  direction = 'up',
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,7 +81,7 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   };
 
   return (
-    <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
+    <div className={`relative inline-block text-left ${isOpen ? 'z-50' : 'z-20'} ${className}`} ref={dropdownRef}>
       {variant === 'icon' ? (
         <button
           type="button"
@@ -103,7 +105,11 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
           <span>{label}</span>
           <ChevronDown
             size={13}
-            className={`transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`}
+            className={`transition-transform duration-200 opacity-60 ${
+              direction === 'up'
+                ? isOpen ? '' : 'rotate-180'
+                : isOpen ? 'rotate-180' : ''
+            }`}
           />
         </button>
       )}
@@ -112,7 +118,9 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
         <div
           className={`absolute ${
             align === 'right' ? 'right-0' : 'left-0'
-          } mt-2 w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-xl shadow-cyan-950/10 dark:shadow-black/60 py-2 z-50 animate-fadeIn`}
+          } ${
+            direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
+          } w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-2xl shadow-cyan-950/25 dark:shadow-black/90 py-2 z-50 animate-fadeIn`}
           role="menu"
         >
           <div className="px-3 py-1.5 border-b border-gray-100 dark:border-slate-800/80 mb-1">
