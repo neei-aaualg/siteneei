@@ -708,11 +708,14 @@ export const Admin: React.FC = () => {
           </div>
         )}
 
-        {/* Navegação por Separadores */}
+        {/* Navegação por Separadores com Jump to Top */}
         <div className="flex border-b border-gray-200 dark:border-slate-800 gap-2 sm:gap-6">
           <button
-            onClick={() => setActiveTab('activities')}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'activities'
+            onClick={() => {
+              setActiveTab('activities');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'activities'
               ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
               : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
@@ -722,8 +725,11 @@ export const Admin: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('collaborators')}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'collaborators'
+            onClick={() => {
+              setActiveTab('collaborators');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'collaborators'
               ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
               : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
@@ -742,8 +748,11 @@ export const Admin: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('jobs')}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition ${activeTab === 'jobs'
+            onClick={() => {
+              setActiveTab('jobs');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'jobs'
               ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
               : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}

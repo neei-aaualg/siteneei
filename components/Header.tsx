@@ -57,6 +57,20 @@ const Header: React.FC = () => {
   const isExploreActive = exploreItems.some(item => !item.isExternal && location.pathname === item.path);
   const isActive = (path: string) => location.pathname === path;
 
+  // Função para saltar para o início da respetiva página ao clicar no logótipo ou separadores
+  const jumpToPageTop = (targetPath: string) => {
+    const isSameRoute =
+      location.pathname === targetPath ||
+      (targetPath === '/atividades' && location.pathname === '/eventos') ||
+      (targetPath === '/eventos' && location.pathname === '/atividades');
+
+    if (isSameRoute) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
   // Fecha dropdown desktop ao clicar fora ou pressionar Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -98,9 +112,14 @@ const Header: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Left side: Logo & Desktop Nav */}
           <div className="flex items-center gap-4 md:gap-6 lg:gap-12">
-            {/* Logo */}
+            {/* Logo com Jump to Top */}
             <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center gap-2.5 group">
+              <Link
+                to="/"
+                onClick={() => jumpToPageTop('/')}
+                className="flex items-center gap-2.5 group cursor-pointer"
+                title="NEEI - Início"
+              >
                 <img
                   src="/assets/logoneeipequeno-removebg-preview.png"
                   alt="NEEI Logo"
@@ -112,11 +131,12 @@ const Header: React.FC = () => {
               </Link>
             </div>
 
-            {/* Desktop Nav */}
+            {/* Desktop Nav com Jump to Top */}
             <nav className="hidden md:flex items-center gap-1 lg:gap-2 xl:gap-3">
               <Link
                 to="/"
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/')
+                onClick={() => jumpToPageTop('/')}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/')
                   ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                   : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
@@ -126,7 +146,8 @@ const Header: React.FC = () => {
 
               <Link
                 to="/sobre"
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/sobre')
+                onClick={() => jumpToPageTop('/sobre')}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/sobre')
                   ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                   : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
@@ -180,8 +201,11 @@ const Header: React.FC = () => {
                         <Link
                           key={item.path}
                           to={item.path}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 ${isActive(item.path)
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            jumpToPageTop(item.path);
+                          }}
+                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${isActive(item.path)
                             ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
                             : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
                             }`}
@@ -205,7 +229,8 @@ const Header: React.FC = () => {
 
               <Link
                 to="/colaborar"
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/colaborar')
+                onClick={() => jumpToPageTop('/colaborar')}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/colaborar')
                   ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                   : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
@@ -280,7 +305,10 @@ const Header: React.FC = () => {
           <div className="px-3 pt-3 pb-4 space-y-1 sm:px-4">
             <Link
               to="/"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                setIsMenuOpen(false);
+                jumpToPageTop('/');
+              }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/')
                 ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                 : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
@@ -291,7 +319,10 @@ const Header: React.FC = () => {
 
             <Link
               to="/sobre"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                setIsMenuOpen(false);
+                jumpToPageTop('/sobre');
+              }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/sobre')
                 ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                 : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
@@ -339,7 +370,10 @@ const Header: React.FC = () => {
                       <Link
                         key={item.path}
                         to={item.path}
-                        onClick={() => setIsMenuOpen(false)}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          jumpToPageTop(item.path);
+                        }}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
                           ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                           : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
@@ -356,7 +390,10 @@ const Header: React.FC = () => {
 
             <Link
               to="/colaborar"
-              onClick={() => setIsMenuOpen(false)}
+              onClick={() => {
+                setIsMenuOpen(false);
+                jumpToPageTop('/colaborar');
+              }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/colaborar')
                 ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                 : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'

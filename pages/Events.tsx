@@ -18,6 +18,7 @@ import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
 import { fetchPublicActivities, registerForActivity, fetchAppConfig } from '../services/activitiesService';
 import { formatDateDDMMAAAA, formatDateWithMonthSigla, getCalendarDayMonth } from '../utils/dateHelpers';
+import CalendarDropdown from '../components/CalendarDropdown';
 
 export const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -146,17 +147,6 @@ export const Events: React.FC = () => {
 
   const formatOpenDate = (dateStr?: string) => {
     return formatDateWithMonthSigla(dateStr);
-  };
-
-  const createGoogleCalendarUrl = (activity: Activity) => {
-    const title = encodeURIComponent(activity.title);
-    const details = encodeURIComponent(`${activity.description}\n\nOrganizado pelo NEEI UAlg`);
-    const location = encodeURIComponent(activity.location);
-
-    const dateClean = activity.date.replace(/-/g, '');
-    const datesParam = `${dateClean}T090000Z/${dateClean}T180000Z`;
-
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&location=${location}&dates=${datesParam}`;
   };
 
   return (
@@ -333,16 +323,12 @@ export const Events: React.FC = () => {
                             <Send size={15} />
                           </button>
 
-                          <a
-                            href={createGoogleCalendarUrl(activity)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs font-medium text-text-200 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
-                            title="Adicionar ao Google Calendar"
-                          >
-                            <CalendarPlus size={16} />
-                            <span className="hidden sm:inline">Google Calendar</span>
-                          </a>
+                          <CalendarDropdown
+                            activity={activity}
+                            label="Adicionar ao Calendário"
+                            variant="button"
+                            align="right"
+                          />
                         </div>
                       </div>
                     );
@@ -458,15 +444,12 @@ export const Events: React.FC = () => {
                               <span />
                             )}
 
-                            <a
-                              href={createGoogleCalendarUrl(activity)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-text-200 dark:text-slate-400 hover:text-accent-200 dark:hover:text-cyan-300 transition-colors p-1 ml-auto"
-                              title="Adicionar lembrete ao Google Calendar"
-                            >
-                              <CalendarPlus size={16} />
-                            </a>
+                            <CalendarDropdown
+                              activity={activity}
+                              variant="icon"
+                              align="right"
+                              className="ml-auto"
+                            />
                           </div>
                         </div>
                       </div>
@@ -522,18 +505,15 @@ export const Events: React.FC = () => {
                     O teu lugar para esta atividade está reservado. Vemo-nos no dia {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
                   </p>
                   <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
-                    <a
-                      href={createGoogleCalendarUrl(selectedActivity)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-100 dark:bg-slate-800 hover:bg-primary-200 text-sm font-semibold rounded-xl transition"
-                    >
-                      <CalendarPlus size={16} />
-                      <span>Adicionar ao Calendário</span>
-                    </a>
+                    <CalendarDropdown
+                      activity={selectedActivity}
+                      label="Adicionar ao Calendário"
+                      variant="button"
+                      align="left"
+                    />
                     <button
                       onClick={closeRegisterModal}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition"
+                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition cursor-pointer"
                     >
                       Concluído
                     </button>
