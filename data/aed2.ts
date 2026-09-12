@@ -155,7 +155,7 @@ export const aed2Course: Course = {
         {
             id: 'aed2_18',
             title: '18. Árvores Equilibradas (TreeMap)',
-            description: 'Para garantir complexidade $O(\log N)$ no pior caso, usamos árvores equilibradas (como Red-Black Trees). Em Java, isto é o `TreeMap`.\n\n**Tarefa:**\nUsa um `TreeMap<Integer, String>` para associar IDs a Nomes. As chaves ficarão ordenadas automaticamente.',
+            description: 'Para garantir complexidade $O(\\log N)$ no pior caso, usamos árvores equilibradas (como Red-Black Trees). Em Java, isto é o `TreeMap`.\n\n**Tarefa:**\nUsa um `TreeMap<Integer, String>` para associar IDs a Nomes. As chaves ficarão ordenadas automaticamente.',
             initialCode: 'import java.util.*;\npublic class Main { ... }',
             solutionCode: 'import java.util.*;\npublic class Main {\n    public static void main(String[] args) {\n        TreeMap<Integer, String> tm = new TreeMap<>();\n        tm.put(10, "A"); tm.put(5, "B"); tm.put(20, "C");\n        for(Integer k : tm.keySet()) System.out.print(k + " ");\n    }\n}',
             testCases: [{ input: "", expectedOutput: "5 10 20 " }]

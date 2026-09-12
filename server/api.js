@@ -14,18 +14,20 @@ import {
   getAllJobOffers,
   getPublishedJobOffers,
   updateJobOfferStatus,
-  deleteJobOffer
+  deleteJobOffer,
 } from './db.js';
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
 export function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
-    req.on('data', chunk => {
+    req.on('data', (chunk) => {
       raw += chunk;
       if (raw.length > 1e6) {
+        const err = new Error('Payload too large');
+        err.statusCode = 413;
         req.destroy();
-        reject(new Error('Payload too large'));
+        reject(err);
       }
     });
     req.on('end', () => {
@@ -33,7 +35,9 @@ export function readJsonBody(req) {
         const data = raw ? JSON.parse(raw) : {};
         resolve(data);
       } catch (err) {
-        reject(new Error('Formato JSON inválido'));
+        const invalidError = new Error('Formato JSON inválido');
+        invalidError.statusCode = 400;
+        reject(invalidError);
       }
     });
     req.on('error', reject);
@@ -43,7 +47,7 @@ export function readJsonBody(req) {
 export function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store',
   });
   res.end(JSON.stringify(data));
 }
@@ -56,14 +60,14 @@ export async function handleActivitiesApi(req, res, pathname) {
     // GET /api/config - Configurações públicas da aplicação (ex.: visibilidade do calendário)
     if (pathname === '/api/config' && req.method === 'GET') {
       const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
-      const showCalendar = rawShow === undefined ? true : (rawShow !== 'false' && rawShow !== '0');
+      const showCalendar = rawShow === undefined ? true : rawShow !== 'false' && rawShow !== '0';
       return sendJson(res, 200, { showCalendar });
     }
 
     // GET /api/activities - Lista pública de atividades a decorrer e futuras
     if (pathname === '/api/activities' && req.method === 'GET') {
       const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
-      const showCalendar = rawShow === undefined ? true : (rawShow !== 'false' && rawShow !== '0');
+      const showCalendar = rawShow === undefined ? true : rawShow !== 'false' && rawShow !== '0';
       if (!showCalendar) {
         return sendJson(res, 200, []);
       }
@@ -78,7 +82,7 @@ export async function handleActivitiesApi(req, res, pathname) {
       return sendJson(res, 201, {
         success: true,
         message: 'Inscrição confirmada com sucesso!',
-        registration: result
+        registration: result,
       });
     }
 
@@ -89,7 +93,7 @@ export async function handleActivitiesApi(req, res, pathname) {
       return sendJson(res, 201, {
         success: true,
         message: 'Candidatura enviada com sucesso! Entraremos em contacto brevemente.',
-        application: app
+        application: app,
       });
     }
 
@@ -99,8 +103,9 @@ export async function handleActivitiesApi(req, res, pathname) {
       const job = createJobOffer(body);
       return sendJson(res, 201, {
         success: true,
-        message: 'Oferta de emprego submetida com sucesso! A equipa do NEEI irá analisá-la brevemente.',
-        job
+        message:
+          'Oferta de emprego submetida com sucesso! A equipa do NEEI irá analisá-la brevemente.',
+        job,
       });
     }
 
@@ -121,7 +126,7 @@ export async function handleActivitiesApi(req, res, pathname) {
     if (pathname.startsWith('/api/admin/')) {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, {
-          error: 'Acesso restrito. Sessão de administrador inválida ou expirada.'
+          error: 'Acesso restrito. Sessão de administrador inválida ou expirada.',
         });
       }
 
@@ -204,7 +209,7 @@ export async function handleActivitiesApi(req, res, pathname) {
   } catch (err) {
     const statusCode = err.statusCode || 500;
     return sendJson(res, statusCode, {
-      error: err.message || 'Erro interno no servidor'
+      error: err.message || 'Erro interno no servidor',
     });
   }
 }
