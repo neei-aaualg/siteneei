@@ -9,7 +9,12 @@ import {
   createCollaboratorApplication,
   getAllCollaboratorApplications,
   updateCollaboratorStatus,
-  deleteCollaboratorApplication
+  deleteCollaboratorApplication,
+  createJobOffer,
+  getAllJobOffers,
+  getPublishedJobOffers,
+  updateJobOfferStatus,
+  deleteJobOffer
 } from './db.js';
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
@@ -88,6 +93,23 @@ export async function handleActivitiesApi(req, res, pathname) {
       });
     }
 
+    // POST /api/jobs/submit - Submeter oferta de emprego ou estágio (Empresas)
+    if (pathname === '/api/jobs/submit' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const job = createJobOffer(body);
+      return sendJson(res, 201, {
+        success: true,
+        message: 'Oferta de emprego submetida com sucesso! A equipa do NEEI irá analisá-la brevemente.',
+        job
+      });
+    }
+
+    // GET /api/jobs - Listar ofertas de emprego publicadas
+    if (pathname === '/api/jobs' && req.method === 'GET') {
+      const jobs = getPublishedJobOffers();
+      return sendJson(res, 200, jobs);
+    }
+
     // POST /api/admin/login - Autenticação da equipa
     if (pathname === '/api/admin/login' && req.method === 'POST') {
       const body = await readJsonBody(req);
@@ -155,6 +177,26 @@ export async function handleActivitiesApi(req, res, pathname) {
         const collabId = pathname.replace('/api/admin/collaborators/', '').trim();
         const removed = deleteCollaboratorApplication(collabId);
         return sendJson(res, 200, { success: removed, id: collabId });
+      }
+
+      // GET /api/admin/jobs - Listar todas as ofertas de emprego
+      if (pathname === '/api/admin/jobs' && req.method === 'GET') {
+        const jobs = getAllJobOffers();
+        return sendJson(res, 200, jobs);
+      }
+
+      // POST /api/admin/jobs/status - Atualizar estado/notas de oferta de emprego
+      if (pathname === '/api/admin/jobs/status' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const updated = updateJobOfferStatus(body.id, body.status, body.notes);
+        return sendJson(res, 200, { success: updated });
+      }
+
+      // DELETE /api/admin/jobs/:id - Eliminar oferta de emprego
+      if (pathname.startsWith('/api/admin/jobs/') && req.method === 'DELETE') {
+        const jobId = pathname.replace('/api/admin/jobs/', '').trim();
+        const removed = deleteJobOffer(jobId);
+        return sendJson(res, 200, { success: removed, id: jobId });
       }
     }
 

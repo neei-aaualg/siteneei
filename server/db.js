@@ -99,10 +99,28 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS job_offers (
+    id TEXT PRIMARY KEY,
+    company TEXT NOT NULL,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'Estágio',
+    location TEXT NOT NULL,
+    email TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    link TEXT,
+    description TEXT NOT NULL,
+    requirements TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'published', 'rejected')),
+    notes TEXT,
+    created_at TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS idx_registrations_activity ON registrations(activity_id);
   CREATE INDEX IF NOT EXISTS idx_activities_status ON activities(status);
   CREATE INDEX IF NOT EXISTS idx_collab_status ON collaborator_applications(status);
   CREATE INDEX IF NOT EXISTS idx_collab_created ON collaborator_applications(created_at);
+  CREATE INDEX IF NOT EXISTS idx_jobs_status ON job_offers(status);
+  CREATE INDEX IF NOT EXISTS idx_jobs_created ON job_offers(created_at);
 `);
 
 // Lista de atividades iniciais oficiais do Calendário NEEI
@@ -675,6 +693,154 @@ export function updateCollaboratorStatus(id, status, notes) {
  */
 export function deleteCollaboratorApplication(id) {
   const stmt = db.prepare('DELETE FROM collaborator_applications WHERE id = ?');
+  const res = stmt.run(id);
+  return res.changes > 0;
+}
+
+/**
+ * Cria uma nova oferta de emprego ou estágio
+ */
+export function createJobOffer(data) {
+  if (!data || typeof data !== 'object') {
+    const err = new Error('Dados inválidos para submissão de vaga');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const company = (data.company || '').trim();
+  const title = (data.title || '').trim();
+  const type = (data.type || 'Estágio').trim();
+  const location = (data.location || '').trim();
+  const email = (data.email || '').trim();
+  const cleanPhone = (data.phone || '').trim().replace(/\D/g, '');
+  const link = (data.link || '').trim();
+  const description = (data.description || '').trim();
+  const requirements = (data.requirements || '').trim();
+
+  if (company.length < 2) {
+    const err = new Error('Nome da empresa é obrigatório (mínimo 2 caracteres)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (title.length < 2) {
+    const err = new Error('Título da função é obrigatório');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const err = new Error('Email de contacto válido é obrigatório');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (!cleanPhone || cleanPhone.length < 9) {
+    const err = new Error('Número de contacto válido é obrigatório (apenas dígitos, mín. 9 algarismos)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (location.length < 2) {
+    const err = new Error('Localização é obrigatória');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (description.length < 10) {
+    const err = new Error('Descrição da vaga é obrigatória (mínimo 10 caracteres)');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const id = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const now = new Date().toISOString();
+
+  const stmt = db.prepare(`
+    INSERT INTO job_offers (
+      id, company, title, type, location, email, phone, link, description, requirements, status, notes, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', '', ?)
+  `);
+
+  stmt.run(
+    id,
+    company,
+    title,
+    type,
+    location,
+    email,
+    cleanPhone,
+    link || null,
+    description,
+    requirements || null,
+    now
+  );
+
+  return {
+    id,
+    company,
+    title,
+    type,
+    location,
+    email,
+    phone: cleanPhone,
+    link,
+    description,
+    requirements,
+    status: 'pending',
+    notes: '',
+    created_at: now
+  };
+}
+
+/**
+ * Obtém todas as ofertas de emprego (para o painel de administração)
+ */
+export function getAllJobOffers() {
+  const stmt = db.prepare('SELECT * FROM job_offers ORDER BY created_at DESC');
+  return stmt.all();
+}
+
+/**
+ * Obtém apenas as ofertas publicadas (para a página pública /vagas)
+ */
+export function getPublishedJobOffers() {
+  const stmt = db.prepare("SELECT * FROM job_offers WHERE status = 'published' ORDER BY created_at DESC");
+  return stmt.all();
+}
+
+/**
+ * Atualiza o estado ou notas de uma oferta de emprego
+ */
+export function updateJobOfferStatus(id, status, notes) {
+  const validStatuses = ['pending', 'published', 'rejected'];
+  if (status && !validStatuses.includes(status)) {
+    const err = new Error('Estado de vaga inválido');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  if (status && notes !== undefined) {
+    const stmt = db.prepare('UPDATE job_offers SET status = ?, notes = ? WHERE id = ?');
+    const res = stmt.run(status, notes, id);
+    return res.changes > 0;
+  } else if (status) {
+    const stmt = db.prepare('UPDATE job_offers SET status = ? WHERE id = ?');
+    const res = stmt.run(status, id);
+    return res.changes > 0;
+  } else if (notes !== undefined) {
+    const stmt = db.prepare('UPDATE job_offers SET notes = ? WHERE id = ?');
+    const res = stmt.run(notes, id);
+    return res.changes > 0;
+  }
+  return false;
+}
+
+/**
+ * Elimina uma oferta de emprego
+ */
+export function deleteJobOffer(id) {
+  const stmt = db.prepare('DELETE FROM job_offers WHERE id = ?');
   const res = stmt.run(id);
   return res.changes > 0;
 }

@@ -238,11 +238,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API Atividades, Colaboradores e Administração NEEI
+  // API Atividades, Colaboradores, Vagas e Administração NEEI
   if (
     pathname.startsWith('/api/activities') ||
     pathname.startsWith('/api/admin/') ||
     pathname.startsWith('/api/collaborators') ||
+    pathname.startsWith('/api/jobs') ||
     pathname === '/api/config'
   ) {
     const handled = await handleActivitiesApi(req, res, pathname);
