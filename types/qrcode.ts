@@ -8,6 +8,8 @@ export interface QRCodeCardItem {
   title: string
   category: 'whatsapp' | 'instagram' | 'discord' | 'custom' | 'wifi' | 'url'
   url: string
+  // Static SVG QR code URL (e.g. from /assets/qrcodes/)
+  qrSvgUrl?: string
   // Logo
   logoUrl: string | null
   logoPresetId: string | null

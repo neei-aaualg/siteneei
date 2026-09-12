@@ -9,6 +9,25 @@ interface QRPreviewProps {
 }
 
 export const QRPreview: React.FC<QRPreviewProps> = ({ card, size = 260, className = '' }) => {
+  if (card.qrSvgUrl) {
+    return (
+      <div
+        className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${className}`}
+        style={{
+          width: size,
+          height: size
+        }}
+      >
+        <img
+          src={card.qrSvgUrl}
+          alt={card.title}
+          className="w-full h-full object-contain block select-none pointer-events-none"
+          loading="eager"
+        />
+      </div>
+    )
+  }
+
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
