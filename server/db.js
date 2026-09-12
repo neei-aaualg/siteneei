@@ -17,10 +17,20 @@ if (!fs.existsSync(dbDir)) {
 
 export const db = new DatabaseSync(DB_PATH);
 
-// Ativa chaves estrangeiras e modo WAL para performance concorrente
+// Ativa chaves estrangeiras e modo WAL
 db.exec('PRAGMA foreign_keys = ON;');
 
-// Criação das tabelas se não existirem
+// Migração suave: se a tabela registrations tiver o formato antigo, atualiza
+try {
+  const regCols = db.prepare('PRAGMA table_info(registrations)').all().map(c => c.name);
+  if (regCols.length > 0 && !regCols.includes('student_number')) {
+    db.exec('DROP TABLE registrations;');
+  }
+} catch (e) {
+  // Ignora se não existir
+}
+
+// Criação das tabelas
 db.exec(`
   CREATE TABLE IF NOT EXISTS activities (
     id TEXT PRIMARY KEY,
@@ -33,17 +43,17 @@ db.exec(`
     location TEXT NOT NULL,
     max_capacity INTEGER DEFAULT 0,
     speaker TEXT,
-    tags TEXT,
     created_at TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS registrations (
     id TEXT PRIMARY KEY,
     activity_id TEXT NOT NULL,
-    student_email TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    student_number TEXT NOT NULL,
     registered_at TEXT NOT NULL,
     FOREIGN KEY (activity_id) REFERENCES activities(id) ON DELETE CASCADE,
-    UNIQUE(activity_id, student_email)
+    UNIQUE(activity_id, student_number)
   );
 
   CREATE INDEX IF NOT EXISTS idx_registrations_activity ON registrations(activity_id);
@@ -56,8 +66,8 @@ const { count } = countStmt.get();
 
 if (count === 0) {
   const insertActivity = db.prepare(`
-    INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, tags, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
@@ -74,7 +84,6 @@ if (count === 0) {
     'Laboratório 1.15, Edifício 1, Campus de Gambelas',
     35,
     'Equipa Técnica NEEI',
-    JSON.stringify(['Git', 'Docker', 'DevOps', 'Prático']),
     now
   );
 
@@ -90,7 +99,6 @@ if (count === 0) {
     'Complexo Pedagógico da Penha & Online',
     50,
     'NEEI & Convidados da Indústria',
-    JSON.stringify(['Jogos', 'Unity', 'Godot', 'Programação']),
     now
   );
 
@@ -105,7 +113,6 @@ if (count === 0) {
     'Anfiteatro Paulo Freire, Campus de Gambelas',
     100,
     'Investigadores & Engenheiros de Software',
-    JSON.stringify(['IA', 'LLM', 'Carreira', 'Tech']),
     now
   );
 
@@ -120,7 +127,6 @@ if (count === 0) {
     'Laboratórios de Informática, Edifício 1',
     40,
     'Núcleo Pedagógico NEEI',
-    JSON.stringify(['Algoritmos', 'C', 'Java', 'Python']),
     now
   );
 }
@@ -131,7 +137,7 @@ if (count === 0) {
 export function getPublicActivities() {
   const stmt = db.prepare(`
     SELECT 
-      a.*,
+      a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.created_at,
       COUNT(r.id) as registrations_count
     FROM activities a
     LEFT JOIN registrations r ON a.id = r.activity_id
@@ -146,35 +152,40 @@ export function getPublicActivities() {
       a.date ASC
   `);
 
-  const rows = stmt.all();
-  return rows.map(row => ({
-    ...row,
-    tags: row.tags ? JSON.parse(row.tags) : []
-  }));
+  return stmt.all();
 }
 
 /**
- * Validação rigorosa do formato de email de estudante UAlg (aXXXXX@ualg.pt)
+ * Limpa e normaliza o número de aluno (ex.: '74123' ou 'a74123' -> 'a74123')
  */
-export function isValidStudentEmail(email) {
-  if (typeof email !== 'string') return false;
-  const clean = email.trim().toLowerCase();
-  // Formato oficial: letra 'a' minúscula seguida por dígitos e sufixo @ualg.pt
-  return /^a\d+@ualg\.pt$/.test(clean);
+export function cleanStudentNumber(input) {
+  if (typeof input !== 'string') return null;
+  // Remove espaços e eventual sufixo @ualg.pt
+  const trimmed = input.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+  // Aceita letra 'a' opcional seguida de 4 a 7 dígitos
+  const match = trimmed.match(/^a?(\d{4,7})$/i);
+  if (!match) return null;
+  return 'a' + match[1];
 }
 
 /**
- * Inscreve um aluno numa atividade a decorrer
+ * Inscreve um aluno com nome e número de aluno numa atividade a decorrer
  */
-export function registerStudent(activityId, rawEmail) {
+export function registerStudent(activityId, rawName, rawStudentNumber) {
   if (!activityId) {
     throw new Error('Identificador da atividade é obrigatório');
   }
 
-  const studentEmail = (rawEmail || '').trim().toLowerCase();
+  const cleanName = (rawName || '').trim();
+  if (cleanName.length < 2) {
+    const err = new Error('Por favor insere o teu nome completo');
+    err.statusCode = 400;
+    throw err;
+  }
 
-  if (!isValidStudentEmail(studentEmail)) {
-    const err = new Error('Email inválido. Deve ter o formato aXXXXX@ualg.pt');
+  const studentNumber = cleanStudentNumber(rawStudentNumber);
+  if (!studentNumber) {
+    const err = new Error('Número de aluno inválido. Exemplo: a74123 ou 74123');
     err.statusCode = 400;
     throw err;
   }
@@ -195,12 +206,12 @@ export function registerStudent(activityId, rawEmail) {
     throw err;
   }
 
-  // Verifica se o aluno já está inscrito
-  const existingStmt = db.prepare('SELECT id FROM registrations WHERE activity_id = ? AND student_email = ?');
-  const existing = existingStmt.get(activityId, studentEmail);
+  // Verifica se o aluno já está inscrito através do número de aluno
+  const existingStmt = db.prepare('SELECT id FROM registrations WHERE activity_id = ? AND student_number = ?');
+  const existing = existingStmt.get(activityId, studentNumber);
 
   if (existing) {
-    const err = new Error('Este email de aluno já se encontra inscrito nesta atividade');
+    const err = new Error(`O número de aluno ${studentNumber} já se encontra inscrito nesta atividade`);
     err.statusCode = 409;
     throw err;
   }
@@ -221,16 +232,17 @@ export function registerStudent(activityId, rawEmail) {
   const registeredAt = new Date().toISOString();
 
   const insertStmt = db.prepare(`
-    INSERT INTO registrations (id, activity_id, student_email, registered_at)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO registrations (id, activity_id, student_name, student_number, registered_at)
+    VALUES (?, ?, ?, ?, ?)
   `);
 
-  insertStmt.run(regId, activityId, studentEmail, registeredAt);
+  insertStmt.run(regId, activityId, cleanName, studentNumber, registeredAt);
 
   return {
     id: regId,
     activityId,
-    studentEmail,
+    studentName: cleanName,
+    studentNumber,
     registeredAt
   };
 }
@@ -256,7 +268,6 @@ export function getAllActivitiesWithRegistrations() {
 
   return activities.map(act => ({
     ...act,
-    tags: act.tags ? JSON.parse(act.tags) : [],
     registrations: regMap.get(act.id) || []
   }));
 }
@@ -283,7 +294,7 @@ export function saveActivity(data) {
   if (existing) {
     const updateStmt = db.prepare(`
       UPDATE activities 
-      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?, tags = ?
+      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?
       WHERE id = ?
     `);
     updateStmt.run(
@@ -296,13 +307,12 @@ export function saveActivity(data) {
       data.location,
       data.max_capacity || 0,
       data.speaker || '',
-      JSON.stringify(data.tags || []),
       id
     );
   } else {
     const insertStmt = db.prepare(`
-      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, tags, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insertStmt.run(
       id,
@@ -315,7 +325,6 @@ export function saveActivity(data) {
       data.location,
       data.max_capacity || 0,
       data.speaker || '',
-      JSON.stringify(data.tags || []),
       now
     );
   }

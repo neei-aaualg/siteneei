@@ -11,7 +11,6 @@ export interface Activity {
   location: string;
   max_capacity?: number;
   speaker?: string;
-  tags?: string[];
   registrations_count?: number;
   created_at?: string;
 }
@@ -19,7 +18,8 @@ export interface Activity {
 export interface Registration {
   id: string;
   activity_id: string;
-  student_email: string;
+  student_name: string;
+  student_number: string;
   registered_at: string;
 }
 
@@ -29,7 +29,8 @@ export interface AdminActivityWithRegistrations extends Activity {
 
 export interface RegisterPayload {
   activityId: string;
-  email: string;
+  name: string;
+  studentNumber: string;
 }
 
 export interface RegisterResponse {

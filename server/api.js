@@ -53,7 +53,7 @@ export async function handleActivitiesApi(req, res, pathname) {
     // POST /api/activities/register - Inscrição numa atividade a decorrer
     if (pathname === '/api/activities/register' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const result = registerStudent(body.activityId, body.email);
+      const result = registerStudent(body.activityId, body.name, body.studentNumber);
       return sendJson(res, 201, {
         success: true,
         message: 'Inscrição confirmada com sucesso!',

@@ -50,14 +50,18 @@ export async function fetchPublicActivities(): Promise<Activity[]> {
 /**
  * Efetua a inscrição de um aluno numa atividade a decorrer
  */
-export async function registerForActivity(activityId: string, email: string): Promise<RegisterResponse> {
+export async function registerForActivity(
+  activityId: string,
+  name: string,
+  studentNumber: string
+): Promise<RegisterResponse> {
   const res = await fetch('/api/activities/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify({ activityId, email })
+    body: JSON.stringify({ activityId, name, studentNumber })
   });
 
   const data = await res.json().catch(() => ({}));

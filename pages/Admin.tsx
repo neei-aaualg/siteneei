@@ -13,7 +13,6 @@ import {
   Loader2,
   Plus,
   Clock,
-  MapPin,
   RefreshCw,
   Eye,
   EyeOff,
@@ -49,7 +48,12 @@ export const Admin: React.FC = () => {
   // Estados de Interação
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; message: string } | null>(null);
-  const [confirmDeleteReg, setConfirmDeleteReg] = useState<{ regId: string; email: string; activityId: string } | null>(null);
+  const [confirmDeleteReg, setConfirmDeleteReg] = useState<{
+    regId: string;
+    studentName: string;
+    studentNumber: string;
+    activityId: string;
+  } | null>(null);
   const [confirmDeleteAct, setConfirmDeleteAct] = useState<string | null>(null);
 
   // Modal de Criar/Editar Atividade
@@ -57,7 +61,7 @@ export const Admin: React.FC = () => {
   const [editingActivity, setEditingActivity] = useState<Partial<AdminActivityWithRegistrations> | null>(null);
   const [savingActivity, setSavingActivity] = useState(false);
 
-  // Form State para Nova Atividade
+  // Form State para Nova Atividade (sem tags)
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formCategory, setFormCategory] = useState('Workshop');
@@ -67,7 +71,6 @@ export const Admin: React.FC = () => {
   const [formLocation, setFormLocation] = useState('');
   const [formMaxCapacity, setFormMaxCapacity] = useState<number>(0);
   const [formSpeaker, setFormSpeaker] = useState('');
-  const [formTags, setFormTags] = useState('');
 
   const loadDashboardData = async (activeToken: string) => {
     try {
@@ -179,13 +182,16 @@ export const Admin: React.FC = () => {
   };
 
   const copyEmailsToClipboard = (activity: AdminActivityWithRegistrations) => {
-    const emails = activity.registrations.map(r => r.student_email).join(', ');
+    const emails = activity.registrations
+      .map(r => `${r.student_number}@ualg.pt`)
+      .join(', ');
+
     if (!emails) {
       alert('Não existem alunos inscritos nesta atividade.');
       return;
     }
     navigator.clipboard.writeText(emails);
-    showFeedback(activity.id, `${activity.registrations.length} emails copiados!`);
+    showFeedback(activity.id, `${activity.registrations.length} emails institucionais copiados!`);
   };
 
   const exportCsv = (activity: AdminActivityWithRegistrations) => {
@@ -195,11 +201,12 @@ export const Admin: React.FC = () => {
     }
 
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'Email,Data de Inscricao\n';
+    csvContent += 'Nome,Numero de Aluno,Email Institucional,Data de Inscricao\n';
 
     activity.registrations.forEach(r => {
       const regDate = new Date(r.registered_at).toLocaleString('pt-PT');
-      csvContent += `"${r.student_email}","${regDate}"\n`;
+      const email = `${r.student_number}@ualg.pt`;
+      csvContent += `"${r.student_name}","${r.student_number}","${email}","${regDate}"\n`;
     });
 
     const encodedUri = encodeURI(csvContent);
@@ -223,7 +230,6 @@ export const Admin: React.FC = () => {
     setFormLocation('Laboratório 1.15, Edifício 1, Gambelas');
     setFormMaxCapacity(35);
     setFormSpeaker('Equipa NEEI');
-    setFormTags('Workshop, Prático');
     setIsActivityModalOpen(true);
   };
 
@@ -238,7 +244,6 @@ export const Admin: React.FC = () => {
     setFormLocation(activity.location);
     setFormMaxCapacity(activity.max_capacity || 0);
     setFormSpeaker(activity.speaker || '');
-    setFormTags((activity.tags || []).join(', '));
     setIsActivityModalOpen(true);
   };
 
@@ -248,11 +253,6 @@ export const Admin: React.FC = () => {
 
     try {
       setSavingActivity(true);
-
-      const parsedTags = formTags
-        .split(',')
-        .map(t => t.trim())
-        .filter(Boolean);
 
       const payload: Partial<AdminActivityWithRegistrations> = {
         id: editingActivity?.id,
@@ -264,8 +264,7 @@ export const Admin: React.FC = () => {
         time: formTime.trim(),
         location: formLocation.trim(),
         max_capacity: Number(formMaxCapacity) || 0,
-        speaker: formSpeaker.trim(),
-        tags: parsedTags
+        speaker: formSpeaker.trim()
       };
 
       await saveActivity(token, payload);
@@ -595,7 +594,7 @@ export const Admin: React.FC = () => {
                       <button
                         onClick={() => copyEmailsToClipboard(activity)}
                         className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                        title="Copiar lista de emails"
+                        title="Copiar lista de emails institucionais"
                       >
                         <Copy size={16} />
                       </button>
@@ -603,7 +602,7 @@ export const Admin: React.FC = () => {
                       <button
                         onClick={() => exportCsv(activity)}
                         className="p-2 rounded-xl text-text-200 hover:text-text-100 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                        title="Descarregar CSV de inscritos"
+                        title="Descarregar CSV com nomes e números"
                       >
                         <Download size={16} />
                       </button>
@@ -669,8 +668,10 @@ export const Admin: React.FC = () => {
                             <thead className="bg-gray-50 dark:bg-slate-800/80 text-text-200 dark:text-slate-400 border-b border-gray-200 dark:border-slate-800">
                               <tr>
                                 <th className="py-3 px-4 font-semibold">#</th>
-                                <th className="py-3 px-4 font-semibold">Email de Estudante UAlg</th>
-                                <th className="py-3 px-4 font-semibold">Data / Hora de Inscrição</th>
+                                <th className="py-3 px-4 font-semibold">Nome Completo</th>
+                                <th className="py-3 px-4 font-semibold">Nº de Aluno</th>
+                                <th className="py-3 px-4 font-semibold">Email Institucional</th>
+                                <th className="py-3 px-4 font-semibold">Data / Hora</th>
                                 <th className="py-3 px-4 font-semibold text-right">Ação</th>
                               </tr>
                             </thead>
@@ -687,8 +688,14 @@ export const Admin: React.FC = () => {
                                 return (
                                   <tr key={reg.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition">
                                     <td className="py-3 px-4 text-gray-400 font-mono">{index + 1}</td>
-                                    <td className="py-3 px-4 font-semibold text-text-100 dark:text-white font-mono">
-                                      {reg.student_email}
+                                    <td className="py-3 px-4 font-semibold text-text-100 dark:text-white">
+                                      {reg.student_name}
+                                    </td>
+                                    <td className="py-3 px-4 text-emerald-600 dark:text-emerald-400 font-mono font-bold">
+                                      {reg.student_number}
+                                    </td>
+                                    <td className="py-3 px-4 text-text-200 dark:text-slate-400 font-mono">
+                                      {reg.student_number}@ualg.pt
                                     </td>
                                     <td className="py-3 px-4 text-text-200 dark:text-slate-400">
                                       {regDate}
@@ -698,7 +705,8 @@ export const Admin: React.FC = () => {
                                         onClick={() =>
                                           setConfirmDeleteReg({
                                             regId: reg.id,
-                                            email: reg.student_email,
+                                            studentName: reg.student_name,
+                                            studentNumber: reg.student_number,
                                             activityId: activity.id
                                           })
                                         }
@@ -734,7 +742,8 @@ export const Admin: React.FC = () => {
             </div>
             <p className="text-sm text-text-200 dark:text-slate-300">
               Tens a certeza de que pretendes desinscrever o aluno{' '}
-              <strong className="text-text-100 dark:text-white font-mono">{confirmDeleteReg.email}</strong>?
+              <strong className="text-text-100 dark:text-white">{confirmDeleteReg.studentName}</strong> (
+              <span className="font-mono text-emerald-600 dark:text-emerald-400">{confirmDeleteReg.studentNumber}</span>)?
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -783,7 +792,7 @@ export const Admin: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL DE CRIAR/EDITAR ATIVIDADE */}
+      {/* MODAL DE CRIAR/EDITAR ATIVIDADE (SEM TAGS) */}
       {isActivityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-cyan-900/60 p-6 sm:p-8 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -902,28 +911,15 @@ export const Admin: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold mb-1">Orador / Facilitador</label>
-                  <input
-                    type="text"
-                    value={formSpeaker}
-                    onChange={e => setFormSpeaker(e.target.value)}
-                    placeholder="ex.: Equipa NEEI ou Convidado"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold mb-1">Tags (separadas por vírgula)</label>
-                  <input
-                    type="text"
-                    value={formTags}
-                    onChange={e => setFormTags(e.target.value)}
-                    placeholder="ex.: Git, Docker, DevOps"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  />
-                </div>
+              <div>
+                <label className="block font-semibold mb-1">Orador / Facilitador (opcional)</label>
+                <input
+                  type="text"
+                  value={formSpeaker}
+                  onChange={e => setFormSpeaker(e.target.value)}
+                  placeholder="ex.: Equipa NEEI ou Convidado"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                />
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">

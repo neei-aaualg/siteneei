@@ -12,7 +12,7 @@ import {
   Send,
   X,
   Users,
-  Tag
+  Hash
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
@@ -25,7 +25,8 @@ export const Events: React.FC = () => {
 
   // Modal / Formulário de Inscrição
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  const [studentEmail, setStudentEmail] = useState('');
+  const [studentName, setStudentName] = useState('');
+  const [studentNumber, setStudentNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [registrationSuccess, setRegistrationSuccess] = useState<string | null>(null);
@@ -61,39 +62,53 @@ export const Events: React.FC = () => {
 
   const openRegisterModal = (activity: Activity) => {
     setSelectedActivity(activity);
-    setStudentEmail('');
+    setStudentName('');
+    setStudentNumber('');
     setFormError(null);
     setRegistrationSuccess(null);
   };
 
   const closeRegisterModal = () => {
     setSelectedActivity(null);
-    setStudentEmail('');
+    setStudentName('');
+    setStudentNumber('');
     setFormError(null);
     setRegistrationSuccess(null);
   };
 
-  const isEmailValid = (email: string) => /^a\d+@ualg\.pt$/i.test(email.trim());
+  const isStudentNumberValid = (val: string) => {
+    const clean = val.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    return /^a?\d{4,7}$/i.test(clean);
+  };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedActivity) return;
 
-    const trimmed = studentEmail.trim().toLowerCase();
+    const cleanName = studentName.trim();
+    const cleanNum = studentNumber.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
 
-    if (!isEmailValid(trimmed)) {
-      setFormError('Por favor insere um email de aluno válido no formato aXXXXX@ualg.pt');
+    if (cleanName.length < 2) {
+      setFormError('Por favor insere o teu nome completo');
       return;
     }
+
+    if (!isStudentNumberValid(cleanNum)) {
+      setFormError('Por favor insere um número de aluno válido (ex.: a74123 ou 74123)');
+      return;
+    }
+
+    // Normaliza para o formato oficial 'a' + dígitos
+    const finalNumber = cleanNum.startsWith('a') ? cleanNum : 'a' + cleanNum;
 
     try {
       setSubmitting(true);
       setFormError(null);
 
-      const res = await registerForActivity(selectedActivity.id, trimmed);
+      const res = await registerForActivity(selectedActivity.id, cleanName, finalNumber);
       setRegistrationSuccess(res.message || 'Inscrição confirmada com sucesso!');
 
-      // Efeito de confetis para celebrar a inscrição
+      // Efeito de confetis
       try {
         confetti({
           particleCount: 80,
@@ -101,7 +116,7 @@ export const Events: React.FC = () => {
           origin: { y: 0.6 }
         });
       } catch (cErr) {
-        // Fallback silencioso se o canvas falhar
+        // Fallback silencioso
       }
 
       // Atualiza a lista em background
@@ -138,7 +153,6 @@ export const Events: React.FC = () => {
     const details = encodeURIComponent(`${activity.description}\n\nOrganizado pelo NEEI UAlg`);
     const location = encodeURIComponent(activity.location);
 
-    // Formatação básica de data
     const dateClean = activity.date.replace(/-/g, '');
     const datesParam = `${dateClean}T090000Z/${dateClean}T180000Z`;
 
@@ -161,7 +175,7 @@ export const Events: React.FC = () => {
               </h1>
               <p className="text-lg text-text-200 dark:text-slate-300 leading-relaxed">
                 Participa nos nossos workshops práticos, hackathons, palestras de carreira e torneios de programação. 
-                Garante o teu lugar nas atividades a decorrer com o teu email de estudante.
+                Garante o teu lugar nas atividades a decorrer com o teu nome e número de aluno.
               </p>
             </div>
 
@@ -293,20 +307,6 @@ export const Events: React.FC = () => {
                               </div>
                             )}
                           </div>
-
-                          {activity.tags && activity.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mb-6">
-                              {activity.tags.map((tag, idx) => (
-                                <span
-                                  key={idx}
-                                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-md bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400"
-                                >
-                                  <Tag size={10} />
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
 
                         {/* Card Action Footer */}
@@ -523,7 +523,7 @@ export const Events: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleRegisterSubmit} className="space-y-5">
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
                   <div className="bg-primary-100/40 dark:bg-slate-900/60 p-4 rounded-xl text-xs text-text-200 dark:text-slate-300 space-y-1.5 border border-primary-200/40 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
@@ -536,38 +536,58 @@ export const Events: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="student-email-input" className="block text-sm font-semibold text-text-100 dark:text-slate-200 mb-2">
-                      Email de Aluno UAlg
+                    <label htmlFor="student-name-input" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      Nome Completo
                     </label>
                     <div className="relative">
                       <input
-                        id="student-email-input"
+                        id="student-name-input"
                         type="text"
-                        autoComplete="email"
-                        placeholder="aXXXXX@ualg.pt"
-                        value={studentEmail}
+                        autoComplete="name"
+                        placeholder="ex.: Afonso Bitoque"
+                        value={studentName}
                         onChange={e => {
-                          setStudentEmail(e.target.value);
+                          setStudentName(e.target.value);
                           if (formError) setFormError(null);
                         }}
-                        className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                          studentEmail && !isEmailValid(studentEmail)
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="student-number-input" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      Número de Aluno
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="student-number-input"
+                        type="text"
+                        placeholder="ex.: a74123 ou 74123"
+                        value={studentNumber}
+                        onChange={e => {
+                          setStudentNumber(e.target.value);
+                          if (formError) setFormError(null);
+                        }}
+                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                          studentNumber && !isStudentNumberValid(studentNumber)
                             ? 'border-amber-400 focus:ring-amber-400/20'
-                            : studentEmail && isEmailValid(studentEmail)
+                            : studentNumber && isStudentNumberValid(studentNumber)
                             ? 'border-emerald-500 focus:ring-emerald-500/20'
                             : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
                         }`}
                         required
                       />
-                      {studentEmail && isEmailValid(studentEmail) && (
+                      {studentNumber && isStudentNumberValid(studentNumber) && (
                         <CheckCircle2
                           size={18}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
                         />
                       )}
                     </div>
-                    <p className="text-xs text-text-200 dark:text-slate-400 mt-1.5">
-                      Insere apenas o teu email institucional no formato <strong className="text-text-100 dark:text-slate-200">aXXXXX@ualg.pt</strong>.
+                    <p className="text-[11px] text-text-200 dark:text-slate-400 mt-1">
+                      Insere apenas o teu número de aluno (não precisas de colocar @ualg.pt).
                     </p>
                   </div>
 
@@ -588,7 +608,7 @@ export const Events: React.FC = () => {
                     </button>
                     <button
                       type="submit"
-                      disabled={submitting || !studentEmail}
+                      disabled={submitting || !studentName || !studentNumber}
                       className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 disabled:opacity-50 disabled:pointer-events-none transition-all"
                     >
                       {submitting ? (
