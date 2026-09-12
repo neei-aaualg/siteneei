@@ -247,7 +247,12 @@ if (count === 0) {
 export function isDateInCurrentWeek(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return false;
   const cleanDate = dateStr.trim();
-  const target = new Date(cleanDate + 'T00:00:00');
+  let isoDate = cleanDate;
+  if (/^\d{2}-\d{2}-\d{4}$/.test(cleanDate)) {
+    const [d, m, y] = cleanDate.split('-');
+    isoDate = `${y}-${m}-${d}`;
+  }
+  const target = new Date(isoDate + 'T00:00:00');
   if (isNaN(target.getTime())) return false;
 
   const now = new Date();

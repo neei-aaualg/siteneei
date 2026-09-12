@@ -17,6 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
 import { fetchPublicActivities, registerForActivity, fetchAppConfig } from '../services/activitiesService';
+import { formatDateDDMMAAAA, getCalendarDayMonth } from '../utils/dateHelpers';
 
 export const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -134,40 +135,16 @@ export const Events: React.FC = () => {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const year = parts[0];
-        const month = parseInt(parts[1], 10) - 1;
-        const day = parseInt(parts[2], 10);
-        const d = new Date(Number(year), month, day);
-        return {
-          day: String(day).padStart(2, '0'),
-          month: d.toLocaleDateString('pt-PT', { month: 'short' }).toUpperCase().replace('.', ''),
-          full: d.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-        };
-      }
-    } catch (e) {
-      // fallback
-    }
-    return { day: '--', month: 'MÊS', full: dateStr };
+    const { day, month } = getCalendarDayMonth(dateStr);
+    return {
+      day,
+      month,
+      full: formatDateDDMMAAAA(dateStr)
+    };
   };
 
   const formatOpenDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    try {
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        const year = parts[0];
-        const month = parseInt(parts[1], 10) - 1;
-        const day = parseInt(parts[2], 10);
-        const d = new Date(Number(year), month, day);
-        return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
-      }
-    } catch (e) {
-      // fallback
-    }
-    return dateStr;
+    return formatDateDDMMAAAA(dateStr);
   };
 
   const createGoogleCalendarUrl = (activity: Activity) => {
@@ -445,6 +422,9 @@ export const Events: React.FC = () => {
                               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100/80 dark:bg-slate-800 text-primary-300 dark:text-cyan-300 border border-transparent dark:border-slate-700">
                                 {activity.category}
                               </span>
+                              <span className="text-[11px] font-mono font-medium text-text-200 dark:text-slate-400">
+                                {formatDateDDMMAAAA(activity.date)}
+                              </span>
                             </div>
                           </div>
 
@@ -538,7 +518,7 @@ export const Events: React.FC = () => {
                   </div>
                   <h4 className="text-xl font-bold text-text-100 dark:text-white">Inscrição Confirmada!</h4>
                   <p className="text-sm text-text-200 dark:text-slate-300 max-w-sm mx-auto">
-                    O teu lugar para esta atividade está reservado. Vemo-nos no dia {formatDisplayDate(selectedActivity.date).day} no {selectedActivity.location}.
+                    O teu lugar para esta atividade está reservado. Vemo-nos no dia {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
                   </p>
                   <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                     <a

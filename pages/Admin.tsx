@@ -23,6 +23,7 @@ import {
   Pencil
 } from 'lucide-react';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
+import { formatDateDDMMAAAA, formatDateTimeDDMMAAAA } from '../utils/dateHelpers';
 import {
   adminLogin,
   fetchAdminActivities,
@@ -206,7 +207,7 @@ export const Admin: React.FC = () => {
     csvContent += 'Nome,Numero de Aluno,Email Institucional,Data de Inscricao\n';
 
     activity.registrations.forEach(r => {
-      const regDate = new Date(r.registered_at).toLocaleString('pt-PT');
+      const regDate = formatDateTimeDDMMAAAA(r.registered_at);
       const email = `${r.student_number}@ualg.pt`;
       csvContent += `"${r.student_name}","${r.student_number}","${email}","${regDate}"\n`;
     });
@@ -544,12 +545,12 @@ export const Admin: React.FC = () => {
                           {activity.category}
                         </span>
                         <span className="text-xs text-text-200 dark:text-slate-400 flex items-center gap-1">
-                          <Calendar size={12} /> {activity.date}
+                          <Calendar size={12} /> {formatDateDDMMAAAA(activity.date)}
                         </span>
                         {activity.registration_opens_at && (
                           <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 px-2 py-0.5 rounded-full flex items-center gap-1">
                             <Calendar size={10} />
-                            Abre a {activity.registration_opens_at}
+                            Abre a {formatDateDDMMAAAA(activity.registration_opens_at)}
                           </span>
                         )}
                       </div>
@@ -686,13 +687,7 @@ export const Admin: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                               {registrations.map((reg, index) => {
-                                const regDate = new Date(reg.registered_at).toLocaleString('pt-PT', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                });
+                                const regDate = formatDateTimeDDMMAAAA(reg.registered_at);
 
                                 return (
                                   <tr key={reg.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition">
@@ -872,7 +867,7 @@ export const Admin: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-semibold mb-1">Data (MM-DD-AAAA)</label>
+                  <label className="block font-semibold mb-1">Data (DD-MM-AAAA)</label>
                   <input
                     type="date"
                     required
@@ -940,7 +935,7 @@ export const Admin: React.FC = () => {
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
                 <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
-                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem (ex.: "Inscrições abrem a 28 de setembro").
+                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem (ex.: "Inscrições abrem a 28-09-2026").
                 </span>
               </div>
 
