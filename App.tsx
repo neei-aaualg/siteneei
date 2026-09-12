@@ -10,6 +10,7 @@ import Jobs from './pages/Jobs';
 import Quack from './pages/Quack';
 import Events from './pages/Events';
 import Links from './pages/Links';
+import Admin from './pages/Admin';
 
 const App: React.FC = () => {
   return (
@@ -20,11 +21,13 @@ const App: React.FC = () => {
           <Route path="/" element={<Home />} />
           <Route path="/sobre" element={<About />} />
           <Route path="/eventos" element={<Events />} />
+          <Route path="/atividades" element={<Events />} />
           <Route path="/projetos" element={<Projects />} />
           <Route path="/pertencer" element={<Join />} />
           <Route path="/vagas" element={<Jobs />} />
           <Route path="/quack" element={<Quack />} />
           <Route path="/links" element={<Links />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </Layout>
     </Router>

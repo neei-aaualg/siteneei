@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
+import { handleActivitiesApi } from './server/api.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -215,11 +216,11 @@ function serveStaticFile(req, res, filePath) {
   });
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   // CORS Headers se necessário
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-token');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -235,6 +236,12 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }));
     return;
+  }
+
+  // API Atividades e Administração NEEI
+  if (pathname.startsWith('/api/activities') || pathname.startsWith('/api/admin/')) {
+    const handled = await handleActivitiesApi(req, res, pathname);
+    if (handled !== false) return;
   }
 
   // API Quack Analyze
