@@ -268,7 +268,7 @@ const HighlightsCarousel: React.FC = () => {
   const totalPages = Math.ceil(highlights.length / itemsPerPage);
   const [currentPage, setCurrentPage] = useState(0);
 
-  // Auto-play state: muda de 10 em 10 segundos, para ao tocar/arrastar
+  // Auto-play state: muda de 5 em 5 segundos, para ao tocar/arrastar
   const [autoPlay, setAutoPlay] = useState(true);
 
   const stopAutoPlay = useCallback(() => {
@@ -280,13 +280,13 @@ const HighlightsCarousel: React.FC = () => {
     setCurrentPage(prev => (prev >= totalPages ? 0 : prev));
   }, [totalPages]);
 
-  // Rotação automática de 10 em 10 segundos (para permanentemente após toque/arraste)
+  // Rotação automática de 5 em 5 segundos (para permanentemente após toque/arraste)
   useEffect(() => {
     if (!autoPlay || totalPages <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [autoPlay, totalPages]);
@@ -468,9 +468,8 @@ const HighlightsCarousel: React.FC = () => {
                 <div
                   key={pageIdx}
                   style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100%' }}
-                  className={`flex-shrink-0 px-1 sm:px-1 ${
-                    isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
-                  }`}
+                  className={`flex-shrink-0 px-1 sm:px-1 ${isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
+                    }`}
                 >
                   {pageItems.map((item, i) => (
                     <div
@@ -509,11 +508,10 @@ const HighlightsCarousel: React.FC = () => {
             <button
               key={idx}
               onClick={() => goToPage(idx)}
-              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                currentPage === idx
-                  ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
-                  : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
-              }`}
+              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx
+                ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
+                : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
+                }`}
               aria-label={`Ir para página ${idx + 1}`}
             />
           ))}
