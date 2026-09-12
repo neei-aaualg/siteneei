@@ -33,6 +33,29 @@ export function clearStoredAdminToken(): void {
 }
 
 /**
+ * Obtém as configurações da aplicação (ex.: visibilidade do calendário)
+ */
+export async function fetchAppConfig(): Promise<{ showCalendar: boolean }> {
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const data = await res.json();
+      return { showCalendar: Boolean(data.showCalendar) };
+    }
+  } catch {
+    // Ignora erro de rede em ambiente offline/dev
+  }
+
+  // Fallback para variável de ambiente Vite
+  const viteEnv = (import.meta as any).env?.VITE_SHOW_CALENDAR;
+  if (viteEnv !== undefined) {
+    return { showCalendar: viteEnv !== 'false' && viteEnv !== '0' };
+  }
+
+  return { showCalendar: true };
+}
+
+/**
  * Carrega a lista pública de atividades (a decorrer e futuras)
  */
 export async function fetchPublicActivities(): Promise<Activity[]> {

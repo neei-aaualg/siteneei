@@ -22,6 +22,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV SHOW_CALENDAR=true
 
 # Instala apenas dependências de produção
 COPY --chown=node:node package*.json ./

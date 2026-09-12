@@ -16,12 +16,13 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
-import { fetchPublicActivities, registerForActivity } from '../services/activitiesService';
+import { fetchPublicActivities, registerForActivity, fetchAppConfig } from '../services/activitiesService';
 
 export const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(true);
 
   // Modal / Formulário de Inscrição
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
@@ -38,7 +39,11 @@ export const Events: React.FC = () => {
     try {
       setLoading(true);
       setFetchError(null);
-      const data = await fetchPublicActivities();
+      const [config, data] = await Promise.all([
+        fetchAppConfig(),
+        fetchPublicActivities()
+      ]);
+      setShowCalendar(config.showCalendar);
       setActivities(data);
     } catch (err: any) {
       console.error('Error fetching activities:', err);
@@ -197,25 +202,27 @@ export const Events: React.FC = () => {
             </div>
 
             {/* Quick stats badge */}
-            <div className="flex gap-4 sm:gap-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-gray-200/80 dark:border-cyan-900/50 shadow-sm">
-              <div className="text-center px-3">
-                <div className="text-2xl sm:text-3xl font-bold text-accent-200 dark:text-cyan-400">
-                  {ongoingActivities.length}
+            {showCalendar && (
+              <div className="flex gap-4 sm:gap-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-gray-200/80 dark:border-cyan-900/50 shadow-sm">
+                <div className="text-center px-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-accent-200 dark:text-cyan-400">
+                    {ongoingActivities.length}
+                  </div>
+                  <div className="text-xs font-medium text-text-200 dark:text-slate-400 uppercase tracking-wider mt-0.5">
+                    A Decorrer
+                  </div>
                 </div>
-                <div className="text-xs font-medium text-text-200 dark:text-slate-400 uppercase tracking-wider mt-0.5">
-                  A Decorrer
+                <div className="w-px bg-gray-200 dark:bg-slate-800" />
+                <div className="text-center px-3">
+                  <div className="text-2xl sm:text-3xl font-bold text-primary-300 dark:text-slate-200">
+                    {upcomingActivities.length}
+                  </div>
+                  <div className="text-xs font-medium text-text-200 dark:text-slate-400 uppercase tracking-wider mt-0.5">
+                    Agendadas
+                  </div>
                 </div>
               </div>
-              <div className="w-px bg-gray-200 dark:bg-slate-800" />
-              <div className="text-center px-3">
-                <div className="text-2xl sm:text-3xl font-bold text-primary-300 dark:text-slate-200">
-                  {upcomingActivities.length}
-                </div>
-                <div className="text-xs font-medium text-text-200 dark:text-slate-400 uppercase tracking-wider mt-0.5">
-                  Agendadas
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -225,6 +232,18 @@ export const Events: React.FC = () => {
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <Loader2 className="animate-spin text-accent-200 dark:text-cyan-400" size={42} />
             <p className="text-sm font-medium text-text-200 dark:text-slate-400">A carregar atividades do NEEI...</p>
+          </div>
+        ) : !showCalendar ? (
+          <div className="py-20 sm:py-28 flex flex-col items-center justify-center text-center px-4 animate-fadeIn">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-cyan-500/10 dark:bg-cyan-500/20 text-accent-200 dark:text-cyan-400 flex items-center justify-center mb-6 shadow-sm border border-cyan-500/20">
+              <CalendarIcon size={38} className="animate-pulse" />
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-text-100 dark:text-white tracking-tight mb-3">
+              Calendário será anunciado brevemente...
+            </h2>
+            <p className="text-sm sm:text-base text-text-200 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+              Fica atento às nossas redes sociais e ao portal para saberes em primeira mão todas as datas das próximas atividades do NEEI.
+            </p>
           </div>
         ) : fetchError ? (
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 text-center">

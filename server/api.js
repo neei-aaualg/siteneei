@@ -44,8 +44,20 @@ export function sendJson(res, statusCode, data) {
  */
 export async function handleActivitiesApi(req, res, pathname) {
   try {
+    // GET /api/config - Configurações públicas da aplicação (ex.: visibilidade do calendário)
+    if (pathname === '/api/config' && req.method === 'GET') {
+      const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
+      const showCalendar = rawShow === undefined ? true : (rawShow !== 'false' && rawShow !== '0');
+      return sendJson(res, 200, { showCalendar });
+    }
+
     // GET /api/activities - Lista pública de atividades a decorrer e futuras
     if (pathname === '/api/activities' && req.method === 'GET') {
+      const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
+      const showCalendar = rawShow === undefined ? true : (rawShow !== 'false' && rawShow !== '0');
+      if (!showCalendar) {
+        return sendJson(res, 200, []);
+      }
       const activities = getPublicActivities();
       return sendJson(res, 200, activities);
     }
