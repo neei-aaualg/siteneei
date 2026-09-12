@@ -27,13 +27,6 @@ const Header: React.FC = () => {
       desc: 'Atividades e eventos'
     },
     {
-      name: 'Projetos',
-      path: 'https://github.com/neei-aaualg/student-showcase',
-      icon: <FolderOpen size={18} />,
-      desc: 'Showcase de projetos dos alunos',
-      isExternal: true
-    },
-    {
       name: 'Vagas',
       path: '/vagas',
       icon: <Briefcase size={18} />,
@@ -50,6 +43,13 @@ const Header: React.FC = () => {
       path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgCiZkWkiUSDR42VAH_iE99lAXHzPGqNFg-qekFAX2zOGSc?e=7QL1NJ',
       icon: <FileText size={18} />,
       desc: 'Documentos oficiais em vigor',
+      isExternal: true
+    },
+    {
+      name: 'Projetos',
+      path: 'https://github.com/neei-aaualg/student-showcase',
+      icon: <FolderOpen size={18} />,
+      desc: 'Showcase de projetos dos alunos',
       isExternal: true
     },
   ];
