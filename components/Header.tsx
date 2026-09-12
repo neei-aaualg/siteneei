@@ -24,13 +24,13 @@ const Header: React.FC = () => {
       name: 'Eventos',
       path: '/eventos',
       icon: <Calendar size={18} />,
-      desc: 'Workshops e atividades'
+      desc: 'Eventos e atividades'
     },
     {
       name: 'Projetos',
       path: '/projetos',
       icon: <FolderOpen size={18} />,
-      desc: 'Projetos e iniciativas'
+      desc: 'Projetos'
     },
     {
       name: 'Vagas',

@@ -174,7 +174,7 @@ export const Events: React.FC = () => {
                 Atividades & Eventos <span className="text-accent-200 dark:text-cyan-400">NEEI</span>
               </h1>
               <p className="text-lg text-text-200 dark:text-slate-300 leading-relaxed">
-                Participa nos nossos workshops práticos, hackathons, palestras de carreira e torneios de programação. 
+                Participa nos nossos workshops práticos, hackathons, palestras de carreira e torneios de programação.
                 Garante o teu lugar nas atividades a decorrer com o teu nome e número de aluno.
               </p>
             </div>
@@ -247,7 +247,7 @@ export const Events: React.FC = () => {
                     Não existem atividades com inscrições abertas no momento.
                   </p>
                   <p className="text-sm text-gray-500 dark:text-slate-500 mt-1">
-                    Consulta abaixo o calendário de próximas iniciativas ou junta-te ao nosso Discord para receber alertas em primeira mão.
+                    Consulta abaixo o calendário das próximas atividades.
                   </p>
                 </div>
               ) : (
@@ -345,7 +345,7 @@ export const Events: React.FC = () => {
                     Calendário de Atividades Futuras
                   </h2>
                   <p className="text-sm text-text-200 dark:text-slate-400 mt-1">
-                    Planeia a tua participação com antecedência. As inscrições abrem nos dias prévios a cada iniciativa.
+                    Planeia a tua participação com antecedência. As inscrições abrem na mesma semana da atividade, ou excecionalmente na semana anterior.
                   </p>
                 </div>
 
@@ -354,11 +354,10 @@ export const Events: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedCategory('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        selectedCategory === 'all'
-                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === 'all'
+                        ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                        }`}
                     >
                       Todas ({upcomingActivities.length})
                     </button>
@@ -366,11 +365,10 @@ export const Events: React.FC = () => {
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                          selectedCategory === cat
-                            ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat
+                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          }`}
                       >
                         {cat}
                       </button>
@@ -570,13 +568,12 @@ export const Events: React.FC = () => {
                           setStudentNumber(e.target.value);
                           if (formError) setFormError(null);
                         }}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                          studentNumber && !isStudentNumberValid(studentNumber)
-                            ? 'border-amber-400 focus:ring-amber-400/20'
-                            : studentNumber && isStudentNumberValid(studentNumber)
+                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${studentNumber && !isStudentNumberValid(studentNumber)
+                          ? 'border-amber-400 focus:ring-amber-400/20'
+                          : studentNumber && isStudentNumberValid(studentNumber)
                             ? 'border-emerald-500 focus:ring-emerald-500/20'
                             : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
-                        }`}
+                          }`}
                         required
                       />
                       {studentNumber && isStudentNumberValid(studentNumber) && (
