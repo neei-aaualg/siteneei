@@ -148,6 +148,23 @@ export const Events: React.FC = () => {
     return { day: '--', month: 'MÊS', full: dateStr };
   };
 
+  const formatOpenDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    try {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const year = parts[0];
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(Number(year), month, day);
+        return d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
+      }
+    } catch (e) {
+      // fallback
+    }
+    return dateStr;
+  };
+
   const createGoogleCalendarUrl = (activity: Activity) => {
     const title = encodeURIComponent(activity.title);
     const details = encodeURIComponent(`${activity.description}\n\nOrganizado pelo NEEI UAlg`);
@@ -434,8 +451,13 @@ export const Events: React.FC = () => {
                             <span className="truncate">{activity.location}</span>
                           </div>
 
-                          <div className="pt-2 flex items-center justify-between">
-                            {Boolean(activity.open_soon) ? (
+                          <div className="pt-2 flex items-center justify-between gap-2">
+                            {activity.registration_opens_at ? (
+                              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5">
+                                <CalendarIcon size={12} className="shrink-0" />
+                                <span>Inscrições abrem a {formatOpenDate(activity.registration_opens_at)}</span>
+                              </span>
+                            ) : Boolean(activity.open_soon) ? (
                               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/20">
                                 Inscrições abrem brevemente
                               </span>

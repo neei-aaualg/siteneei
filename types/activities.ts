@@ -12,6 +12,7 @@ export interface Activity {
   max_capacity?: number;
   speaker?: string;
   open_soon?: boolean | number;
+  registration_opens_at?: string;
   registrations_count?: number;
   created_at?: string;
 }

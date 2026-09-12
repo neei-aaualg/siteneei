@@ -73,6 +73,7 @@ export const Admin: React.FC = () => {
   const [formMaxCapacity, setFormMaxCapacity] = useState<number>(0);
   const [formSpeaker, setFormSpeaker] = useState('');
   const [formOpenSoon, setFormOpenSoon] = useState(false);
+  const [formRegistrationOpensAt, setFormRegistrationOpensAt] = useState('');
 
   const loadDashboardData = async (activeToken: string) => {
     try {
@@ -233,6 +234,7 @@ export const Admin: React.FC = () => {
     setFormMaxCapacity(35);
     setFormSpeaker('Equipa NEEI');
     setFormOpenSoon(false);
+    setFormRegistrationOpensAt('');
     setIsActivityModalOpen(true);
   };
 
@@ -248,6 +250,7 @@ export const Admin: React.FC = () => {
     setFormMaxCapacity(activity.max_capacity || 0);
     setFormSpeaker(activity.speaker || '');
     setFormOpenSoon(Boolean(activity.open_soon));
+    setFormRegistrationOpensAt(activity.registration_opens_at || '');
     setIsActivityModalOpen(true);
   };
 
@@ -269,7 +272,8 @@ export const Admin: React.FC = () => {
         location: formLocation.trim(),
         max_capacity: Number(formMaxCapacity) || 0,
         speaker: formSpeaker.trim(),
-        open_soon: formOpenSoon ? 1 : 0
+        open_soon: formOpenSoon ? 1 : 0,
+        registration_opens_at: formRegistrationOpensAt ? formRegistrationOpensAt.trim() : undefined
       };
 
       await saveActivity(token, payload);
@@ -551,6 +555,12 @@ export const Admin: React.FC = () => {
                         {Boolean(activity.open_soon) && (
                           <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 px-2 py-0.5 rounded-full">
                             Inscrições Abrem Brevemente
+                          </span>
+                        )}
+                        {activity.registration_opens_at && (
+                          <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Calendar size={10} />
+                            Abre a {activity.registration_opens_at}
                           </span>
                         )}
                       </div>
@@ -932,6 +942,19 @@ export const Admin: React.FC = () => {
                   placeholder="ex.: Equipa NEEI ou Convidado"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
+              </div>
+
+              <div>
+                <label className="block font-semibold mb-1">Data de Abertura das Inscrições (opcional)</label>
+                <input
+                  type="date"
+                  value={formRegistrationOpensAt}
+                  onChange={e => setFormRegistrationOpensAt(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                />
+                <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
+                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem (ex.: "Inscrições abrem a 28 de setembro").
+                </span>
               </div>
 
               <div className="p-3.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-900/60 flex items-start gap-3">

@@ -39,8 +39,18 @@ try {
 // Migração: adiciona coluna open_soon à tabela activities se não existir
 try {
   const actCols = db.prepare('PRAGMA table_info(activities)').all().map(c => c.name);
-  if (actCols.length > 0 && !actCols.includes('open_soon')) {
+  if (!actCols.includes('open_soon')) {
     db.exec('ALTER TABLE activities ADD COLUMN open_soon INTEGER DEFAULT 0;');
+  }
+} catch (e) {
+  // Ignora se não existir
+}
+
+// Migração: adiciona coluna registration_opens_at à tabela activities se não existir
+try {
+  const actCols = db.prepare('PRAGMA table_info(activities)').all().map(c => c.name);
+  if (!actCols.includes('registration_opens_at')) {
+    db.exec('ALTER TABLE activities ADD COLUMN registration_opens_at TEXT;');
   }
 } catch (e) {
   // Ignora se não existir
@@ -60,6 +70,7 @@ db.exec(`
     max_capacity INTEGER DEFAULT 0,
     speaker TEXT,
     open_soon INTEGER DEFAULT 0,
+    registration_opens_at TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -284,7 +295,7 @@ export function getPublicActivities() {
 
   const stmt = db.prepare(`
     SELECT 
-      a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.open_soon, a.created_at,
+      a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.open_soon, a.registration_opens_at, a.created_at,
       COUNT(r.id) as registrations_count
     FROM activities a
     LEFT JOIN registrations r ON a.id = r.activity_id
@@ -453,11 +464,12 @@ export function saveActivity(data) {
   }
 
   const openSoon = data.open_soon ? 1 : 0;
+  const regOpensAt = data.registration_opens_at ? String(data.registration_opens_at).trim() : null;
 
   if (existing) {
     const updateStmt = db.prepare(`
       UPDATE activities 
-      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?, open_soon = ?
+      SET title = ?, description = ?, category = ?, status = ?, date = ?, time = ?, location = ?, max_capacity = ?, speaker = ?, open_soon = ?, registration_opens_at = ?
       WHERE id = ?
     `);
     updateStmt.run(
@@ -471,12 +483,13 @@ export function saveActivity(data) {
       data.max_capacity || 0,
       data.speaker || '',
       openSoon,
+      regOpensAt,
       id
     );
   } else {
     const insertStmt = db.prepare(`
-      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, open_soon, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, open_soon, registration_opens_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     insertStmt.run(
       id,
@@ -490,11 +503,12 @@ export function saveActivity(data) {
       data.max_capacity || 0,
       data.speaker || '',
       openSoon,
+      regOpensAt,
       now
     );
   }
 
-  return { id, ...data, open_soon: openSoon };
+  return { id, ...data, open_soon: openSoon, registration_opens_at: regOpensAt };
 }
 
 /**
