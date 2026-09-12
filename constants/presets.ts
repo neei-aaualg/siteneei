@@ -152,7 +152,7 @@ export const PRESET_ICONS: PresetIcon[] = [
   {
     id: 'neei',
     name: 'NEEI UAlg',
-    svgDataUri: '/neei-logo.png',
+    svgDataUri: '/assets/logoneeipequeno-removebg-preview.png',
     defaultDotColor: '#00668c',
     defaultBgColor: '#FFFFFF',
     category: 'custom'
