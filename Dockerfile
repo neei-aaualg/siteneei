@@ -27,9 +27,13 @@ ENV PORT=3000
 COPY --chown=node:node package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copia os ficheiros compilados e o servidor HTTP
+# Cria diretório de dados com permissões para o utilizador node
+RUN mkdir -p /app/data && chown -R node:node /app/data
+
+# Copia os ficheiros compilados e o servidor HTTP + backend
 COPY --chown=node:node --from=builder /app/build ./build
 COPY --chown=node:node server.js ./
+COPY --chown=node:node server ./server
 
 # Executa com o utilizador seguro não-root
 USER node
