@@ -353,8 +353,8 @@ export const Jobs: React.FC = () => {
                             </a>
                           </div>
 
-                          <div className="flex items-center gap-3">
-                            {job.link && (
+                          {job.link && (
+                            <div className="flex items-center gap-3">
                               <a
                                 href={job.link}
                                 target="_blank"
@@ -364,15 +364,8 @@ export const Jobs: React.FC = () => {
                                 <span>Website da Vaga</span>
                                 <ExternalLink size={13} />
                               </a>
-                            )}
-                            <a
-                              href={`mailto:${job.email}?subject=Candidatura%20NEEI%20-%20${encodeURIComponent(job.title)}`}
-                              className="inline-flex items-center gap-1.5 px-5 py-2 bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl shadow-sm transition"
-                            >
-                              <Send size={13} />
-                              <span>Candidatar-me</span>
-                            </a>
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
