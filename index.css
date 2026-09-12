@@ -118,3 +118,45 @@ html.theme-transition *::after {
   transition-delay: 0s !important;
 }
 
+/* Page Transition Effects (Subtle entrance and route progress bar) */
+@keyframes pageEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition {
+  animation: pageEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes routeProgress {
+  0% {
+    transform: translateX(-100%);
+  }
+  60% {
+    transform: translateX(-15%);
+  }
+  100% {
+    transform: translateX(0%);
+    opacity: 0;
+  }
+}
+
+.animate-route-progress {
+  animation: routeProgress 0.38s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .animate-route-progress {
+    animation: none !important;
+  }
+}
+
+
