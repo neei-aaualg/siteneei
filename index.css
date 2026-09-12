@@ -38,6 +38,12 @@ html {
   overflow-y: scroll;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

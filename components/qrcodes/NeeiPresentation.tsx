@@ -82,12 +82,25 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
     }
   }
 
+  const [screenHeight, setScreenHeight] = useState<number>(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 900
+  )
+
   useEffect(() => {
     const handleFsChange = () => {
       setIsFullscreen(!!document.fullscreenElement)
+      setScreenHeight(window.innerHeight)
     }
+    const handleResize = () => {
+      setScreenHeight(window.innerHeight)
+    }
+
     document.addEventListener('fullscreenchange', handleFsChange)
-    return () => document.removeEventListener('fullscreenchange', handleFsChange)
+    window.addEventListener('resize', handleResize)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange)
+      window.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   const handleCopy = (text: string, label: string) => {
@@ -98,6 +111,16 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
       setCopiedLink((current) => (current === text ? null : current))
     }, 2500)
   }
+
+  // Dynamic QR size and compact layout mode to ensure comfortable top margin and fit on laptop screens
+  const isCompactLaptop = isFullscreen && screenHeight < 860
+  const qrSize = isFullscreen
+    ? screenHeight < 760
+      ? 180
+      : screenHeight < 880
+      ? 205
+      : 250
+    : 210
 
   // Pure presentation styling with dark mode support
   const pageBg = 'bg-[#f0f7fa] dark:bg-[#070d14] text-[#1d1c1c] dark:text-slate-100 transition-colors duration-300'
@@ -136,8 +159,8 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
       {/* Presentation Canvas / Slide */}
       <div
         ref={slideRef}
-        className={`flex-1 flex flex-col justify-center items-center ${pageBg} ${isFullscreen
-          ? 'p-6 sm:p-10 min-h-screen w-screen overflow-y-auto'
+        className={`flex-1 flex flex-col items-center ${pageBg} ${isFullscreen
+          ? 'pt-16 pb-12 px-4 sm:pt-20 sm:pb-16 sm:px-8 min-h-screen w-screen overflow-y-auto'
           : 'py-8 sm:py-12 px-4 sm:px-8 max-w-6xl mx-auto w-full'
           }`}
       >
@@ -146,7 +169,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900/80 hover:bg-slate-900 text-white border border-slate-700 shadow-xl backdrop-blur-md transition-all cursor-pointer opacity-70 hover:opacity-100"
+            className="fixed top-4 right-4 z-50 flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-900/85 hover:bg-slate-900 text-white border border-slate-700 shadow-xl backdrop-blur-md transition-all cursor-pointer opacity-80 hover:opacity-100"
             title="Sair do modo ecrã inteiro (ou pressiona ESC)"
           >
             <Minimize className="w-3.5 h-3.5" />
@@ -154,14 +177,14 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
           </button>
         )}
 
-        <div className="w-full space-y-8 max-w-5xl my-auto">
+        <div className={`w-full ${isCompactLaptop ? 'space-y-5' : 'space-y-7 sm:space-y-8'} max-w-5xl my-auto`}>
           {/* Header of the Page: Clean NEEI Branding & Title */}
-          <div className="text-center space-y-3">
+          <div className={`text-center ${isCompactLaptop ? 'space-y-2' : 'space-y-3'}`}>
             <div className="flex items-center justify-center gap-3">
               <img
                 src="/assets/logoneeipequeno-removebg-preview.png"
                 alt="NEEI"
-                className="h-10 sm:h-12 w-auto object-contain"
+                className={`${isCompactLaptop ? 'h-9 sm:h-10' : 'h-10 sm:h-12'} w-auto object-contain`}
                 onError={(e) => {
                   // Fallback if needed
                   (e.target as HTMLImageElement).src = '/assets/logoneeigrande-removebg-preview.png'
@@ -179,7 +202,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
               <span>Sala 0.18 &bull; Campus de Gambelas, Faro</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight m-0 text-slate-900 dark:text-white">
+            <h1 className={`${isCompactLaptop ? 'text-xl sm:text-2xl lg:text-3xl' : 'text-2xl sm:text-3xl lg:text-4xl'} font-black tracking-tight leading-tight m-0 text-slate-900 dark:text-white`}>
               Junta-te aos Nossos Canais
             </h1>
             <p className="text-xs sm:text-sm max-w-lg mx-auto text-slate-600 dark:text-slate-400">
@@ -207,10 +230,10 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
               return (
                 <div
                   key={card.id || index}
-                  className={`flex flex-col items-center justify-between p-6 sm:p-7 rounded-3xl transition-all duration-300 ${cardBg}`}
+                  className={`flex flex-col items-center justify-between ${isCompactLaptop ? 'p-4 sm:p-5' : 'p-6 sm:p-7'} rounded-3xl transition-all duration-300 ${cardBg}`}
                 >
                   {/* Category Pill */}
-                  <div className="w-full flex items-center justify-start mb-3">
+                  <div className={`w-full flex items-center justify-start ${isCompactLaptop ? 'mb-2' : 'mb-3'}`}>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm ${badgeColor}`}>
                       <CategoryIcon className="w-3.5 h-3.5" />
                       <span>{card.title.split(' ')[0] || 'Canal'}</span>
@@ -218,19 +241,19 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                   </div>
 
                   {/* Title */}
-                  <div className="text-center w-full mb-3">
+                  <div className={`text-center w-full ${isCompactLaptop ? 'mb-2' : 'mb-3'}`}>
                     <h3 className="text-base sm:text-lg font-bold tracking-tight truncate w-full m-0 text-slate-900 dark:text-white">
                       {card.title}
                     </h3>
                   </div>
 
                   {/* QR Code Container in Crisp White */}
-                  <div className="p-3.5 sm:p-4 bg-white rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700/60 flex items-center justify-center my-1">
-                    <QRPreview card={card} size={isFullscreen ? 250 : 210} />
+                  <div className={`${isCompactLaptop ? 'p-2.5 sm:p-3' : 'p-3.5 sm:p-4'} bg-white rounded-2xl shadow-inner border border-slate-200 dark:border-slate-700/60 flex items-center justify-center ${isCompactLaptop ? 'my-0.5' : 'my-1'}`}>
+                    <QRPreview card={card} size={qrSize} />
                   </div>
 
                   {/* URL / Action */}
-                  <div className="w-full mt-4 space-y-2">
+                  <div className={`w-full ${isCompactLaptop ? 'mt-3 space-y-1.5' : 'mt-4 space-y-2'}`}>
                     <div className="p-2 rounded-xl text-center font-mono text-[11px] truncate border bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 text-[#00668c] dark:text-cyan-400">
                       {card.url}
                     </div>
@@ -265,7 +288,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
           </div>
 
           {/* FALLBACK LINK FOR PEOPLE WHOSE CAMERA IS NOT WORKING */}
-          <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 border transition-all duration-300 shadow-md bg-gradient-to-r from-white via-[#f0f7fa] to-[#d4eaf7]/80 dark:from-[#0c1421] dark:via-[#0c1421] dark:to-cyan-950/40 border-[#b6ccd8] dark:border-slate-800">
+          <div className={`relative overflow-hidden rounded-3xl ${isCompactLaptop ? 'p-3.5 sm:p-4' : 'p-5 sm:p-6'} border transition-all duration-300 shadow-md bg-gradient-to-r from-white via-[#f0f7fa] to-[#d4eaf7]/80 dark:from-[#0c1421] dark:via-[#0c1421] dark:to-cyan-950/40 border-[#b6ccd8] dark:border-slate-800`}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
