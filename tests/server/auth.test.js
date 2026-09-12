@@ -41,6 +41,19 @@ describe('server/auth', () => {
     }
   });
 
+  it('recusa autenticar sem ADMIN_PASSWORD configurada (500)', async () => {
+    vi.resetModules();
+    delete process.env.ADMIN_PASSWORD;
+    const authSemSenha = await import('../../server/auth.js');
+    try {
+      authSemSenha.authenticateAdmin('qualquer-coisa');
+      throw new Error('deveria lançar');
+    } catch (err) {
+      expect(err.statusCode).toBe(500);
+      expect(err.message).toBe('Senha de equipa não configurada no servidor');
+    }
+  });
+
   it('rejeita senha em falta ou não textual com 400', () => {
     for (const bad of [undefined, null, '', 12345]) {
       try {

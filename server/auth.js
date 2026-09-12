@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 
-// Senha única para a equipa NEEI (configurável via ADMIN_PASSWORD)
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'neei2026!';
+// Senha única para a equipa NEEI (obrigatória: configura via ADMIN_PASSWORD)
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 // Armazenamento em memória de tokens de sessão ativos (token -> expiração)
 const activeSessions = new Map();
@@ -14,6 +14,13 @@ export function authenticateAdmin(password) {
   if (!password || typeof password !== 'string') {
     const err = new Error('Senha não fornecida');
     err.statusCode = 400;
+    throw err;
+  }
+
+  // Falha silenciosa se a variável de ambiente não estiver configurada
+  if (!ADMIN_PASSWORD) {
+    const err = new Error('Senha de equipa não configurada no servidor');
+    err.statusCode = 500;
     throw err;
   }
 

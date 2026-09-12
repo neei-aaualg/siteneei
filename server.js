@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { handleActivitiesApi } from './server/api.js';
+import { createRateLimiter, setSecurityHeaders, clientIp } from './server/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +12,30 @@ const __dirname = path.dirname(__filename);
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const BUILD_DIR = path.resolve(__dirname, 'build');
+
+// Limites de taxa por IP (janela de 60s)
+const apiLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
+const analyzeLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
+const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
+const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+
+function sendTooManyRequests(res, retryAfterSec) {
+  setSecurityHeaders(res);
+  res.writeHead(429, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Retry-After': String(retryAfterSec),
+  });
+  res.end(JSON.stringify({ error: 'Demasiados pedidos. Tenta novamente dentro de pouco tempo.' }));
+}
+
+function isRateLimited(req, res, limiter) {
+  const result = limiter.check(clientIp(req));
+  if (!result.ok) {
+    sendTooManyRequests(res, result.retryAfterSec);
+    return true;
+  }
+  return false;
+}
 
 const FORBIDDEN_PATTERNS = [
   'system(',
@@ -246,10 +271,8 @@ function serveStaticFile(req, res, filePath) {
 }
 
 const server = http.createServer(async (req, res) => {
-  // CORS Headers se necessário
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-token');
+  // Cabeçalhos de segurança em todas as respostas
+  setSecurityHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -265,6 +288,24 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }));
     return;
+  }
+
+  // Limitação de taxa para endpoints de escrita
+  if (
+    req.method === 'POST' ||
+    req.method === 'PUT' ||
+    req.method === 'PATCH' ||
+    req.method === 'DELETE'
+  ) {
+    if (pathname === '/api/analyze') {
+      if (isRateLimited(req, res, analyzeLimiter)) return;
+    } else if (pathname.startsWith('/api/admin/login')) {
+      if (isRateLimited(req, res, loginLimiter)) return;
+    } else if (pathname.startsWith('/api/admin/')) {
+      if (isRateLimited(req, res, adminLimiter)) return;
+    } else if (pathname.startsWith('/api/')) {
+      if (isRateLimited(req, res, apiLimiter)) return;
+    }
   }
 
   // API Atividades, Colaboradores, Vagas e Administração NEEI
