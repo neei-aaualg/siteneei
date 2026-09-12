@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, FileText } from 'lucide-react';
+import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, FileText, QrCode } from 'lucide-react';
 
 interface ExploreItem {
   name: string;
@@ -35,6 +35,12 @@ const Header: React.FC = () => {
       path: '/vagas',
       icon: <Briefcase size={18} />,
       desc: 'Estágios e oportunidades'
+    },
+    {
+      name: 'Links',
+      path: '/links',
+      icon: <QrCode size={18} />,
+      desc: 'Canais oficiais e QR Codes'
     },
     {
       name: 'Atas',
@@ -84,7 +90,7 @@ const Header: React.FC = () => {
   }, [isExploreActive]);
 
   return (
-    <header className="sticky top-0 z-50 bg-bg-100/90 backdrop-blur-md border-b border-primary-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-bg-100/90 backdrop-blur-md border-b border-primary-200 shadow-sm print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side: Logo & Desktop Nav */}
@@ -132,7 +138,7 @@ const Header: React.FC = () => {
                   onClick={() => setIsDropdownOpen(prev => !prev)}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
-                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/eventos') || isActive('/projetos') || isActive('/vagas') || isDropdownOpen
+                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isExploreActive || isDropdownOpen
                     ? 'text-accent-200 bg-primary-100'
                     : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
                     }`}

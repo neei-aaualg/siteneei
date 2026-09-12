@@ -1,9 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Github, Linkedin, Mail, MapPin, ExternalLink } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-primary-300 text-bg-100 mt-auto">
+    <footer className="bg-primary-300 text-bg-100 mt-auto print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Info */}
@@ -18,10 +19,11 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4 text-primary-100">Links Rápidos</h3>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="#/sobre" className="hover:text-accent-100 transition-colors">Sobre Nós</a></li>
-              <li><a href="#/projetos" className="hover:text-accent-100 transition-colors">Projetos</a></li>
-              <li><a href="#/vagas" className="hover:text-accent-100 transition-colors">Oportunidades</a></li>
-              <li><a href="#/quack" className="hover:text-accent-100 transition-colors">Quack</a></li>
+              <li><Link to="/sobre" className="hover:text-accent-100 transition-colors">Sobre Nós</Link></li>
+              <li><Link to="/projetos" className="hover:text-accent-100 transition-colors">Projetos</Link></li>
+              <li><Link to="/vagas" className="hover:text-accent-100 transition-colors">Oportunidades</Link></li>
+              <li><Link to="/quack" className="hover:text-accent-100 transition-colors">Quack</Link></li>
+              <li><Link to="/links" className="hover:text-accent-100 transition-colors">Links & QR Codes</Link></li>
               <li>
                 <a
                   href="https://box.neei.online"
