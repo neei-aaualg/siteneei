@@ -4,7 +4,7 @@ import { Activity } from '../types/activities';
 import {
   createGoogleCalendarUrl,
   createOutlookCalendarUrl,
-  downloadIcsCalendarFile
+  downloadIcsCalendarFile,
 } from '../utils/calendarHelpers';
 
 interface CalendarDropdownProps {
@@ -16,7 +16,10 @@ interface CalendarDropdownProps {
   className?: string;
 }
 
-const GoogleCalendarIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (
+const GoogleCalendarIcon: React.FC<{ size?: number; className?: string }> = ({
+  size = 16,
+  className = '',
+}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
     <rect x="3" y="4" width="18" height="17" rx="3" fill="#4285F4" />
     <path d="M3 9h18v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V9z" fill="#FFFFFF" />
@@ -31,7 +34,10 @@ const GoogleCalendarIcon: React.FC<{ size?: number; className?: string }> = ({ s
   </svg>
 );
 
-const OutlookIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className = '' }) => (
+const OutlookIcon: React.FC<{ size?: number; className?: string }> = ({
+  size = 16,
+  className = '',
+}) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none">
     <rect x="3" y="4" width="18" height="16" rx="2.5" fill="#0078D4" />
     <path d="M14 4h4.5A2.5 2.5 0 0 1 21 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14V4z" fill="#28A8EA" />
@@ -46,7 +52,7 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   variant = 'button',
   align = 'right',
   direction = 'up',
-  className = ''
+  className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -81,7 +87,10 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   };
 
   return (
-    <div className={`relative inline-block text-left ${isOpen ? 'z-50' : 'z-20'} ${className}`} ref={dropdownRef}>
+    <div
+      className={`relative inline-block text-left ${isOpen ? 'z-50' : 'z-20'} ${className}`}
+      ref={dropdownRef}
+    >
       {variant === 'icon' ? (
         <button
           type="button"
@@ -105,19 +114,18 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
           <span>{label}</span>
           <ChevronDown
             size={13}
-            className={`transition-transform duration-200 opacity-60 ${direction === 'up'
-              ? isOpen ? '' : 'rotate-180'
-              : isOpen ? 'rotate-180' : ''
-              }`}
+            className={`transition-transform duration-200 opacity-60 ${
+              direction === 'up' ? (isOpen ? '' : 'rotate-180') : isOpen ? 'rotate-180' : ''
+            }`}
           />
         </button>
       )}
 
       {isOpen && (
         <div
-          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'
-            } ${direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
-            } w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-2xl shadow-cyan-950/25 dark:shadow-black/90 py-2 z-50 animate-fadeIn`}
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'} ${
+            direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
+          } w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-2xl shadow-cyan-950/25 dark:shadow-black/90 py-2 z-50 animate-fadeIn`}
           role="menu"
         >
           <div className="px-3 py-1.5 border-b border-gray-100 dark:border-slate-800/80 mb-1">

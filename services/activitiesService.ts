@@ -3,7 +3,7 @@ import {
   AdminActivityWithRegistrations,
   RegisterResponse,
   AdminAuthResponse,
-  ActivityStatus
+  ActivityStatus,
 } from '../types/activities';
 
 const ADMIN_TOKEN_KEY = 'neei_admin_token';
@@ -60,7 +60,7 @@ export async function fetchAppConfig(): Promise<{ showCalendar: boolean }> {
  */
 export async function fetchPublicActivities(): Promise<Activity[]> {
   const res = await fetch('/api/activities', {
-    headers: { 'Accept': 'application/json' }
+    headers: { Accept: 'application/json' },
   });
 
   if (!res.ok) {
@@ -82,9 +82,9 @@ export async function registerForActivity(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      Accept: 'application/json',
     },
-    body: JSON.stringify({ activityId, name, studentNumber })
+    body: JSON.stringify({ activityId, name, studentNumber }),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -104,9 +104,9 @@ export async function adminLogin(password: string): Promise<AdminAuthResponse> {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      Accept: 'application/json',
     },
-    body: JSON.stringify({ password })
+    body: JSON.stringify({ password }),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -125,12 +125,14 @@ export async function adminLogin(password: string): Promise<AdminAuthResponse> {
 /**
  * Carrega todas as atividades e respetivas listas de inscritos
  */
-export async function fetchAdminActivities(token: string): Promise<AdminActivityWithRegistrations[]> {
+export async function fetchAdminActivities(
+  token: string
+): Promise<AdminActivityWithRegistrations[]> {
   const res = await fetch('/api/admin/activities', {
     headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`
-    }
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (res.status === 401) {
@@ -152,8 +154,8 @@ export async function removeRegistration(token: string, registrationId: string):
   const res = await fetch(`/api/admin/registrations/${registrationId}`, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (res.status === 401) {
@@ -182,9 +184,9 @@ export async function updateActivityStatus(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ activityId, status })
+    body: JSON.stringify({ activityId, status }),
   });
 
   if (res.status === 401) {
@@ -204,17 +206,14 @@ export async function updateActivityStatus(
 /**
  * Cria ou atualiza uma atividade no painel de administração
  */
-export async function saveActivity(
-  token: string,
-  activity: Partial<Activity>
-): Promise<Activity> {
+export async function saveActivity(token: string, activity: Partial<Activity>): Promise<Activity> {
   const res = await fetch('/api/admin/activities', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(activity)
+    body: JSON.stringify(activity),
   });
 
   if (res.status === 401) {
@@ -238,8 +237,8 @@ export async function deleteActivity(token: string, activityId: string): Promise
   const res = await fetch(`/api/admin/activities/${activityId}`, {
     method: 'DELETE',
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (res.status === 401) {

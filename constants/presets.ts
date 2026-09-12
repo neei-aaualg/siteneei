@@ -1,8 +1,8 @@
-import type { PresetIcon, QRCodeCardItem } from '../types/qrcode'
+import type { PresetIcon, QRCodeCardItem } from '../types/qrcode';
 
 // Helper to convert SVG string to data URI
 export function svgToDataUri(svg: string): string {
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 // Crisp Vector SVGs for central logos
@@ -65,8 +65,8 @@ export const SVG_ICONS = {
   star: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
     <rect width="48" height="48" rx="12" fill="#EAB308"/>
     <path fill="#ffffff" d="M24 12l3.7 7.5 8.3 1.2-6 5.8 1.4 8.2-7.4-3.9-7.4 3.9 1.4-8.2-6-5.8 8.3-1.2L24 12z"/>
-  </svg>`
-}
+  </svg>`,
+};
 
 export const PRESET_ICONS: PresetIcon[] = [
   {
@@ -75,7 +75,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.whatsapp),
     defaultDotColor: '#128C7E',
     defaultBgColor: '#FFFFFF',
-    category: 'whatsapp'
+    category: 'whatsapp',
   },
   {
     id: 'instagram',
@@ -83,7 +83,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.instagram),
     defaultDotColor: '#C13584',
     defaultBgColor: '#FFFFFF',
-    category: 'instagram'
+    category: 'instagram',
   },
   {
     id: 'discord',
@@ -91,7 +91,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.discord),
     defaultDotColor: '#5865F2',
     defaultBgColor: '#FFFFFF',
-    category: 'discord'
+    category: 'discord',
   },
   {
     id: 'youtube',
@@ -99,7 +99,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.youtube),
     defaultDotColor: '#CC0000',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'linkedin',
@@ -107,7 +107,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.linkedin),
     defaultDotColor: '#0A66C2',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'x_twitter',
@@ -115,7 +115,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.x_twitter),
     defaultDotColor: '#0f1419',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'wifi',
@@ -123,7 +123,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.wifi),
     defaultDotColor: '#0284C7',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'globe',
@@ -131,7 +131,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.globe),
     defaultDotColor: '#4338CA',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'mail',
@@ -139,7 +139,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.mail),
     defaultDotColor: '#C2410C',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'star',
@@ -147,7 +147,7 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: svgToDataUri(SVG_ICONS.star),
     defaultDotColor: '#B45309',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
+    category: 'custom',
   },
   {
     id: 'neei',
@@ -155,9 +155,9 @@ export const PRESET_ICONS: PresetIcon[] = [
     svgDataUri: '/assets/logoneeipequeno-removebg-preview.png',
     defaultDotColor: '#00668c',
     defaultBgColor: '#FFFFFF',
-    category: 'custom'
-  }
-]
+    category: 'custom',
+  },
+];
 
 // Default 3 initial cards required by user
 export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
@@ -182,7 +182,7 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
     errorCorrectionLevel: 'H',
     whatsappPhone: '351912345678',
     whatsappMessage: '',
-    themeName: 'whatsapp'
+    themeName: 'whatsapp',
   },
   {
     id: 'card-instagram',
@@ -204,7 +204,7 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
     cornerDotColor: '#FD1D1D',
     errorCorrectionLevel: 'H',
     instagramHandle: 'empresa',
-    themeName: 'instagram'
+    themeName: 'instagram',
   },
   {
     id: 'card-discord',
@@ -226,6 +226,6 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
     cornerDotColor: '#5865F2',
     errorCorrectionLevel: 'H',
     discordInvite: 'HzBuRFCAb5',
-    themeName: 'discord'
-  }
-]
+    themeName: 'discord',
+  },
+];

@@ -110,25 +110,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     });
 
-    transition.ready.then(() => {
-      const clipPath = [
-        `circle(0px at ${x}px ${y}px)`,
-        `circle(${endRadius}px at ${x}px ${y}px)`
-      ];
+    transition.ready
+      .then(() => {
+        const clipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${endRadius}px at ${x}px ${y}px)`,
+        ];
 
-      root.animate(
-        {
-          clipPath: clipPath
-        },
-        {
-          duration: 480,
-          easing: 'cubic-bezier(0.2, 0, 0, 1)',
-          pseudoElement: '::view-transition-new(root)'
-        }
-      );
-    }).catch(() => {
-      // Fallback in case of any animation error
-    });
+        root.animate(
+          {
+            clipPath: clipPath,
+          },
+          {
+            duration: 480,
+            easing: 'cubic-bezier(0.2, 0, 0, 1)',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        );
+      })
+      .catch(() => {
+        // Fallback in case of any animation error
+      });
 
     transition.finished.finally(() => {
       root.classList.remove('is-view-transitioning');

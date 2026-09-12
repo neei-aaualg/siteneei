@@ -5,7 +5,9 @@ import { Activity } from '../types/activities';
  */
 export function createGoogleCalendarUrl(activity: Activity): string {
   const title = encodeURIComponent(activity.title);
-  const details = encodeURIComponent(`${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`);
+  const details = encodeURIComponent(
+    `${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`
+  );
   const location = encodeURIComponent(activity.location);
 
   const dateClean = activity.date.replace(/-/g, '');
@@ -19,7 +21,9 @@ export function createGoogleCalendarUrl(activity: Activity): string {
  */
 export function createOutlookCalendarUrl(activity: Activity): string {
   const title = encodeURIComponent(activity.title);
-  const details = encodeURIComponent(`${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`);
+  const details = encodeURIComponent(
+    `${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`
+  );
   const location = encodeURIComponent(activity.location);
 
   const start = `${activity.date}T09:00:00Z`;
@@ -38,13 +42,18 @@ export function generateIcsContent(activity: Activity): string {
   const dtStamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const uid = `neei-activity-${activity.id || Date.now()}@aaualg.pt`;
 
-  const cleanSummary = (activity.title || 'Atividade NEEI').replace(/[,;\\]/g, ' ').replace(/\r?\n/g, ' ');
-  const cleanLocation = (activity.location || 'Universidade do Algarve').replace(/[,;\\]/g, ' ').replace(/\r?\n/g, ' ');
-  const cleanDescription = `${activity.description || ''}\n\nOrganizado pelo Núcleo de Estudantes de Engenharia Informática da UAlg (NEEI)`
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\r?\n/g, '\\n');
+  const cleanSummary = (activity.title || 'Atividade NEEI')
+    .replace(/[,;\\]/g, ' ')
+    .replace(/\r?\n/g, ' ');
+  const cleanLocation = (activity.location || 'Universidade do Algarve')
+    .replace(/[,;\\]/g, ' ')
+    .replace(/\r?\n/g, ' ');
+  const cleanDescription =
+    `${activity.description || ''}\n\nOrganizado pelo Núcleo de Estudantes de Engenharia Informática da UAlg (NEEI)`
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
 
   return [
     'BEGIN:VCALENDAR',
@@ -63,7 +72,7 @@ export function generateIcsContent(activity: Activity): string {
     'STATUS:CONFIRMED',
     'SEQUENCE:0',
     'END:VEVENT',
-    'END:VCALENDAR'
+    'END:VCALENDAR',
   ].join('\r\n');
 }
 

@@ -3,7 +3,9 @@
 
 /* Print Optimization */
 @media print {
-  header, footer, .print\:hidden {
+  header,
+  footer,
+  .print\:hidden {
     display: none !important;
   }
   body {
@@ -42,7 +44,6 @@ html,
 body {
   overflow-x: clip;
 }
-
 
 ::-webkit-scrollbar {
   width: 10px;
@@ -120,7 +121,11 @@ html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, fill 0.3s ease !important;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease !important;
   transition-delay: 0s !important;
 }
 
@@ -164,5 +169,3 @@ html.theme-transition *::after {
     animation: none !important;
   }
 }
-
-

@@ -3,8 +3,18 @@
  */
 
 export const MONTH_SIGLAS = [
-  'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
-  'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+  'JAN',
+  'FEV',
+  'MAR',
+  'ABR',
+  'MAI',
+  'JUN',
+  'JUL',
+  'AGO',
+  'SET',
+  'OUT',
+  'NOV',
+  'DEZ',
 ] as const;
 
 /**
@@ -61,7 +71,10 @@ export function formatDateDDMMAAAA(dateInput?: string | Date | null): string {
 /**
  * Converte data para formato com sigla do mês (ex.: "30 SET 2026" ou "30 SET")
  */
-export function formatDateWithMonthSigla(dateInput?: string | Date | null, includeYear = true): string {
+export function formatDateWithMonthSigla(
+  dateInput?: string | Date | null,
+  includeYear = true
+): string {
   if (!dateInput) return '';
   const clean = typeof dateInput === 'string' ? dateInput.trim().split('T')[0] : '';
   let day = '';
@@ -145,7 +158,7 @@ export function getCalendarDayMonth(dateStr: string): { day: string; month: stri
         return {
           day,
           month: MONTH_SIGLAS[monthIndex],
-          year
+          year,
         };
       }
     }

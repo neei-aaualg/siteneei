@@ -18,7 +18,7 @@ import {
   Phone,
   GraduationCap,
   Users,
-  Award
+  Award,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { JobOffer, JobType } from '../types/jobs';
@@ -107,7 +107,9 @@ export const Jobs: React.FC = () => {
     }
 
     if (!cleanPhone || cleanPhone.length < 9) {
-      setFormError('Por favor introduz um número de contacto válido (apenas números, mín. 9 dígitos).');
+      setFormError(
+        'Por favor introduz um número de contacto válido (apenas números, mín. 9 dígitos).'
+      );
       return;
     }
 
@@ -129,7 +131,7 @@ export const Jobs: React.FC = () => {
         phone: cleanPhone,
         link: cleanLink || undefined,
         description: cleanDescription,
-        requirements: cleanRequirements || undefined
+        requirements: cleanRequirements || undefined,
       });
 
       setSubmitted(true);
@@ -138,7 +140,7 @@ export const Jobs: React.FC = () => {
         confetti({
           particleCount: 100,
           spread: 80,
-          origin: { y: 0.55 }
+          origin: { y: 0.55 },
         });
       } catch {
         // Silencioso se indisponível
@@ -168,7 +170,6 @@ export const Jobs: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg-100 dark:bg-[#070e17] text-text-100 dark:text-slate-100 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-10">
-
         {/* Banner de Apresentação */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300">
@@ -179,7 +180,8 @@ export const Jobs: React.FC = () => {
             Vagas de <span className="text-accent-200 dark:text-cyan-400">Emprego & Estágio</span>
           </h1>
           <p className="text-sm sm:text-base text-text-200 dark:text-slate-300 leading-relaxed">
-            Oportunidades selecionadas para estudantes e recém-diplomados de Engenharia Informática da UAlg. Encontra o teu próximo desafio ou publica uma vaga para a nossa comunidade.
+            Oportunidades selecionadas para estudantes e recém-diplomados de Engenharia Informática
+            da UAlg. Encontra o teu próximo desafio ou publica uma vaga para a nossa comunidade.
           </p>
         </div>
 
@@ -190,8 +192,12 @@ export const Jobs: React.FC = () => {
               <GraduationCap size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-text-100 dark:text-white">Estágios Curriculares</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Oportunidades de estágio para conclusão de licenciatura e mestrado.</p>
+              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                Estágios Curriculares
+              </h4>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Oportunidades de estágio para conclusão de licenciatura e mestrado.
+              </p>
             </div>
           </div>
 
@@ -200,8 +206,12 @@ export const Jobs: React.FC = () => {
               <Briefcase size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-text-100 dark:text-white">Emprego & Carreiras</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Posições júnior e posições para recém-diplomados e alumni.</p>
+              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                Emprego & Carreiras
+              </h4>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Posições júnior e posições para recém-diplomados e alumni.
+              </p>
             </div>
           </div>
 
@@ -210,8 +220,12 @@ export const Jobs: React.FC = () => {
               <Building size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-text-100 dark:text-white">Conexão Empresarial</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Contacto direto com empresas que recrutam ativamente no Algarve.</p>
+              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                Conexão Empresarial
+              </h4>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Contacto direto com empresas que recrutam ativamente no Algarve.
+              </p>
             </div>
           </div>
         </div>
@@ -230,8 +244,13 @@ export const Jobs: React.FC = () => {
 
           {loading ? (
             <div className="py-16 text-center">
-              <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
-              <p className="text-sm text-text-200 dark:text-slate-400">A carregar oportunidades...</p>
+              <Loader2
+                className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3"
+                size={32}
+              />
+              <p className="text-sm text-text-200 dark:text-slate-400">
+                A carregar oportunidades...
+              </p>
             </div>
           ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6 bg-white dark:bg-[#0c1724] rounded-3xl border-2 border-dashed border-gray-200 dark:border-cyan-950/80 text-center space-y-3 shadow-sm">
@@ -242,7 +261,8 @@ export const Jobs: React.FC = () => {
                 Não há oportunidades ativas de momento
               </h3>
               <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400 max-w-md">
-                Fica atento a futuras publicações. Se representas uma empresa, podes submeter uma proposta logo abaixo!
+                Fica atento a futuras publicações. Se representas uma empresa, podes submeter uma
+                proposta logo abaixo!
               </p>
               <button
                 onClick={() => setIsFormOpen(true)}
@@ -254,7 +274,7 @@ export const Jobs: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {jobs.map(job => {
+              {jobs.map((job) => {
                 const isExpanded = expandedJobId === job.id;
                 const postedDate = formatDateDDMMAAAA(job.created_at);
 
@@ -279,10 +299,10 @@ export const Jobs: React.FC = () => {
                               job.type === 'Estágio'
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                 : job.type === 'Full-time'
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                                : job.type === 'Part-time'
-                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800'
-                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                  : job.type === 'Part-time'
+                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                             }`}
                           >
                             {job.type}
@@ -301,7 +321,10 @@ export const Jobs: React.FC = () => {
                         </h3>
 
                         <p className="text-xs text-text-200 dark:text-slate-400 flex items-center gap-1.5 mt-1">
-                          <MapPin size={13} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <MapPin
+                            size={13}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           <span>{job.location}</span>
                         </p>
                       </div>
@@ -420,7 +443,11 @@ export const Jobs: React.FC = () => {
                       Oferta Submetida com Sucesso!
                     </h3>
                     <p className="text-xs sm:text-sm text-text-200 dark:text-slate-300 max-w-lg mx-auto leading-relaxed">
-                      Muito obrigado pela submissão, <span className="font-semibold text-accent-200 dark:text-cyan-400">{company}</span>! A equipa do NEEI irá analisar a proposta e publicá-la no portal brevemente.
+                      Muito obrigado pela submissão,{' '}
+                      <span className="font-semibold text-accent-200 dark:text-cyan-400">
+                        {company}
+                      </span>
+                      ! A equipa do NEEI irá analisar a proposta e publicá-la no portal brevemente.
                     </p>
                   </div>
 
@@ -446,7 +473,10 @@ export const Jobs: React.FC = () => {
                   {/* Grupo 1: Identificação da Empresa e Função */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="job-company" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-company"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Nome da Empresa / Recrutador *
                       </label>
                       <input
@@ -455,7 +485,7 @@ export const Jobs: React.FC = () => {
                         required
                         placeholder="ex.: Tech Solutions Lda"
                         value={company}
-                        onChange={e => {
+                        onChange={(e) => {
                           setCompany(e.target.value);
                           if (formError) setFormError(null);
                         }}
@@ -464,7 +494,10 @@ export const Jobs: React.FC = () => {
                     </div>
 
                     <div>
-                      <label htmlFor="job-title" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-title"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Título da Função / Vaga *
                       </label>
                       <input
@@ -473,7 +506,7 @@ export const Jobs: React.FC = () => {
                         required
                         placeholder="ex.: Desenvolvedor Frontend Júnior"
                         value={title}
-                        onChange={e => {
+                        onChange={(e) => {
                           setTitle(e.target.value);
                           if (formError) setFormError(null);
                         }}
@@ -485,13 +518,16 @@ export const Jobs: React.FC = () => {
                   {/* Grupo 2: Tipo de Oferta e Localização */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="job-type" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-type"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Tipo de Oferta
                       </label>
                       <select
                         id="job-type"
                         value={type}
-                        onChange={e => setType(e.target.value as JobType)}
+                        onChange={(e) => setType(e.target.value as JobType)}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                       >
                         <option value="Estágio">Estágio (Curricular / Profissional)</option>
@@ -502,7 +538,10 @@ export const Jobs: React.FC = () => {
                     </div>
 
                     <div>
-                      <label htmlFor="job-location" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-location"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Localização *
                       </label>
                       <input
@@ -511,7 +550,7 @@ export const Jobs: React.FC = () => {
                         required
                         placeholder="ex.: Faro / Híbrido, Lisboa ou Remoto"
                         value={location}
-                        onChange={e => {
+                        onChange={(e) => {
                           setLocation(e.target.value);
                           if (formError) setFormError(null);
                         }}
@@ -523,7 +562,10 @@ export const Jobs: React.FC = () => {
                   {/* Grupo 3: Contactos */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="job-email" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-email"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Email de Contacto / Candidatura *
                       </label>
                       <input
@@ -532,7 +574,7 @@ export const Jobs: React.FC = () => {
                         required
                         placeholder="ex.: recrutamento@empresa.com"
                         value={email}
-                        onChange={e => {
+                        onChange={(e) => {
                           setEmail(e.target.value);
                           if (formError) setFormError(null);
                         }}
@@ -541,7 +583,10 @@ export const Jobs: React.FC = () => {
                     </div>
 
                     <div>
-                      <label htmlFor="job-phone" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                      <label
+                        htmlFor="job-phone"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
                         Nº Telemóvel / Contacto (apenas números) *
                       </label>
                       <input
@@ -552,17 +597,29 @@ export const Jobs: React.FC = () => {
                         required
                         placeholder="ex.: 912345678"
                         value={phone}
-                        onKeyDown={e => {
+                        onKeyDown={(e) => {
                           // Permite apenas dígitos e teclas de controlo
                           if (
                             !/^\d$/.test(e.key) &&
-                            !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(e.key) &&
-                            !e.ctrlKey && !e.metaKey
+                            ![
+                              'Backspace',
+                              'Delete',
+                              'Tab',
+                              'ArrowLeft',
+                              'ArrowRight',
+                              'ArrowUp',
+                              'ArrowDown',
+                              'Home',
+                              'End',
+                              'Enter',
+                            ].includes(e.key) &&
+                            !e.ctrlKey &&
+                            !e.metaKey
                           ) {
                             e.preventDefault();
                           }
                         }}
-                        onChange={e => handlePhoneChange(e.target.value)}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                       />
                     </div>
@@ -570,7 +627,10 @@ export const Jobs: React.FC = () => {
 
                   {/* Link Externo (Opcional) */}
                   <div>
-                    <label htmlFor="job-link" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="job-link"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Link de Candidatura / Website da Vaga (opcional)
                     </label>
                     <input
@@ -578,14 +638,17 @@ export const Jobs: React.FC = () => {
                       type="url"
                       placeholder="https://empresa.com/careers/vaga-123"
                       value={link}
-                      onChange={e => setLink(e.target.value)}
+                      onChange={(e) => setLink(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     />
                   </div>
 
                   {/* Descrição Detalhada */}
                   <div>
-                    <label htmlFor="job-desc" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="job-desc"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Descrição da Oferta & Responsabilidades *
                     </label>
                     <textarea
@@ -594,7 +657,7 @@ export const Jobs: React.FC = () => {
                       rows={4}
                       placeholder="Descreve as principais funções, tarefas diárias, tecnologias utilizadas e o que a empresa oferece..."
                       value={description}
-                      onChange={e => {
+                      onChange={(e) => {
                         setDescription(e.target.value);
                         if (formError) setFormError(null);
                       }}
@@ -604,7 +667,10 @@ export const Jobs: React.FC = () => {
 
                   {/* Requisitos (Opcional) */}
                   <div>
-                    <label htmlFor="job-req" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="job-req"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Requisitos & Perfil Pretendido (opcional)
                     </label>
                     <textarea
@@ -612,7 +678,7 @@ export const Jobs: React.FC = () => {
                       rows={3}
                       placeholder="ex.: Conhecimentos em React/Node.js, facilidade de trabalho em equipa, disponibilidade..."
                       value={requirements}
-                      onChange={e => setRequirements(e.target.value)}
+                      onChange={(e) => setRequirements(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30 leading-relaxed"
                     />
                   </div>
@@ -641,7 +707,6 @@ export const Jobs: React.FC = () => {
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

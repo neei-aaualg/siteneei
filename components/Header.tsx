@@ -1,6 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, FileText, QrCode, Sun, Moon } from 'lucide-react';
+import {
+  Menu,
+  X,
+  Terminal,
+  Box,
+  ExternalLink,
+  ChevronDown,
+  Calendar,
+  FolderOpen,
+  Briefcase,
+  FileText,
+  QrCode,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface ExploreItem {
@@ -24,31 +38,33 @@ const Header: React.FC = () => {
       name: 'Vagas',
       path: '/vagas',
       icon: <Briefcase size={18} />,
-      desc: 'Estágios e oportunidades'
+      desc: 'Estágios e oportunidades',
     },
     {
       name: 'Links',
       path: '/links',
       icon: <QrCode size={18} />,
-      desc: 'Canais oficiais e QR Codes'
+      desc: 'Canais oficiais e QR Codes',
     },
     {
       name: 'Documentos',
       path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgCiZkWkiUSDR42VAH_iE99lAXHzPGqNFg-qekFAX2zOGSc?e=7QL1NJ',
       icon: <FileText size={18} />,
       desc: 'Documentos oficiais em vigor',
-      isExternal: true
+      isExternal: true,
     },
     {
       name: 'Projetos',
       path: 'https://github.com/neei-aaualg/student-showcase',
       icon: <FolderOpen size={18} />,
       desc: 'Showcase de projetos dos alunos',
-      isExternal: true
+      isExternal: true,
     },
   ];
 
-  const isExploreActive = exploreItems.some(item => !item.isExternal && location.pathname === item.path);
+  const isExploreActive = exploreItems.some(
+    (item) => !item.isExternal && location.pathname === item.path
+  );
   const isActive = (path: string) => location.pathname === path;
 
   // Função para saltar para o início da respetiva página ao clicar no logótipo ou separadores
@@ -130,10 +146,11 @@ const Header: React.FC = () => {
               <Link
                 to="/"
                 onClick={() => jumpToPageTop('/')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Início
               </Link>
@@ -141,10 +158,11 @@ const Header: React.FC = () => {
               <Link
                 to="/sobre"
                 onClick={() => jumpToPageTop('/sobre')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/sobre')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/sobre')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Sobre
               </Link>
@@ -153,13 +171,14 @@ const Header: React.FC = () => {
               <div className="relative inline-flex items-center" ref={dropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setIsDropdownOpen(prev => !prev)}
+                  onClick={() => setIsDropdownOpen((prev) => !prev)}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
-                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isExploreActive || isDropdownOpen
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                    }`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                    isExploreActive || isDropdownOpen
+                      ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                      : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  }`}
                 >
                   <span>Explorar</span>
                   <ChevronDown
@@ -186,9 +205,14 @@ const Header: React.FC = () => {
                           <div className="flex flex-col flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium leading-tight">{item.name}</span>
-                              <ExternalLink size={12} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                              <ExternalLink
+                                size={12}
+                                className="opacity-60 group-hover:opacity-100 transition-opacity"
+                              />
                             </div>
-                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">{item.desc}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">
+                              {item.desc}
+                            </span>
                           </div>
                         </a>
                       ) : (
@@ -199,20 +223,26 @@ const Header: React.FC = () => {
                             setIsDropdownOpen(false);
                             jumpToPageTop(item.path);
                           }}
-                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${isActive(item.path)
-                            ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
-                            : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
-                            }`}
+                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${
+                            isActive(item.path)
+                              ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
+                              : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
+                          }`}
                         >
-                          <div className={`p-2 rounded-lg transition-colors ${isActive(item.path)
-                            ? 'bg-accent-200 text-white'
-                            : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
-                            }`}>
+                          <div
+                            className={`p-2 rounded-lg transition-colors ${
+                              isActive(item.path)
+                                ? 'bg-accent-200 text-white'
+                                : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
+                            }`}
+                          >
                             {item.icon}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-medium leading-tight">{item.name}</span>
-                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">{item.desc}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">
+                              {item.desc}
+                            </span>
                           </div>
                         </Link>
                       )
@@ -224,10 +254,11 @@ const Header: React.FC = () => {
               <Link
                 to="/atividades"
                 onClick={() => jumpToPageTop('/atividades')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/atividades')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/atividades')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Atividades
               </Link>
@@ -235,10 +266,11 @@ const Header: React.FC = () => {
               <Link
                 to="/colaborar"
                 onClick={() => jumpToPageTop('/colaborar')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/colaborar')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/colaborar')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Colaborar
               </Link>
@@ -272,10 +304,11 @@ const Header: React.FC = () => {
 
             <Link
               to="/quack"
-              className={`inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${isActive('/quack')
-                ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
-                : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
-                }`}
+              className={`inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${
+                isActive('/quack')
+                  ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
+                  : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
+              }`}
             >
               <Terminal size={16} />
               <span>Quack</span>
@@ -314,10 +347,11 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Início
             </Link>
@@ -328,10 +362,11 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/sobre');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/sobre')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/sobre')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Sobre
             </Link>
@@ -340,11 +375,12 @@ const Header: React.FC = () => {
             <div className="space-y-1">
               <button
                 type="button"
-                onClick={() => setIsMobileDropdownOpen(prev => !prev)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${isExploreActive
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                onClick={() => setIsMobileDropdownOpen((prev) => !prev)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  isExploreActive
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 <span>Explorar</span>
                 <ChevronDown
@@ -369,7 +405,10 @@ const Header: React.FC = () => {
                           <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
                           <span>{item.name}</span>
                         </div>
-                        <ExternalLink size={14} className="opacity-60 text-text-200 dark:text-slate-400" />
+                        <ExternalLink
+                          size={14}
+                          className="opacity-60 text-text-200 dark:text-slate-400"
+                        />
                       </a>
                     ) : (
                       <Link
@@ -379,10 +418,11 @@ const Header: React.FC = () => {
                           setIsMenuOpen(false);
                           jumpToPageTop(item.path);
                         }}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
-                          ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                          : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                          }`}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${
+                          isActive(item.path)
+                            ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                        }`}
                       >
                         <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
                         <span>{item.name}</span>
@@ -399,10 +439,11 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/atividades');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/atividades')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/atividades')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Atividades
             </Link>
@@ -413,10 +454,11 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/colaborar');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/colaborar')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/colaborar')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Colaborar
             </Link>

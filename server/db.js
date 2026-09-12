@@ -28,7 +28,10 @@ db.exec('PRAGMA foreign_keys = ON;');
 
 // Migração suave: se a tabela registrations tiver o formato antigo, atualiza
 try {
-  const regCols = db.prepare('PRAGMA table_info(registrations)').all().map(c => c.name);
+  const regCols = db
+    .prepare('PRAGMA table_info(registrations)')
+    .all()
+    .map((c) => c.name);
   if (regCols.length > 0 && !regCols.includes('student_number')) {
     db.exec('DROP TABLE registrations;');
   }
@@ -38,7 +41,10 @@ try {
 
 // Migração: adiciona coluna open_soon à tabela activities se não existir
 try {
-  const actCols = db.prepare('PRAGMA table_info(activities)').all().map(c => c.name);
+  const actCols = db
+    .prepare('PRAGMA table_info(activities)')
+    .all()
+    .map((c) => c.name);
   if (!actCols.includes('open_soon')) {
     db.exec('ALTER TABLE activities ADD COLUMN open_soon INTEGER DEFAULT 0;');
   }
@@ -48,7 +54,10 @@ try {
 
 // Migração: adiciona coluna registration_opens_at à tabela activities se não existir
 try {
-  const actCols = db.prepare('PRAGMA table_info(activities)').all().map(c => c.name);
+  const actCols = db
+    .prepare('PRAGMA table_info(activities)')
+    .all()
+    .map((c) => c.name);
   if (!actCols.includes('registration_opens_at')) {
     db.exec('ALTER TABLE activities ADD COLUMN registration_opens_at TEXT;');
   }
@@ -128,115 +137,133 @@ export const INITIAL_ACTIVITIES = [
   {
     id: 'act-workshop-intro-prog-1',
     title: 'Workshop: Introdução à Programação',
-    description: 'Workshop prático introdutório focado nos conceitos fundamentais de lógica de programação, algoritmos e resolução de problemas para os novos estudantes de LEI e MEI.',
+    description:
+      'Workshop prático introdutório focado nos conceitos fundamentais de lógica de programação, algoritmos e resolução de problemas para os novos estudantes de LEI e MEI.',
     category: 'Workshop',
     status: 'ongoing',
     date: '2026-09-30',
     time: '14:30 - 17:00',
     location: 'Laboratórios de Informática, Campus de Gambelas',
     max_capacity: 30,
-    speaker: 'David Rodrigues'
+    speaker: 'David Rodrigues',
   },
   {
     id: 'act-workshop-intro-prog-2',
     title: 'Workshop: Introdução à Programação (Sessão 2)',
-    description: 'Segunda sessão prática do workshop de introdução à programação, aprofundando estruturas de decisão, ciclos e modularização.',
+    description:
+      'Segunda sessão prática do workshop de introdução à programação, aprofundando estruturas de decisão, ciclos e modularização.',
     category: 'Workshop',
     status: 'upcoming',
     date: '2026-10-05',
     time: '14:30 - 16:30',
     location: 'Laboratórios de Informática, Campus de Gambelas',
     max_capacity: 30,
-    speaker: 'David Rodrigues'
+    speaker: 'David Rodrigues',
   },
   {
     id: 'act-workshop-intro-prog-3',
     title: 'Continuação do Workshop de Introdução à Programação',
-    description: 'Sessão de continuação, consolidação de conceitos e resolução guiada de exercícios práticos.',
+    description:
+      'Sessão de continuação, consolidação de conceitos e resolução guiada de exercícios práticos.',
     category: 'Workshop',
     status: 'upcoming',
     date: '2026-10-07',
     time: '14:30 - 16:30',
     location: 'Laboratórios de Informática, Campus de Gambelas',
     max_capacity: 30,
-    speaker: 'David Rodrigues'
+    speaker: 'David Rodrigues',
   },
   {
     id: 'act-churrasco-penha-2026',
     title: 'Churrasco Convívio LEI e MEI com BeerPong',
-    description: 'Grande convívio e churrasco de integração aberto aos estudantes de LEI e MEI com torneio de BeerPong.',
+    description:
+      'Grande convívio e churrasco de integração aberto aos estudantes de LEI e MEI com torneio de BeerPong.',
     category: 'Convívio',
     status: 'upcoming',
     date: '2026-10-15',
     time: '17:00 - 22:30',
     location: 'Campus da Penha',
     max_capacity: 0,
-    speaker: 'João Baptista'
+    speaker: 'João Baptista',
   },
   {
     id: 'act-palestra-neei-2026',
     title: 'Palestra NEEI: Engenharia e Tecnologia',
-    description: 'Sessão formativa e palestra técnica promovida pelo NEEI sobre desafios tecnológicos, ferramentas essenciais e futuro da engenharia informática.',
+    description:
+      'Sessão formativa e palestra técnica promovida pelo NEEI sobre desafios tecnológicos, ferramentas essenciais e futuro da engenharia informática.',
     category: 'Palestra',
     status: 'upcoming',
     date: '2026-10-28',
     time: '15:00 - 16:30',
     location: 'Grande Auditório, Campus de Gambelas',
     max_capacity: 0,
-    speaker: 'NEEI'
+    speaker: 'NEEI',
   },
   {
     id: 'act-workshop-bot-discord-2026',
     title: 'Workshop: Desenvolvimento de Bot para Discord',
-    description: 'Aprende a criar um bot interativo para Discord utilizando Node.js/JavaScript, gerindo comandos slash, eventos e integração com serviços externos.',
+    description:
+      'Aprende a criar um bot interativo para Discord utilizando Node.js/JavaScript, gerindo comandos slash, eventos e integração com serviços externos.',
     category: 'Workshop',
     status: 'upcoming',
     date: '2026-11-04',
     time: '14:30 - 17:30',
     location: 'Laboratório de Informática, Campus da Penha',
     max_capacity: 35,
-    speaker: 'Martim Neves'
+    speaker: 'Martim Neves',
   },
   {
     id: 'act-torneio-jogos-1-2026',
     title: 'Torneio de Jogos NEEI',
-    description: 'Tarde de competição e convívio gamer para os estudantes do curso com modalidades competitivas e prémios para os melhores classificados.',
+    description:
+      'Tarde de competição e convívio gamer para os estudantes do curso com modalidades competitivas e prémios para os melhores classificados.',
     category: 'Torneio',
     status: 'upcoming',
     date: '2026-11-11',
     time: '14:30 - 19:00',
     location: 'Sala de Convívio / Laboratórios NEEI, Campus da Penha',
     max_capacity: 32,
-    speaker: 'NEEI'
+    speaker: 'NEEI',
   },
   {
     id: 'act-torneio-jogos-2-2026',
     title: 'Torneio de Jogos NEEI (2ª Edição)',
-    description: 'Segunda ronda dos torneios de videojogos do NEEI aberta à participação de todos os alunos.',
+    description:
+      'Segunda ronda dos torneios de videojogos do NEEI aberta à participação de todos os alunos.',
     category: 'Torneio',
     status: 'upcoming',
     date: '2026-11-18',
     time: '14:30 - 19:00',
     location: 'Sala de Convívio / Laboratórios NEEI, Campus da Penha',
     max_capacity: 32,
-    speaker: 'NEEI'
-  }
+    speaker: 'NEEI',
+  },
 ];
 
 const LEGACY_MOCK_IDS = [
   'act-git-docker-2026',
   'act-gamejam-2026',
   'act-ai-palestra-2026',
-  'act-torneio-codigo-2026'
+  'act-torneio-codigo-2026',
 ];
 
 // Migração: se a base de dados ainda tiver as atividades mock antigas e não o calendário novo, atualiza
 try {
-  const hasLegacy = db.prepare(`SELECT COUNT(*) as count FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`).get(...LEGACY_MOCK_IDS);
-  const hasNewSeed = db.prepare("SELECT COUNT(*) as count FROM activities WHERE id = 'act-workshop-intro-prog-1'").get();
+  const hasLegacy = db
+    .prepare(
+      `SELECT COUNT(*) as count FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`
+    )
+    .get(...LEGACY_MOCK_IDS);
+  const hasNewSeed = db
+    .prepare("SELECT COUNT(*) as count FROM activities WHERE id = 'act-workshop-intro-prog-1'")
+    .get();
   if (hasLegacy && hasLegacy.count > 0 && hasNewSeed && hasNewSeed.count === 0) {
-    console.log('[DB] A substituir atividades mock antigas pelas atividades do calendário oficial NEEI...');
-    const deleteLegacy = db.prepare(`DELETE FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`);
+    console.log(
+      '[DB] A substituir atividades mock antigas pelas atividades do calendário oficial NEEI...'
+    );
+    const deleteLegacy = db.prepare(
+      `DELETE FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`
+    );
     deleteLegacy.run(...LEGACY_MOCK_IDS);
   }
 } catch (mErr) {
@@ -271,7 +298,9 @@ if (count === 0) {
       now
     );
   }
-  console.log(`[DB] ${INITIAL_ACTIVITIES.length} atividades oficiais do calendário carregadas com sucesso.`);
+  console.log(
+    `[DB] ${INITIAL_ACTIVITIES.length} atividades oficiais do calendário carregadas com sucesso.`
+  );
 } else {
   console.log(`[DB] Base de dados carregada com sucesso com ${count} atividade(s) persistida(s).`);
 }
@@ -359,7 +388,10 @@ export function getPublicActivities() {
 export function cleanStudentNumber(input) {
   if (typeof input !== 'string') return null;
   // Remove espaços e eventual sufixo @ualg.pt
-  const trimmed = input.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+  const trimmed = input
+    .trim()
+    .toLowerCase()
+    .replace(/@ualg\.pt$/i, '');
   // Aceita letra 'a' opcional seguida de 4 a 7 dígitos
   const match = trimmed.match(/^a?(\d{4,7})$/i);
   if (!match) return null;
@@ -411,18 +443,24 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
   }
 
   // Verifica se o aluno já está inscrito através do número de aluno
-  const existingStmt = db.prepare('SELECT id FROM registrations WHERE activity_id = ? AND student_number = ?');
+  const existingStmt = db.prepare(
+    'SELECT id FROM registrations WHERE activity_id = ? AND student_number = ?'
+  );
   const existing = existingStmt.get(activityId, studentNumber);
 
   if (existing) {
-    const err = new Error(`O número de aluno ${studentNumber} já se encontra inscrito nesta atividade`);
+    const err = new Error(
+      `O número de aluno ${studentNumber} já se encontra inscrito nesta atividade`
+    );
     err.statusCode = 409;
     throw err;
   }
 
   // Verifica lotação máxima se configurada
   if (activity.max_capacity && activity.max_capacity > 0) {
-    const countRegStmt = db.prepare('SELECT COUNT(*) as count FROM registrations WHERE activity_id = ?');
+    const countRegStmt = db.prepare(
+      'SELECT COUNT(*) as count FROM registrations WHERE activity_id = ?'
+    );
     const { count } = countRegStmt.get(activityId);
     if (count >= activity.max_capacity) {
       const err = new Error('A capacidade máxima para esta atividade foi atingida');
@@ -447,7 +485,7 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
     activityId,
     studentName: cleanName,
     studentNumber,
-    registeredAt
+    registeredAt,
   };
 }
 
@@ -473,9 +511,9 @@ export function getAllActivitiesWithRegistrations() {
     regMap.get(reg.activity_id).push(reg);
   }
 
-  return activities.map(act => ({
+  return activities.map((act) => ({
     ...act,
-    registrations: regMap.get(act.id) || []
+    registrations: regMap.get(act.id) || [],
   }));
 }
 
@@ -492,7 +530,7 @@ export function removeRegistration(registrationId) {
  * Cria ou atualiza uma atividade
  */
 export function saveActivity(data) {
-  const id = data.id || ('act-' + crypto.randomUUID());
+  const id = data.id || 'act-' + crypto.randomUUID();
   const now = new Date().toISOString();
 
   const existingStmt = db.prepare('SELECT id FROM activities WHERE id = ?');
@@ -579,7 +617,10 @@ export function createCollaboratorApplication(data) {
     throw err;
   }
 
-  const cleanNum = (data.student_number || '').trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+  const cleanNum = (data.student_number || '')
+    .trim()
+    .toLowerCase()
+    .replace(/@ualg\.pt$/i, '');
   if (!/^a?\d{4,7}$/i.test(cleanNum)) {
     const err = new Error('Número de aluno inválido (ex.: a74123 ou 74123)');
     err.statusCode = 400;
@@ -600,9 +641,15 @@ export function createCollaboratorApplication(data) {
 
   // Validar limites de anos consoante o curso:
   // Mestrado só tem 2 anos, Pós-graduação só tem 1 ano
-  if ((course.includes('Mestrado') || course.includes('MEI')) && !['1º Ano', '2º Ano'].includes(academicYear)) {
+  if (
+    (course.includes('Mestrado') || course.includes('MEI')) &&
+    !['1º Ano', '2º Ano'].includes(academicYear)
+  ) {
     academicYear = '1º Ano';
-  } else if ((course.includes('Pós Graduação') || course.includes('PSC')) && academicYear !== '1º Ano') {
+  } else if (
+    (course.includes('Pós Graduação') || course.includes('PSC')) &&
+    academicYear !== '1º Ano'
+  ) {
     academicYear = '1º Ano';
   }
   const areasOfInterest = Array.isArray(data.areas_of_interest)
@@ -649,7 +696,7 @@ export function createCollaboratorApplication(data) {
     motivation,
     status: 'pending',
     notes: '',
-    created_at: now
+    created_at: now,
   };
 }
 
@@ -673,7 +720,9 @@ export function updateCollaboratorStatus(id, status, notes) {
   }
 
   if (status && notes !== undefined) {
-    const stmt = db.prepare('UPDATE collaborator_applications SET status = ?, notes = ? WHERE id = ?');
+    const stmt = db.prepare(
+      'UPDATE collaborator_applications SET status = ?, notes = ? WHERE id = ?'
+    );
     const res = stmt.run(status, notes, id);
     return res.changes > 0;
   } else if (status) {
@@ -736,7 +785,9 @@ export function createJobOffer(data) {
   }
 
   if (!cleanPhone || cleanPhone.length < 9) {
-    const err = new Error('Número de contacto válido é obrigatório (apenas dígitos, mín. 9 algarismos)');
+    const err = new Error(
+      'Número de contacto válido é obrigatório (apenas dígitos, mín. 9 algarismos)'
+    );
     err.statusCode = 400;
     throw err;
   }
@@ -789,7 +840,7 @@ export function createJobOffer(data) {
     requirements,
     status: 'pending',
     notes: '',
-    created_at: now
+    created_at: now,
   };
 }
 
@@ -805,7 +856,9 @@ export function getAllJobOffers() {
  * Obtém apenas as ofertas publicadas (para a página pública /vagas)
  */
 export function getPublishedJobOffers() {
-  const stmt = db.prepare("SELECT * FROM job_offers WHERE status = 'published' ORDER BY created_at DESC");
+  const stmt = db.prepare(
+    "SELECT * FROM job_offers WHERE status = 'published' ORDER BY created_at DESC"
+  );
   return stmt.all();
 }
 

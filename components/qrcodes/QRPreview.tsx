@@ -1,37 +1,18 @@
-import React, { useEffect, useRef } from 'react'
-import QRCodeStyling from 'qr-code-styling'
-import type { QRCodeCardItem } from '../../types/qrcode'
+import React, { useEffect, useRef } from 'react';
+import QRCodeStyling from 'qr-code-styling';
+import type { QRCodeCardItem } from '../../types/qrcode';
 
 interface QRPreviewProps {
-  card: QRCodeCardItem
-  size?: number
-  className?: string
+  card: QRCodeCardItem;
+  size?: number;
+  className?: string;
 }
 
 export const QRPreview: React.FC<QRPreviewProps> = ({ card, size = 260, className = '' }) => {
-  if (card.qrSvgUrl) {
-    return (
-      <div
-        className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${className}`}
-        style={{
-          width: size,
-          height: size
-        }}
-      >
-        <img
-          src={card.qrSvgUrl}
-          alt={card.title}
-          className="w-full h-full object-contain block select-none pointer-events-none"
-          loading="eager"
-        />
-      </div>
-    )
-  }
-
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return
+    if (card.qrSvgUrl || !containerRef.current) return;
 
     const qrCode = new QRCodeStyling({
       width: size,
@@ -43,40 +24,41 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ card, size = 260, classNam
       qrOptions: {
         typeNumber: 0,
         mode: 'Byte',
-        errorCorrectionLevel: 'H'
+        errorCorrectionLevel: 'H',
       },
       imageOptions: {
         hideBackgroundDots: true,
         imageSize: card.logoSize,
         margin: card.logoMargin,
         crossOrigin: 'anonymous',
-        saveAsBlob: true
+        saveAsBlob: true,
       },
       dotsOptions: {
         color: card.dotColor || '#000000',
-        type: card.dotType || 'rounded'
+        type: card.dotType || 'rounded',
       },
       backgroundOptions: {
-        color: card.isTransparentBg ? 'transparent' : (card.bgColor || '#ffffff')
+        color: card.isTransparentBg ? 'transparent' : card.bgColor || '#ffffff',
       },
       cornersSquareOptions: {
         color: card.cornerSquareColor || card.dotColor || '#000000',
-        type: card.cornerSquareType || 'extra-rounded'
+        type: card.cornerSquareType || 'extra-rounded',
       },
       cornersDotOptions: {
         color: card.cornerDotColor || card.dotColor || '#000000',
-        type: card.cornerDotType || 'dot'
-      }
-    })
+        type: card.cornerDotType || 'dot',
+      },
+    });
 
-    const container = containerRef.current
-    container.innerHTML = ''
-    qrCode.append(container)
+    const container = containerRef.current;
+    container.innerHTML = '';
+    qrCode.append(container);
 
     return () => {
-      container.innerHTML = ''
-    }
+      container.innerHTML = '';
+    };
   }, [
+    card.qrSvgUrl,
     card.url,
     card.logoUrl,
     card.logoMargin,
@@ -89,8 +71,27 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ card, size = 260, classNam
     card.cornerDotType,
     card.cornerSquareColor,
     card.cornerDotColor,
-    size
-  ])
+    size,
+  ]);
+
+  if (card.qrSvgUrl) {
+    return (
+      <div
+        className={`relative flex items-center justify-center overflow-hidden transition-all duration-300 ${className}`}
+        style={{
+          width: size,
+          height: size,
+        }}
+      >
+        <img
+          src={card.qrSvgUrl}
+          alt={card.title}
+          className="w-full h-full object-contain block select-none pointer-events-none"
+          loading="eager"
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -98,10 +99,13 @@ export const QRPreview: React.FC<QRPreviewProps> = ({ card, size = 260, classNam
       style={{
         width: size,
         height: size,
-        backgroundColor: card.isTransparentBg ? 'transparent' : card.bgColor
+        backgroundColor: card.isTransparentBg ? 'transparent' : card.bgColor,
       }}
     >
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:block" />
+      <div
+        ref={containerRef}
+        className="w-full h-full flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:block"
+      />
     </div>
-  )
-}
+  );
+};

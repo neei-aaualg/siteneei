@@ -30,7 +30,7 @@ export enum ExecutionStatus {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR',
   TIMEOUT = 'TIMEOUT',
-  SECURITY_VIOLATION = 'SECURITY_VIOLATION'
+  SECURITY_VIOLATION = 'SECURITY_VIOLATION',
 }
 
 export interface ExecutionResult {

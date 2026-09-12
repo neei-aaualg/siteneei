@@ -47,7 +47,7 @@ export function authenticateAdmin(password) {
   return {
     success: true,
     token,
-    expiresAt
+    expiresAt,
   };
 }
 

@@ -13,12 +13,20 @@ import {
   Send,
   X,
   Users,
-  Hash
+  Hash,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
-import { fetchPublicActivities, registerForActivity, fetchAppConfig } from '../services/activitiesService';
-import { formatDateDDMMAAAA, formatDateWithMonthSigla, getCalendarDayMonth } from '../utils/dateHelpers';
+import {
+  fetchPublicActivities,
+  registerForActivity,
+  fetchAppConfig,
+} from '../services/activitiesService';
+import {
+  formatDateDDMMAAAA,
+  formatDateWithMonthSigla,
+  getCalendarDayMonth,
+} from '../utils/dateHelpers';
 import CalendarDropdown from '../components/CalendarDropdown';
 
 export const Events: React.FC = () => {
@@ -42,10 +50,7 @@ export const Events: React.FC = () => {
     try {
       setLoading(true);
       setFetchError(null);
-      const [config, data] = await Promise.all([
-        fetchAppConfig(),
-        fetchPublicActivities()
-      ]);
+      const [config, data] = await Promise.all([fetchAppConfig(), fetchPublicActivities()]);
       setShowCalendar(config.showCalendar);
       setActivities(data);
     } catch (err: any) {
@@ -60,13 +65,14 @@ export const Events: React.FC = () => {
     loadActivities();
   }, []);
 
-  const ongoingActivities = activities.filter(a => a.status === 'ongoing');
-  const upcomingActivities = activities.filter(a => a.status === 'upcoming');
+  const ongoingActivities = activities.filter((a) => a.status === 'ongoing');
+  const upcomingActivities = activities.filter((a) => a.status === 'upcoming');
 
-  const categories = Array.from(new Set(upcomingActivities.map(a => a.category)));
-  const filteredUpcoming = selectedCategory === 'all'
-    ? upcomingActivities
-    : upcomingActivities.filter(a => a.category === selectedCategory);
+  const categories = Array.from(new Set(upcomingActivities.map((a) => a.category)));
+  const filteredUpcoming =
+    selectedCategory === 'all'
+      ? upcomingActivities
+      : upcomingActivities.filter((a) => a.category === selectedCategory);
 
   const openRegisterModal = (activity: Activity) => {
     setSelectedActivity(activity);
@@ -85,7 +91,10 @@ export const Events: React.FC = () => {
   };
 
   const isStudentNumberValid = (val: string) => {
-    const clean = val.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    const clean = val
+      .trim()
+      .toLowerCase()
+      .replace(/@ualg\.pt$/i, '');
     return /^a?\d{4,7}$/i.test(clean);
   };
 
@@ -94,7 +103,10 @@ export const Events: React.FC = () => {
     if (!selectedActivity) return;
 
     const cleanName = studentName.trim();
-    const cleanNum = studentNumber.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    const cleanNum = studentNumber
+      .trim()
+      .toLowerCase()
+      .replace(/@ualg\.pt$/i, '');
 
     if (cleanName.length < 2) {
       setFormError('Por favor insere o teu nome completo');
@@ -121,7 +133,7 @@ export const Events: React.FC = () => {
         confetti({
           particleCount: 80,
           spread: 70,
-          origin: { y: 0.6 }
+          origin: { y: 0.6 },
         });
       } catch (cErr) {
         // Fallback silencioso
@@ -142,7 +154,7 @@ export const Events: React.FC = () => {
       day,
       month,
       year,
-      full: formatDateWithMonthSigla(dateStr)
+      full: formatDateWithMonthSigla(dateStr),
     };
   };
 
@@ -158,15 +170,19 @@ export const Events: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300 mb-4">
-                <CalendarIcon size={14} className="animate-pulse text-accent-200 dark:text-cyan-400" />
+                <CalendarIcon
+                  size={14}
+                  className="animate-pulse text-accent-200 dark:text-cyan-400"
+                />
                 <span>Calendário Oficial do Mandato</span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-text-100 dark:text-white mb-4">
-                Atividades & Eventos <span className="text-accent-200 dark:text-cyan-400">NEEI</span>
+                Atividades & Eventos{' '}
+                <span className="text-accent-200 dark:text-cyan-400">NEEI</span>
               </h1>
               <p className="text-lg text-text-200 dark:text-slate-300 leading-relaxed">
-                Participa nos nossos workshops práticos, palestras e outras atividades.
-                Garante o teu lugar nas atividades a decorrer com o teu nome e número de aluno.
+                Participa nos nossos workshops práticos, palestras e outras atividades. Garante o
+                teu lugar nas atividades a decorrer com o teu nome e número de aluno.
               </p>
             </div>
 
@@ -200,7 +216,9 @@ export const Events: React.FC = () => {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
             <Loader2 className="animate-spin text-accent-200 dark:text-cyan-400" size={42} />
-            <p className="text-sm font-medium text-text-200 dark:text-slate-400">A carregar atividades do NEEI...</p>
+            <p className="text-sm font-medium text-text-200 dark:text-slate-400">
+              A carregar atividades do NEEI...
+            </p>
           </div>
         ) : !showCalendar ? (
           <div className="py-20 sm:py-28 flex flex-col items-center justify-center text-center px-4 animate-fadeIn">
@@ -211,13 +229,16 @@ export const Events: React.FC = () => {
               Calendário será anunciado brevemente...
             </h2>
             <p className="text-sm sm:text-base text-text-200 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              Fica atento às nossas redes sociais e ao portal para saberes em primeira mão todas as datas das próximas atividades do NEEI.
+              Fica atento às nossas redes sociais e ao portal para saberes em primeira mão todas as
+              datas das próximas atividades do NEEI.
             </p>
           </div>
         ) : fetchError ? (
           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-2xl p-6 text-center">
             <AlertCircle className="mx-auto text-red-500 mb-2" size={32} />
-            <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Erro ao carregar atividades</h3>
+            <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">
+              Erro ao carregar atividades
+            </h3>
             <p className="text-sm text-red-600 dark:text-red-300 mt-1">{fetchError}</p>
             <button
               onClick={loadActivities}
@@ -236,7 +257,10 @@ export const Events: React.FC = () => {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
                   </span>
-                  <h2 id="ongoing-activities-title" className="text-2xl sm:text-3xl font-bold tracking-tight text-text-100 dark:text-white">
+                  <h2
+                    id="ongoing-activities-title"
+                    className="text-2xl sm:text-3xl font-bold tracking-tight text-text-100 dark:text-white"
+                  >
                     Atividades a Decorrer
                   </h2>
                 </div>
@@ -247,7 +271,10 @@ export const Events: React.FC = () => {
 
               {ongoingActivities.length === 0 ? (
                 <div className="bg-white/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-gray-300 dark:border-slate-800 p-10 text-center">
-                  <CalendarIcon className="mx-auto text-gray-400 dark:text-slate-600 mb-3 opacity-60" size={40} />
+                  <CalendarIcon
+                    className="mx-auto text-gray-400 dark:text-slate-600 mb-3 opacity-60"
+                    size={40}
+                  />
                   <p className="text-lg font-medium text-text-200 dark:text-slate-400">
                     Não existem atividades com inscrições abertas no momento.
                   </p>
@@ -257,7 +284,7 @@ export const Events: React.FC = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {ongoingActivities.map(activity => {
+                  {ongoingActivities.map((activity) => {
                     const dateInfo = formatDisplayDate(activity.date);
                     return (
                       <div
@@ -278,7 +305,8 @@ export const Events: React.FC = () => {
                               <span className="inline-flex items-center gap-1 text-xs text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg">
                                 <Users size={13} />
                                 <span>
-                                  {activity.registrations_count || 0} / {activity.max_capacity} inscritos
+                                  {activity.registrations_count || 0} / {activity.max_capacity}{' '}
+                                  inscritos
                                 </span>
                               </span>
                             ) : null}
@@ -294,20 +322,34 @@ export const Events: React.FC = () => {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-text-200 dark:text-slate-400 mb-6 bg-gray-50/80 dark:bg-slate-900/50 p-4 rounded-xl border border-gray-100 dark:border-slate-800">
                             <div className="flex items-center gap-2.5">
-                              <CalendarIcon size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                              <span className="font-medium text-text-100 dark:text-slate-200">{dateInfo.full}</span>
+                              <CalendarIcon
+                                size={16}
+                                className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                              />
+                              <span className="font-medium text-text-100 dark:text-slate-200">
+                                {dateInfo.full}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2.5">
-                              <Clock size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <Clock
+                                size={16}
+                                className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                              />
                               <span>{activity.time}</span>
                             </div>
                             <div className="flex items-center gap-2.5">
-                              <MapPin size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                              <MapPin
+                                size={16}
+                                className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                              />
                               <span className="truncate">{activity.location}</span>
                             </div>
                             {activity.speaker && (
                               <div className="flex items-center gap-2.5">
-                                <User size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <User
+                                  size={16}
+                                  className="text-emerald-600 dark:text-emerald-400 shrink-0"
+                                />
                                 <span className="truncate">{activity.speaker}</span>
                               </div>
                             )}
@@ -340,14 +382,21 @@ export const Events: React.FC = () => {
             </section>
 
             {/* SECÇÃO 2: Calendário de Atividades Futuras */}
-            <section aria-labelledby="upcoming-activities-title" className="pt-8 border-t border-gray-200 dark:border-slate-800">
+            <section
+              aria-labelledby="upcoming-activities-title"
+              className="pt-8 border-t border-gray-200 dark:border-slate-800"
+            >
               <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                 <div>
-                  <h2 id="upcoming-activities-title" className="text-2xl sm:text-3xl font-bold tracking-tight text-text-100 dark:text-white">
+                  <h2
+                    id="upcoming-activities-title"
+                    className="text-2xl sm:text-3xl font-bold tracking-tight text-text-100 dark:text-white"
+                  >
                     Calendário de Atividades Futuras
                   </h2>
                   <p className="text-sm text-text-200 dark:text-slate-400 mt-1">
-                    Planeia a tua participação com antecedência. As inscrições abrem na mesma semana da atividade, ou excecionalmente na semana anterior.
+                    Planeia a tua participação com antecedência. As inscrições abrem na mesma semana
+                    da atividade, ou excecionalmente na semana anterior.
                   </p>
                 </div>
 
@@ -356,21 +405,23 @@ export const Events: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedCategory('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === 'all'
-                        ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                        }`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        selectedCategory === 'all'
+                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                      }`}
                     >
                       Todas ({upcomingActivities.length})
                     </button>
-                    {categories.map(cat => (
+                    {categories.map((cat) => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat
-                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                          }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                          selectedCategory === cat
+                            ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                        }`}
                       >
                         {cat}
                       </button>
@@ -381,14 +432,17 @@ export const Events: React.FC = () => {
 
               {filteredUpcoming.length === 0 ? (
                 <div className="bg-white/40 dark:bg-slate-900/30 rounded-2xl border border-dashed border-gray-300 dark:border-slate-800 p-12 text-center">
-                  <CalendarIcon className="mx-auto text-gray-400 dark:text-slate-600 mb-3 opacity-60" size={40} />
+                  <CalendarIcon
+                    className="mx-auto text-gray-400 dark:text-slate-600 mb-3 opacity-60"
+                    size={40}
+                  />
                   <p className="text-base font-medium text-text-200 dark:text-slate-400">
                     Nenhuma atividade futura encontrada para a categoria selecionada.
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredUpcoming.map(activity => {
+                  {filteredUpcoming.map((activity) => {
                     const dateInfo = formatDisplayDate(activity.date);
                     return (
                       <div
@@ -428,11 +482,17 @@ export const Events: React.FC = () => {
 
                         <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-slate-800/80 text-xs text-text-200 dark:text-slate-400">
                           <div className="flex items-center gap-2">
-                            <Clock size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                            <Clock
+                              size={14}
+                              className="text-accent-200 dark:text-cyan-400 shrink-0"
+                            />
                             <span>{activity.time}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <MapPin size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                            <MapPin
+                              size={14}
+                              className="text-accent-200 dark:text-cyan-400 shrink-0"
+                            />
                             <span className="truncate">{activity.location}</span>
                           </div>
 
@@ -440,7 +500,10 @@ export const Events: React.FC = () => {
                             {activity.registration_opens_at ? (
                               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 dark:bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/20 inline-flex items-center gap-1.5">
                                 <CalendarIcon size={12} className="shrink-0" />
-                                <span>Inscrições abrem a {formatOpenDate(activity.registration_opens_at)}</span>
+                                <span>
+                                  Inscrições abrem a{' '}
+                                  {formatOpenDate(activity.registration_opens_at)}
+                                </span>
                               </span>
                             ) : (
                               <span />
@@ -474,7 +537,7 @@ export const Events: React.FC = () => {
         >
           <div
             className="bg-white dark:bg-[#0c1724] rounded-3xl border border-gray-200 dark:border-cyan-900/60 shadow-2xl w-full max-w-lg overflow-hidden transition-all transform animate-scaleUp"
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between gap-4">
@@ -503,9 +566,12 @@ export const Events: React.FC = () => {
                   <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 size={36} />
                   </div>
-                  <h4 className="text-xl font-bold text-text-100 dark:text-white">Inscrição Confirmada!</h4>
+                  <h4 className="text-xl font-bold text-text-100 dark:text-white">
+                    Inscrição Confirmada!
+                  </h4>
                   <p className="text-sm text-text-200 dark:text-slate-300 max-w-sm mx-auto">
-                    O teu lugar para esta atividade está reservado. Vemo-nos no dia {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
+                    O teu lugar para esta atividade está reservado. Vemo-nos no dia{' '}
+                    {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
                   </p>
                   <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                     <CalendarDropdown
@@ -528,7 +594,9 @@ export const Events: React.FC = () => {
                   <div className="bg-primary-100/40 dark:bg-slate-900/60 p-4 rounded-xl text-xs text-text-200 dark:text-slate-300 space-y-1.5 border border-primary-200/40 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>{formatDisplayDate(selectedActivity.date).full} ({selectedActivity.time})</span>
+                      <span>
+                        {formatDisplayDate(selectedActivity.date).full} ({selectedActivity.time})
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin size={14} className="text-emerald-600 dark:text-emerald-400" />
@@ -537,7 +605,10 @@ export const Events: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="student-name-input" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="student-name-input"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Nome Completo
                     </label>
                     <div className="relative">
@@ -547,7 +618,7 @@ export const Events: React.FC = () => {
                         autoComplete="name"
                         placeholder="ex.: Afonso Bitoque"
                         value={studentName}
-                        onChange={e => {
+                        onChange={(e) => {
                           setStudentName(e.target.value);
                           if (formError) setFormError(null);
                         }}
@@ -558,7 +629,10 @@ export const Events: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="student-number-input" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="student-number-input"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Número de Aluno
                     </label>
                     <div className="relative">
@@ -567,16 +641,17 @@ export const Events: React.FC = () => {
                         type="text"
                         placeholder="ex.: a74123 ou 74123"
                         value={studentNumber}
-                        onChange={e => {
+                        onChange={(e) => {
                           setStudentNumber(e.target.value);
                           if (formError) setFormError(null);
                         }}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${studentNumber && !isStudentNumberValid(studentNumber)
-                          ? 'border-amber-400 focus:ring-amber-400/20'
-                          : studentNumber && isStudentNumberValid(studentNumber)
-                            ? 'border-emerald-500 focus:ring-emerald-500/20'
-                            : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
-                          }`}
+                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                          studentNumber && !isStudentNumberValid(studentNumber)
+                            ? 'border-amber-400 focus:ring-amber-400/20'
+                            : studentNumber && isStudentNumberValid(studentNumber)
+                              ? 'border-emerald-500 focus:ring-emerald-500/20'
+                              : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
+                        }`}
                         required
                       />
                       {studentNumber && isStudentNumberValid(studentNumber) && (

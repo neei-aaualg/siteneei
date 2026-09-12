@@ -10,7 +10,7 @@ import {
   Code2,
   Calendar,
   Share2,
-  HeartHandshake
+  HeartHandshake,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { submitCollaboratorApplication } from '../services/collaboratorsService';
@@ -21,13 +21,13 @@ const AVAILABLE_AREAS = [
   'Design & Imagem',
   'Redes Sociais & Comunicação',
   'Torneios de Jogos & Comunidade',
-  'Parcerias & Patrocínios'
+  'Parcerias & Patrocínios',
 ];
 
 const COURSE_YEARS_MAP: Record<string, string[]> = {
   'LEI (Licenciatura em Eng. Informática)': ['1º Ano', '2º Ano', '3º Ano'],
   'MEI (Mestrado em Eng. Informática)': ['1º Ano', '2º Ano'],
-  'PSC (Pós Graduação em Cibersegurança)': ['1º Ano']
+  'PSC (Pós Graduação em Cibersegurança)': ['1º Ano'],
 };
 
 const getAvailableYearsForCourse = (selectedCourse: string): string[] => {
@@ -49,14 +49,20 @@ export const Join: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
 
   const isStudentNumberValid = (val: string) => {
-    const clean = val.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    const clean = val
+      .trim()
+      .toLowerCase()
+      .replace(/@ualg\.pt$/i, '');
     return /^a?\d{4,7}$/i.test(clean);
   };
 
   const handleStudentNumberChange = (val: string) => {
     setStudentNumber(val);
     if (formError) setFormError(null);
-    const clean = val.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    const clean = val
+      .trim()
+      .toLowerCase()
+      .replace(/@ualg\.pt$/i, '');
     if (/^a?\d{4,7}$/i.test(clean) && !email) {
       const num = clean.startsWith('a') ? clean : `a${clean}`;
       setEmail(`${num}@ualg.pt`);
@@ -80,8 +86,8 @@ export const Join: React.FC = () => {
   };
 
   const toggleArea = (area: string) => {
-    setSelectedAreas(prev =>
-      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
+    setSelectedAreas((prev) =>
+      prev.includes(area) ? prev.filter((a) => a !== area) : [...prev, area]
     );
   };
 
@@ -89,9 +95,14 @@ export const Join: React.FC = () => {
     e.preventDefault();
 
     const cleanName = name.trim();
-    const cleanNum = studentNumber.trim().toLowerCase().replace(/@ualg\.pt$/i, '');
+    const cleanNum = studentNumber
+      .trim()
+      .toLowerCase()
+      .replace(/@ualg\.pt$/i, '');
     const cleanPhone = phone.trim().replace(/\D/g, '');
-    const cleanEmail = email.trim() || (cleanNum ? `${cleanNum.startsWith('a') ? cleanNum : 'a' + cleanNum}@ualg.pt` : '');
+    const cleanEmail =
+      email.trim() ||
+      (cleanNum ? `${cleanNum.startsWith('a') ? cleanNum : 'a' + cleanNum}@ualg.pt` : '');
     const cleanMotivation = motivation.trim();
 
     if (cleanName.length < 2) {
@@ -105,12 +116,16 @@ export const Join: React.FC = () => {
     }
 
     if (!cleanPhone || cleanPhone.length < 9) {
-      setFormError('Por favor introduz um número de telemóvel válido (apenas números, mín. 9 dígitos)');
+      setFormError(
+        'Por favor introduz um número de telemóvel válido (apenas números, mín. 9 dígitos)'
+      );
       return;
     }
 
     if (cleanMotivation.length < 10) {
-      setFormError('Por favor diz-nos um pouco sobre porque queres colaborar (mínimo 10 caracteres)');
+      setFormError(
+        'Por favor diz-nos um pouco sobre porque queres colaborar (mínimo 10 caracteres)'
+      );
       return;
     }
 
@@ -128,7 +143,7 @@ export const Join: React.FC = () => {
         academic_year: academicYear,
         course,
         areas_of_interest: selectedAreas,
-        motivation: cleanMotivation
+        motivation: cleanMotivation,
       });
 
       setSubmitted(true);
@@ -137,7 +152,7 @@ export const Join: React.FC = () => {
         confetti({
           particleCount: 100,
           spread: 80,
-          origin: { y: 0.55 }
+          origin: { y: 0.55 },
         });
       } catch {
         // Fallback silencioso
@@ -166,7 +181,6 @@ export const Join: React.FC = () => {
   return (
     <div className="min-h-screen bg-bg-100 dark:bg-[#070e17] text-text-100 dark:text-slate-100 transition-colors duration-300 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
-
         {/* Banner de Apresentação */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300">
@@ -177,7 +191,8 @@ export const Join: React.FC = () => {
             Queres ser <span className="text-accent-200 dark:text-cyan-400">Colaborador</span>?
           </h1>
           <p className="text-sm sm:text-base text-text-200 dark:text-slate-300 leading-relaxed">
-            Junta-te à equipa do NEEI! Aqui ganhas experiência prática, crias projetos com impacto real para os estudantes de Engenharia Informática e expandes a tua rede.
+            Junta-te à equipa do NEEI! Aqui ganhas experiência prática, crias projetos com impacto
+            real para os estudantes de Engenharia Informática e expandes a tua rede.
           </p>
         </div>
 
@@ -189,7 +204,9 @@ export const Join: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-text-100 dark:text-white">Projetos Reais</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Aplica o que aprendes em projetos e ferramentas reais para a universidade.</p>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Aplica o que aprendes em projetos e ferramentas reais para a universidade.
+              </p>
             </div>
           </div>
 
@@ -198,8 +215,12 @@ export const Join: React.FC = () => {
               <Calendar size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-text-100 dark:text-white">Workshops & Eventos</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Participa na criação de torneios, atividades e palestras com convidados.</p>
+              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                Workshops & Eventos
+              </h4>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Participa na criação de torneios, atividades e palestras com convidados.
+              </p>
             </div>
           </div>
 
@@ -208,15 +229,18 @@ export const Join: React.FC = () => {
               <Users size={20} />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-text-100 dark:text-white">Networking & Amizade</h4>
-              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">Integra uma comunidade ativa de alunos de informática.</p>
+              <h4 className="text-sm font-bold text-text-100 dark:text-white">
+                Networking & Amizade
+              </h4>
+              <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                Integra uma comunidade ativa de alunos de informática.
+              </p>
             </div>
           </div>
         </div>
 
         {/* Caixa Principal do Formulário / Confirmação */}
         <div className="bg-white dark:bg-[#0c1724] rounded-3xl shadow-xl border border-gray-200/80 dark:border-cyan-950/80 overflow-hidden">
-
           {submitted ? (
             <div className="p-8 sm:p-14 text-center space-y-6 animate-fadeIn">
               <div className="w-20 h-20 rounded-3xl bg-emerald-100 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-sm">
@@ -228,7 +252,9 @@ export const Join: React.FC = () => {
                   Candidatura Recebida com Sucesso!
                 </h3>
                 <p className="text-sm sm:text-base text-text-200 dark:text-slate-300 max-w-lg mx-auto">
-                  Obrigado pelo teu interesse em colaborar com o NEEI, <span className="font-semibold text-accent-200 dark:text-cyan-400">{name}</span>! A equipa irá rever o teu pedido e entrar em contacto em breve.
+                  Obrigado pelo teu interesse em colaborar com o NEEI,{' '}
+                  <span className="font-semibold text-accent-200 dark:text-cyan-400">{name}</span>!
+                  A equipa irá rever o teu pedido e entrar em contacto em breve.
                 </p>
               </div>
 
@@ -268,7 +294,10 @@ export const Join: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label htmlFor="collab-name" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-name"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Nome Completo *
                     </label>
                     <input
@@ -277,7 +306,7 @@ export const Join: React.FC = () => {
                       required
                       placeholder="ex.: Maria Silva"
                       value={name}
-                      onChange={e => {
+                      onChange={(e) => {
                         setName(e.target.value);
                         if (formError) setFormError(null);
                       }}
@@ -286,7 +315,10 @@ export const Join: React.FC = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="collab-number" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-number"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Número de Aluno *
                     </label>
                     <div className="relative">
@@ -296,22 +328,29 @@ export const Join: React.FC = () => {
                         required
                         placeholder="ex.: a74123 ou 74123"
                         value={studentNumber}
-                        onChange={e => handleStudentNumberChange(e.target.value)}
-                        className={`w-full px-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 transition ${studentNumber && !isStudentNumberValid(studentNumber)
-                          ? 'border-amber-400 focus:ring-amber-400/20'
-                          : studentNumber && isStudentNumberValid(studentNumber)
-                            ? 'border-emerald-500 focus:ring-emerald-500/20'
-                            : 'border-gray-200 dark:border-slate-800 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
-                          }`}
+                        onChange={(e) => handleStudentNumberChange(e.target.value)}
+                        className={`w-full px-4 py-2.5 rounded-xl border bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 transition ${
+                          studentNumber && !isStudentNumberValid(studentNumber)
+                            ? 'border-amber-400 focus:ring-amber-400/20'
+                            : studentNumber && isStudentNumberValid(studentNumber)
+                              ? 'border-emerald-500 focus:ring-emerald-500/20'
+                              : 'border-gray-200 dark:border-slate-800 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
+                        }`}
                       />
                       {studentNumber && isStudentNumberValid(studentNumber) && (
-                        <CheckCircle2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500" />
+                        <CheckCircle2
+                          size={16}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
+                        />
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="collab-email" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-email"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Email de Contacto *
                     </label>
                     <input
@@ -320,13 +359,16 @@ export const Join: React.FC = () => {
                       required
                       placeholder="ex.: a74123@ualg.pt"
                       value={email}
-                      onChange={e => setEmail(e.target.value)}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="collab-phone" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-phone"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Nº Telemóvel (apenas números) *
                     </label>
                     <input
@@ -337,17 +379,29 @@ export const Join: React.FC = () => {
                       required
                       placeholder="ex.: 912345678"
                       value={phone}
-                      onKeyDown={e => {
+                      onKeyDown={(e) => {
                         // Permite apenas dígitos e teclas de controlo/navegação
                         if (
                           !/^\d$/.test(e.key) &&
-                          !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'].includes(e.key) &&
-                          !e.ctrlKey && !e.metaKey
+                          ![
+                            'Backspace',
+                            'Delete',
+                            'Tab',
+                            'ArrowLeft',
+                            'ArrowRight',
+                            'ArrowUp',
+                            'ArrowDown',
+                            'Home',
+                            'End',
+                            'Enter',
+                          ].includes(e.key) &&
+                          !e.ctrlKey &&
+                          !e.metaKey
                         ) {
                           e.preventDefault();
                         }
                       }}
-                      onChange={e => handlePhoneChange(e.target.value)}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     />
                   </div>
@@ -361,32 +415,44 @@ export const Join: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label htmlFor="collab-course" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-course"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Curso
                     </label>
                     <select
                       id="collab-course"
                       value={course}
-                      onChange={e => handleCourseChange(e.target.value)}
+                      onChange={(e) => handleCourseChange(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     >
-                      <option value="LEI (Licenciatura em Eng. Informática)">LEI (Licenciatura em Eng. Informática)</option>
-                      <option value="MEI (Mestrado em Eng. Informática)">MEI (Mestrado em Eng. Informática)</option>
-                      <option value="PSC (Pós Graduação em Cibersegurança)">PSC (Pós Graduação em Cibersegurança)</option>
+                      <option value="LEI (Licenciatura em Eng. Informática)">
+                        LEI (Licenciatura em Eng. Informática)
+                      </option>
+                      <option value="MEI (Mestrado em Eng. Informática)">
+                        MEI (Mestrado em Eng. Informática)
+                      </option>
+                      <option value="PSC (Pós Graduação em Cibersegurança)">
+                        PSC (Pós Graduação em Cibersegurança)
+                      </option>
                     </select>
                   </div>
 
                   <div>
-                    <label htmlFor="collab-year" className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5">
+                    <label
+                      htmlFor="collab-year"
+                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                    >
                       Ano Curricular
                     </label>
                     <select
                       id="collab-year"
                       value={academicYear}
-                      onChange={e => setAcademicYear(e.target.value)}
+                      onChange={(e) => setAcademicYear(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                     >
-                      {getAvailableYearsForCourse(course).map(yr => (
+                      {getAvailableYearsForCourse(course).map((yr) => (
                         <option key={yr} value={yr}>
                           {yr}
                         </option>
@@ -408,17 +474,18 @@ export const Join: React.FC = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2.5 pt-1">
-                  {AVAILABLE_AREAS.map(area => {
+                  {AVAILABLE_AREAS.map((area) => {
                     const isSelected = selectedAreas.includes(area);
                     return (
                       <button
                         type="button"
                         key={area}
                         onClick={() => toggleArea(area)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${isSelected
-                          ? 'bg-accent-200 text-white border-accent-200 dark:bg-cyan-600 dark:border-cyan-500 shadow-sm'
-                          : 'bg-gray-50 dark:bg-slate-900/80 border-gray-200 dark:border-slate-800 text-text-200 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-700'
-                          }`}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                          isSelected
+                            ? 'bg-accent-200 text-white border-accent-200 dark:bg-cyan-600 dark:border-cyan-500 shadow-sm'
+                            : 'bg-gray-50 dark:bg-slate-900/80 border-gray-200 dark:border-slate-800 text-text-200 dark:text-slate-300 hover:border-gray-300 dark:hover:border-slate-700'
+                        }`}
                       >
                         {area}
                       </button>
@@ -429,7 +496,10 @@ export const Join: React.FC = () => {
 
               {/* Seção 4: Motivação */}
               <div className="space-y-2">
-                <label htmlFor="collab-motivation" className="block text-xs font-semibold text-text-100 dark:text-slate-200">
+                <label
+                  htmlFor="collab-motivation"
+                  className="block text-xs font-semibold text-text-100 dark:text-slate-200"
+                >
                   4. Motivação & Ideias *
                 </label>
                 <textarea
@@ -437,7 +507,7 @@ export const Join: React.FC = () => {
                   required
                   rows={4}
                   value={motivation}
-                  onChange={e => {
+                  onChange={(e) => {
                     setMotivation(e.target.value);
                     if (formError) setFormError(null);
                   }}
