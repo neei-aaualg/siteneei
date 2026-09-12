@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Code, Calendar, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
 
@@ -234,16 +234,171 @@ const HighlightsCarousel: React.FC = () => {
     }
   ];
 
-  const ITEMS_PER_PAGE = 3;
-  const totalPages = Math.ceil(highlights.length / ITEMS_PER_PAGE);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const itemsPerPage = isMobile ? 1 : 3;
+  const totalPages = Math.ceil(highlights.length / itemsPerPage);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const prevSlide = () => {
+  // Auto-play state: muda de 10 em 10 segundos, para ao tocar/arrastar
+  const [autoPlay, setAutoPlay] = useState(true);
+
+  const stopAutoPlay = useCallback(() => {
+    setAutoPlay(false);
+  }, []);
+
+  // Clampa a página caso totalPages mude com o resize do ecrã
+  useEffect(() => {
+    setCurrentPage(prev => (prev >= totalPages ? 0 : prev));
+  }, [totalPages]);
+
+  // Rotação automática de 10 em 10 segundos (para permanentemente após toque/arraste)
+  useEffect(() => {
+    if (!autoPlay) return;
+
+    const interval = setInterval(() => {
+      setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [autoPlay, totalPages]);
+
+  const prevSlide = useCallback(() => {
+    stopAutoPlay();
     setCurrentPage(prev => (prev > 0 ? prev - 1 : totalPages - 1));
+  }, [stopAutoPlay, totalPages]);
+
+  const nextSlide = useCallback(() => {
+    stopAutoPlay();
+    setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+  }, [stopAutoPlay, totalPages]);
+
+  const goToPage = useCallback((idx: number) => {
+    stopAutoPlay();
+    setCurrentPage(idx);
+  }, [stopAutoPlay]);
+
+  // Suporte a swipe / arrasto com o dedo (touch) e rato
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartX = useRef<number>(0);
+  const touchStartY = useRef<number>(0);
+  const currentDeltaX = useRef<number>(0);
+  const gestureDirection = useRef<'horizontal' | 'vertical' | null>(null);
+  const isPointerActive = useRef<boolean>(false);
+
+  // Handlers para Touch (Mobile)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    stopAutoPlay();
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    currentDeltaX.current = 0;
+    gestureDirection.current = null;
+    isPointerActive.current = true;
   };
 
-  const nextSlide = () => {
-    setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPointerActive.current) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+    const diffX = currentX - touchStartX.current;
+    const diffY = currentY - touchStartY.current;
+
+    // Detetar direção do gesto logo nos primeiros movimentos
+    if (gestureDirection.current === null) {
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        if (Math.abs(diffX) >= Math.abs(diffY)) {
+          gestureDirection.current = 'horizontal';
+          setIsDragging(true);
+        } else {
+          gestureDirection.current = 'vertical';
+        }
+      }
+    }
+
+    if (gestureDirection.current === 'horizontal') {
+      currentDeltaX.current = diffX;
+      setDragOffset(diffX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isPointerActive.current) return;
+    isPointerActive.current = false;
+    setIsDragging(false);
+    setDragOffset(0);
+
+    if (gestureDirection.current === 'horizontal') {
+      const threshold = 40;
+      if (currentDeltaX.current < -threshold) {
+        nextSlide();
+      } else if (currentDeltaX.current > threshold) {
+        prevSlide();
+      }
+    }
+    gestureDirection.current = null;
+    currentDeltaX.current = 0;
+  };
+
+  const handleTouchCancel = () => {
+    isPointerActive.current = false;
+    setIsDragging(false);
+    setDragOffset(0);
+    gestureDirection.current = null;
+    currentDeltaX.current = 0;
+  };
+
+  // Handlers para Mouse Drag (Desktop)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    stopAutoPlay();
+    touchStartX.current = e.clientX;
+    touchStartY.current = e.clientY;
+    currentDeltaX.current = 0;
+    gestureDirection.current = 'horizontal';
+    isPointerActive.current = true;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isPointerActive.current || gestureDirection.current !== 'horizontal') return;
+    const diffX = e.clientX - touchStartX.current;
+    currentDeltaX.current = diffX;
+    setDragOffset(diffX);
+  };
+
+  const handleMouseUp = () => {
+    if (!isPointerActive.current) return;
+    isPointerActive.current = false;
+    setIsDragging(false);
+    setDragOffset(0);
+
+    const threshold = 40;
+    if (currentDeltaX.current < -threshold) {
+      nextSlide();
+    } else if (currentDeltaX.current > threshold) {
+      prevSlide();
+    }
+    gestureDirection.current = null;
+    currentDeltaX.current = 0;
+  };
+
+  const handleMouseLeave = () => {
+    if (isPointerActive.current) {
+      handleMouseUp();
+    }
   };
 
   return (
@@ -252,43 +407,58 @@ const HighlightsCarousel: React.FC = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">Destaques do Mandato</h2>
       </div>
 
-      {/* Carrossel com setas laterais flutuantes */}
-      <div className="relative group/carousel">
+      {/* Carrossel com setas laterais flutuantes e suporte a swipe/arraste */}
+      <div className="relative group/carousel px-2 sm:px-0">
         {/* Seta esquerda flutuante */}
         <button
           onClick={prevSlide}
           aria-label="Página anterior"
-          className="flex absolute -left-3 sm:-left-5 lg:-left-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+          className="flex absolute left-0 sm:-left-5 lg:-left-6 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={20} className="sm:w-[22px] sm:h-[22px]" />
         </button>
 
         {/* Seta direita flutuante */}
         <button
           onClick={nextSlide}
           aria-label="Próxima página"
-          className="flex absolute -right-3 sm:-right-5 lg:-right-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+          className="flex absolute right-0 sm:-right-5 lg:-right-6 top-1/2 -translate-y-1/2 z-20 p-2 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
         >
-          <ChevronRight size={22} />
+          <ChevronRight size={20} className="sm:w-[22px] sm:h-[22px]" />
         </button>
 
-        {/* Viewport do Carrossel */}
-        <div className="overflow-hidden py-2 px-1">
+        {/* Viewport do Carrossel com touch & swipe */}
+        <div
+          className="mx-6 sm:mx-0 overflow-hidden py-3 px-1 touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+        >
           <div
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentPage * 100}%)` }}
+            className="flex"
+            style={{
+              transform: `translateX(calc(-${currentPage * 100}% + ${dragOffset}px))`,
+              transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.25, 1, 0.5, 1)',
+            }}
           >
             {Array.from({ length: totalPages }).map((_, pageIdx) => {
-              const pageItems = highlights.slice(pageIdx * ITEMS_PER_PAGE, (pageIdx + 1) * ITEMS_PER_PAGE);
+              const pageItems = highlights.slice(pageIdx * itemsPerPage, (pageIdx + 1) * itemsPerPage);
               return (
                 <div
                   key={pageIdx}
-                  className="w-full flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-6 px-1"
+                  className={`w-full flex-shrink-0 px-2 sm:px-1 ${
+                    isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
+                  }`}
                 >
                   {pageItems.map((item, i) => (
                     <div
                       key={i}
-                      className="h-full bg-white dark:bg-[#0c1724] p-6 rounded-2xl shadow-sm border border-primary-200 dark:border-cyan-900/50 hover:border-accent-200/50 dark:hover:border-cyan-500/50 hover:shadow-xl dark:hover:shadow-cyan-950/40 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
+                      className="w-full h-full min-h-[220px] sm:min-h-[240px] bg-white dark:bg-[#0c1724] p-6 rounded-2xl shadow-sm border border-primary-200 dark:border-cyan-900/50 hover:border-accent-200/50 dark:hover:border-cyan-500/50 hover:shadow-xl dark:hover:shadow-cyan-950/40 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
                     >
                       <div>
                         <div className="flex justify-between items-start mb-5">
@@ -315,17 +485,27 @@ const HighlightsCarousel: React.FC = () => {
         </div>
       </div>
 
-      {/* Indicadores de Paginação (Dots) */}
-      <div className="flex justify-center items-center gap-2 mt-8">
-        {Array.from({ length: totalPages }).map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrentPage(idx)}
-            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx ? 'w-8 bg-accent-200 dark:bg-cyan-400' : 'w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
+      {/* Indicadores de Paginação (Dots e Contador) */}
+      <div className="flex flex-col items-center gap-2 mt-8">
+        <div className="flex justify-center items-center gap-1.5 sm:gap-2 flex-wrap max-w-full px-2">
+          {Array.from({ length: totalPages }).map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToPage(idx)}
+              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                currentPage === idx
+                  ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
+                  : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
               }`}
-            aria-label={`Ir para página ${idx + 1}`}
-          />
-        ))}
+              aria-label={`Ir para página ${idx + 1}`}
+            />
+          ))}
+        </div>
+        {isMobile && (
+          <span className="text-xs font-medium text-text-200/70 dark:text-slate-400/70">
+            {currentPage + 1} de {totalPages}
+          </span>
+        )}
       </div>
     </section>
   );
