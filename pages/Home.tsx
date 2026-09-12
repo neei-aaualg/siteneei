@@ -1,10 +1,31 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Code, Calendar, MapPin, Terminal as TerminalIcon, Box, ExternalLink, FileCheck, UtensilsCrossed, ScrollText, PartyPopper, Shirt, ShieldCheck, ChevronLeft, ChevronRight, Users, User, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Code,
+  Calendar,
+  MapPin,
+  Terminal as TerminalIcon,
+  Box,
+  ExternalLink,
+  FileCheck,
+  UtensilsCrossed,
+  ScrollText,
+  PartyPopper,
+  Shirt,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  User,
+  Sparkles,
+} from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
 const InteractiveTerminal: React.FC = () => {
-  const [history, setHistory] = useState<Array<{ type: 'input' | 'output', content: React.ReactNode }>>([
+  const [history, setHistory] = useState<
+    Array<{ type: 'input' | 'output'; content: React.ReactNode }>
+  >([
     { type: 'output', content: 'NEEI_OS v1.0.5 [Secure Connection Established]' },
     { type: 'output', content: 'Welcome to NEEI System. Type "help" to see available commands.' },
   ]);
@@ -55,35 +76,39 @@ const InteractiveTerminal: React.FC = () => {
         );
         break;
       case 'whoami':
-        output = "guest_user@neei-ualg (Access Level: Student)";
+        output = 'guest_user@neei-ualg (Access Level: Student)';
         break;
       case 'date':
         output = new Date().toString();
         break;
       case 'sudo':
-        output = "Permission denied: Nice try, but you are not root.";
+        output = 'Permission denied: Nice try, but you are not root.';
         break;
       case 'hack':
-        output = "Accessing mainframe... 0%... 10%... FAILED. Firewall is too strong.";
+        output = 'Accessing mainframe... 0%... 10%... FAILED. Firewall is too strong.';
         break;
       case 'clear':
         setHistory([]);
         return; // Não adiciona ao histórico
       case 'cat':
         if (args.length === 0) {
-          output = "Usage: cat [filename]";
+          output = 'Usage: cat [filename]';
         } else if (args[0] === 'segredos_neei.log') {
-          output = "Error: File encrypted. Key required. (Dica: Pergunta ao presidente)";
+          output = 'Error: File encrypted. Key required. (Dica: Pergunta ao presidente)';
         } else if (args[0] === 'receita_sandes_atum.txt') {
           output = (
             <div className="whitespace-pre-wrap text-yellow-200">
-              {"=== RECEITA GOURMET DE ESTUDANTE ===\n1. Pão de ontem (se estiver duro, molha na água).\n2. Uma lata de atum (em óleo para escorregar melhor).\n3. Maionese (quanto mais, melhor).\n4. Misturar com as lágrimas de quem chumbou a Análise Matemática.\n5. Comer em 2 minutos antes da aula prática de AED."}
+              {
+                '=== RECEITA GOURMET DE ESTUDANTE ===\n1. Pão de ontem (se estiver duro, molha na água).\n2. Uma lata de atum (em óleo para escorregar melhor).\n3. Maionese (quanto mais, melhor).\n4. Misturar com as lágrimas de quem chumbou a Análise Matemática.\n5. Comer em 2 minutos antes da aula prática de AED.'
+              }
             </div>
           );
         } else if (args[0] === 'razões_para_ser_informatico.txt') {
           output = (
             <div className="whitespace-pre-wrap text-purple-300">
-              {"=== PORQUE É QUE VIM PARA LEI? ===\n1. Era quem arranjava a televisão lá em casa (mudava o HDMI).\n2. Era quem concertava o computador da avó (desligava e voltava a ligar).\n3. Gosto de jogar jogos e achava que o curso era só gaming.\n4. O meu primo disse que dava dinheiro (ele vende NFTs).\n5. Tenho medo do sol."}
+              {
+                '=== PORQUE É QUE VIM PARA LEI? ===\n1. Era quem arranjava a televisão lá em casa (mudava o HDMI).\n2. Era quem concertava o computador da avó (desligava e voltava a ligar).\n3. Gosto de jogar jogos e achava que o curso era só gaming.\n4. O meu primo disse que dava dinheiro (ele vende NFTs).\n5. Tenho medo do sol.'
+              }
             </div>
           );
         } else {
@@ -98,9 +123,13 @@ const InteractiveTerminal: React.FC = () => {
     }
 
     if (output) {
-      setHistory(prev => [...prev, { type: 'input', content: cmd }, { type: 'output', content: output }]);
+      setHistory((prev) => [
+        ...prev,
+        { type: 'input', content: cmd },
+        { type: 'output', content: output },
+      ]);
     } else if (command !== '') {
-      setHistory(prev => [...prev, { type: 'input', content: cmd }]);
+      setHistory((prev) => [...prev, { type: 'input', content: cmd }]);
     }
   };
 
@@ -117,14 +146,21 @@ const InteractiveTerminal: React.FC = () => {
       onClick={handleFocus}
     >
       {/* CRT Scanline Effect */}
-      <div className="absolute inset-0 pointer-events-none z-10 opacity-10" style={{
-        background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
-        backgroundSize: '100% 2px, 3px 100%'
-      }}></div>
+      <div
+        className="absolute inset-0 pointer-events-none z-10 opacity-10"
+        style={{
+          background:
+            'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+          backgroundSize: '100% 2px, 3px 100%',
+        }}
+      ></div>
 
       <div className="flex-1 overflow-y-auto z-0 space-y-1 scrollbar-hide pb-2" ref={scrollRef}>
         {history.map((line, i) => (
-          <div key={i} className={`${line.type === 'input' ? 'text-gray-400 mt-2' : 'text-blue-300'}`}>
+          <div
+            key={i}
+            className={`${line.type === 'input' ? 'text-gray-400 mt-2' : 'text-blue-300'}`}
+          >
             {line.type === 'input' && <span className="text-accent-200 mr-2">$</span>}
             {line.content}
           </div>
@@ -156,82 +192,82 @@ const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
       icon: <Code className="text-accent-200" size={32} />,
-      title: "Apresentação do NEEI-Box e update do site",
-      desc: "A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.",
-      date: "Set 2026"
+      title: 'Apresentação do NEEI-Box e update do site',
+      desc: 'A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.',
+      date: 'Set 2026',
     },
     {
       icon: <Users className="text-accent-200" size={32} />,
-      title: "Mudança da Mesa da Direção",
-      desc: "José Tico resigna do cargo e David Cruz termina os estudos. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.",
-      date: "Ago 2026"
+      title: 'Mudança da Mesa da Direção',
+      desc: 'José Tico resigna do cargo e David Cruz termina os estudos. David Rodrigues assume a presidência enquanto Martim Neves é eleito vice-presidente e João Baptista secretário.',
+      date: 'Ago 2026',
     },
     {
       icon: <PartyPopper className="text-accent-200" size={32} />,
-      title: "Vitória na candidatura ao ENEI",
-      desc: "O COENEI vence o concurso para a realização do ENEI 2027 em Faro.",
-      date: "Ago 2026"
+      title: 'Vitória na candidatura ao ENEI',
+      desc: 'O COENEI vence o concurso para a realização do ENEI 2027 em Faro.',
+      date: 'Ago 2026',
     },
     {
       icon: <ScrollText className="text-accent-200" size={32} />,
-      title: "Modificações no Regulamento Interno",
-      desc: "O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.",
-      date: "Jun 2026"
+      title: 'Modificações no Regulamento Interno',
+      desc: 'O NEEI aprova novas alterações ao seu regulamento interno em reunião de plenário.',
+      date: 'Jun 2026',
     },
     {
       icon: <UtensilsCrossed className="text-accent-200" size={32} />,
-      title: "Jantar de Finalistas",
-      desc: "Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.",
-      date: "Jun 2026"
+      title: 'Jantar de Finalistas',
+      desc: 'Realizado um jantar de finalistas para alunos da licenciatura de Engenharia Informática.',
+      date: 'Jun 2026',
     },
     {
       icon: <Sparkles className="text-accent-200" size={32} />,
-      title: "Concurso de Logos",
-      desc: "Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.",
-      date: "Mai 2026"
+      title: 'Concurso de Logos',
+      desc: 'Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.',
+      date: 'Mai 2026',
     },
     {
       icon: <FileCheck className="text-accent-200" size={32} />,
-      title: "Pré-Candidatura ao ENEI",
-      desc: "NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).",
-      date: "Abr 2026"
+      title: 'Pré-Candidatura ao ENEI',
+      desc: 'NEEI realiza a pré-candidatura ao Encontro Nacional de Estudantes de Informática e cria o sub-orgão COENEI (Comissão Organizadora do ENEI).',
+      date: 'Abr 2026',
     },
     {
       icon: <Users className="text-accent-200" size={32} />,
-      title: "Mudança de Presidência",
-      desc: "Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.",
-      date: "Mar 2026"
+      title: 'Mudança de Presidência',
+      desc: 'Afonso Bitoque resigna do cargo, José Tico assume a presidência e David Rodrigues é eleito vice-presidente.',
+      date: 'Mar 2026',
     },
     {
       icon: <ShieldCheck className="text-accent-200" size={32} />,
-      title: "Aprovação Fiscal do Regulamento",
-      desc: "O novo regulamento interno foi aprovado pelo conselho fiscal.",
-      date: "Fev 2026"
+      title: 'Aprovação Fiscal do Regulamento',
+      desc: 'O novo regulamento interno foi aprovado pelo conselho fiscal.',
+      date: 'Fev 2026',
     },
     {
       icon: <Shirt className="text-accent-200" size={32} />,
-      title: "Entrega de Sweats",
-      desc: "Aconteceu a entrega das sweats de curso aos estudantes.",
-      date: "Fev 2026"
+      title: 'Entrega de Sweats',
+      desc: 'Aconteceu a entrega das sweats de curso aos estudantes.',
+      date: 'Fev 2026',
     },
     {
       icon: <ScrollText className="text-accent-200" size={32} />,
-      title: "Novo Regulamento Interno",
-      desc: "O NEEI teve o novo regulamento interno aprovado em reunião de plenário.",
-      date: "Jan 2026"
+      title: 'Novo Regulamento Interno',
+      desc: 'O NEEI teve o novo regulamento interno aprovado em reunião de plenário.',
+      date: 'Jan 2026',
     },
     {
       icon: <FileCheck className="text-accent-200" size={32} />,
-      title: "Aprovação do PAO",
-      desc: "O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.",
-      date: "Jan 2026"
+      title: 'Aprovação do PAO',
+      desc: 'O NEEI teve o seu Plano de Atividades e Orçamento (PAO) aprovado em reunião de plenário.',
+      date: 'Jan 2026',
     },
     {
       icon: <Code className="text-accent-200" size={32} />,
-      title: "Apresentação do Site",
-      desc: "Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.",
-      date: "Nov 2025"
-    }
+      title: 'Apresentação do Site',
+      desc: 'Site do NEEI é apresentado como primeira proposta a ser cumprida pela nova direção.',
+      date: 'Nov 2025',
+    },
   ];
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -263,7 +299,12 @@ const HighlightsCarousel: React.FC = () => {
     return () => observer.disconnect();
   }, []);
 
-  const isMobile = containerWidth > 0 ? containerWidth < 768 : (typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const isMobile =
+    containerWidth > 0
+      ? containerWidth < 768
+      : typeof window !== 'undefined'
+        ? window.innerWidth < 768
+        : false;
   const itemsPerPage = isMobile ? 1 : 3;
   const totalPages = Math.ceil(highlights.length / itemsPerPage);
   const [currentPage, setCurrentPage] = useState(0);
@@ -277,7 +318,7 @@ const HighlightsCarousel: React.FC = () => {
 
   // Clampa a página caso totalPages mude com o resize do ecrã
   useEffect(() => {
-    setCurrentPage(prev => (prev >= totalPages ? 0 : prev));
+    setCurrentPage((prev) => (prev >= totalPages ? 0 : prev));
   }, [totalPages]);
 
   // Rotação automática de 5 em 5 segundos (para permanentemente após toque/arraste)
@@ -285,7 +326,7 @@ const HighlightsCarousel: React.FC = () => {
     if (!autoPlay || totalPages <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+      setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
     }, 5000);
 
     return () => clearInterval(interval);
@@ -293,18 +334,21 @@ const HighlightsCarousel: React.FC = () => {
 
   const prevSlide = useCallback(() => {
     stopAutoPlay();
-    setCurrentPage(prev => (prev > 0 ? prev - 1 : totalPages - 1));
+    setCurrentPage((prev) => (prev > 0 ? prev - 1 : totalPages - 1));
   }, [stopAutoPlay, totalPages]);
 
   const nextSlide = useCallback(() => {
     stopAutoPlay();
-    setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
+    setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : 0));
   }, [stopAutoPlay, totalPages]);
 
-  const goToPage = useCallback((idx: number) => {
-    stopAutoPlay();
-    setCurrentPage(idx);
-  }, [stopAutoPlay]);
+  const goToPage = useCallback(
+    (idx: number) => {
+      stopAutoPlay();
+      setCurrentPage(idx);
+    },
+    [stopAutoPlay]
+  );
 
   // Suporte a swipe / arrasto com o dedo (touch) e rato
   const [dragOffset, setDragOffset] = useState(0);
@@ -419,7 +463,9 @@ const HighlightsCarousel: React.FC = () => {
   return (
     <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">Destaques do Mandato</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">
+          Destaques do Mandato
+        </h2>
       </div>
 
       {/* Carrossel com setas laterais flutuantes e suporte a swipe/arraste */}
@@ -463,13 +509,17 @@ const HighlightsCarousel: React.FC = () => {
             }}
           >
             {Array.from({ length: totalPages }).map((_, pageIdx) => {
-              const pageItems = highlights.slice(pageIdx * itemsPerPage, (pageIdx + 1) * itemsPerPage);
+              const pageItems = highlights.slice(
+                pageIdx * itemsPerPage,
+                (pageIdx + 1) * itemsPerPage
+              );
               return (
                 <div
                   key={pageIdx}
                   style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100%' }}
-                  className={`flex-shrink-0 px-1 sm:px-1 ${isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
-                    }`}
+                  className={`flex-shrink-0 px-1 sm:px-1 ${
+                    isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
+                  }`}
                 >
                   {pageItems.map((item, i) => (
                     <div
@@ -508,10 +558,11 @@ const HighlightsCarousel: React.FC = () => {
             <button
               key={idx}
               onClick={() => goToPage(idx)}
-              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx
-                ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
-                : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
-                }`}
+              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                currentPage === idx
+                  ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
+                  : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
+              }`}
               aria-label={`Ir para página ${idx + 1}`}
             />
           ))}
@@ -539,16 +590,28 @@ const Home: React.FC = () => {
             </div>
 
             <h1 className="text-4xl md:text-6xl font-bold text-text-100 dark:text-slate-100 leading-tight">
-              <span className="text-accent-200 dark:text-cyan-400">N</span>úcleo de <span className="text-accent-200 dark:text-cyan-400">E</span>studantes de <span className="text-accent-200 dark:text-cyan-400">E</span>ngenharia <span className="text-accent-200 dark:text-cyan-400">I</span>nformática da <span className="text-accent-200 dark:text-cyan-400">UAlg</span>
+              <span className="text-accent-200 dark:text-cyan-400">N</span>úcleo de{' '}
+              <span className="text-accent-200 dark:text-cyan-400">E</span>studantes de{' '}
+              <span className="text-accent-200 dark:text-cyan-400">E</span>ngenharia{' '}
+              <span className="text-accent-200 dark:text-cyan-400">I</span>nformática da{' '}
+              <span className="text-accent-200 dark:text-cyan-400">UAlg</span>
             </h1>
             <p className="text-lg text-text-200 dark:text-slate-300 max-w-lg mx-auto md:mx-0">
-              Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a integração e a cooperação para uma experiência académica completa.
+              Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados
+              aos estudantes de Engenharia Informática da UAlg. Fomentamos a integração e a
+              cooperação para uma experiência académica completa.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center md:justify-start">
-              <Link to="/colaborar" className="bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:-translate-y-1 transition-all duration-300">
+              <Link
+                to="/colaborar"
+                className="bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
                 Ser Colaborador
               </Link>
-              <Link to="/atividades" className="bg-white dark:bg-slate-900 text-accent-200 dark:text-cyan-400 border border-accent-200 dark:border-cyan-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 dark:hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-2">
+              <Link
+                to="/atividades"
+                className="bg-white dark:bg-slate-900 text-accent-200 dark:text-cyan-400 border border-accent-200 dark:border-cyan-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 dark:hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-2"
+              >
                 <Calendar size={20} />
                 Calendário
               </Link>
@@ -558,13 +621,11 @@ const Home: React.FC = () => {
           {/* MOLDURA ELÉTRICA INTERATIVA */}
           <div className="md:w-1/2 flex justify-center items-center w-full">
             <div className="relative group w-full max-w-lg">
-
               {/* 1. Efeito Glow Externo (Blur) */}
               <div className="absolute -inset-1 bg-gradient-to-r from-accent-200 via-blue-400 to-accent-200 rounded-xl blur opacity-20 group-hover:opacity-75 transition duration-500 group-hover:duration-200"></div>
 
               {/* 2. Container da Moldura */}
               <div className="relative rounded-xl bg-gray-900 ring-1 ring-white/10 overflow-hidden p-[2px] aspect-video shadow-2xl">
-
                 {/* 3. Animação Elétrica (Borda Rotativa) */}
                 <div className="absolute inset-[-50%] bg-[conic-gradient(from_0deg_at_50%_50%,transparent_0deg,transparent_180deg,#00668c_240deg,#71c4ef_360deg)] animate-[spin_4s_linear_infinite]"></div>
 

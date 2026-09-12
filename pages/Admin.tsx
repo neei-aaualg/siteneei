@@ -31,7 +31,7 @@ import {
   Building,
   Award,
   ExternalLink,
-  MapPin
+  MapPin,
 } from 'lucide-react';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
 import { CollaboratorApplication, CollaboratorStatus } from '../types/collaborators';
@@ -45,17 +45,17 @@ import {
   saveActivity,
   deleteActivity,
   getStoredAdminToken,
-  clearStoredAdminToken
+  clearStoredAdminToken,
 } from '../services/activitiesService';
 import {
   fetchAdminCollaborators,
   updateCollaboratorStatus as apiUpdateCollaboratorStatus,
-  deleteCollaboratorApplication as apiDeleteCollaboratorApplication
+  deleteCollaboratorApplication as apiDeleteCollaboratorApplication,
 } from '../services/collaboratorsService';
 import {
   fetchAdminJobs,
   updateJobStatus as apiUpdateJobStatus,
-  deleteJobOffer as apiDeleteJobOffer
+  deleteJobOffer as apiDeleteJobOffer,
 } from '../services/jobsService';
 
 export const Admin: React.FC = () => {
@@ -72,7 +72,9 @@ export const Admin: React.FC = () => {
 
   // Estados de Interação
   const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<{ id: string; message: string } | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ id: string; message: string } | null>(
+    null
+  );
   const [confirmDeleteReg, setConfirmDeleteReg] = useState<{
     regId: string;
     studentName: string;
@@ -83,7 +85,8 @@ export const Admin: React.FC = () => {
 
   // Modal de Criar/Editar Atividade
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
-  const [editingActivity, setEditingActivity] = useState<Partial<AdminActivityWithRegistrations> | null>(null);
+  const [editingActivity, setEditingActivity] =
+    useState<Partial<AdminActivityWithRegistrations> | null>(null);
   const [savingActivity, setSavingActivity] = useState(false);
 
   // Form State para Nova Atividade (sem tags)
@@ -105,14 +108,21 @@ export const Admin: React.FC = () => {
   const [collaborators, setCollaborators] = useState<CollaboratorApplication[]>([]);
   const [collabSearch, setCollabSearch] = useState('');
   const [collabFilterStatus, setCollabFilterStatus] = useState<'all' | CollaboratorStatus>('all');
-  const [confirmDeleteCollab, setConfirmDeleteCollab] = useState<{ id: string; name: string } | null>(null);
+  const [confirmDeleteCollab, setConfirmDeleteCollab] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [updatingCollabId, setUpdatingCollabId] = useState<string | null>(null);
 
   // Dados de Vagas & Oportunidades
   const [jobs, setJobs] = useState<JobOffer[]>([]);
   const [jobSearch, setJobSearch] = useState('');
   const [jobFilterStatus, setJobFilterStatus] = useState<'all' | JobStatus>('all');
-  const [confirmDeleteJob, setConfirmDeleteJob] = useState<{ id: string; title: string; company: string } | null>(null);
+  const [confirmDeleteJob, setConfirmDeleteJob] = useState<{
+    id: string;
+    title: string;
+    company: string;
+  } | null>(null);
   const [updatingJobId, setUpdatingJobId] = useState<string | null>(null);
 
   const loadDashboardData = async (activeToken: string) => {
@@ -121,20 +131,20 @@ export const Admin: React.FC = () => {
       setError(null);
       const [actData, collabData, jobData] = await Promise.all([
         fetchAdminActivities(activeToken),
-        fetchAdminCollaborators(activeToken).catch(err => {
+        fetchAdminCollaborators(activeToken).catch((err) => {
           console.error('Error fetching collaborators:', err);
           return [] as CollaboratorApplication[];
         }),
-        fetchAdminJobs(activeToken).catch(err => {
+        fetchAdminJobs(activeToken).catch((err) => {
           console.error('Error fetching jobs:', err);
           return [] as JobOffer[];
-        })
+        }),
       ]);
       setActivities(actData);
       setCollaborators(collabData);
       setJobs(jobData);
       // Expande por padrão a primeira atividade a decorrer se existir
-      const ongoing = actData.find(a => a.status === 'ongoing');
+      const ongoing = actData.find((a) => a.status === 'ongoing');
       if (ongoing && !expandedActivityId) {
         setExpandedActivityId(ongoing.id);
       }
@@ -187,12 +197,12 @@ export const Admin: React.FC = () => {
       await removeRegistration(token, confirmDeleteReg.regId);
 
       // Atualiza o estado local
-      setActivities(prev =>
-        prev.map(act => {
+      setActivities((prev) =>
+        prev.map((act) => {
           if (act.id === confirmDeleteReg.activityId) {
             return {
               ...act,
-              registrations: act.registrations.filter(r => r.id !== confirmDeleteReg.regId)
+              registrations: act.registrations.filter((r) => r.id !== confirmDeleteReg.regId),
             };
           }
           return act;
@@ -206,12 +216,15 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (activity: AdminActivityWithRegistrations, newStatus: ActivityStatus) => {
+  const handleToggleStatus = async (
+    activity: AdminActivityWithRegistrations,
+    newStatus: ActivityStatus
+  ) => {
     if (!token) return;
     try {
       await updateActivityStatus(token, activity.id, newStatus);
-      setActivities(prev =>
-        prev.map(a => (a.id === activity.id ? { ...a, status: newStatus } : a))
+      setActivities((prev) =>
+        prev.map((a) => (a.id === activity.id ? { ...a, status: newStatus } : a))
       );
       showFeedback(activity.id, `Estado alterado para ${newStatus}`);
     } catch (err: any) {
@@ -223,7 +236,7 @@ export const Admin: React.FC = () => {
     if (!token) return;
     try {
       await deleteActivity(token, activityId);
-      setActivities(prev => prev.filter(a => a.id !== activityId));
+      setActivities((prev) => prev.filter((a) => a.id !== activityId));
       setConfirmDeleteAct(null);
       showFeedback('act-deleted', 'Atividade eliminada');
     } catch (err: any) {
@@ -239,9 +252,7 @@ export const Admin: React.FC = () => {
   };
 
   const copyEmailsToClipboard = (activity: AdminActivityWithRegistrations) => {
-    const emails = activity.registrations
-      .map(r => `${r.student_number}@ualg.pt`)
-      .join(', ');
+    const emails = activity.registrations.map((r) => `${r.student_number}@ualg.pt`).join(', ');
 
     if (!emails) {
       alert('Não existem alunos inscritos nesta atividade.');
@@ -260,7 +271,7 @@ export const Admin: React.FC = () => {
     let csvContent = 'data:text/csv;charset=utf-8,';
     csvContent += 'Nome,Numero de Aluno,Email Institucional,Data de Inscricao\n';
 
-    activity.registrations.forEach(r => {
+    activity.registrations.forEach((r) => {
       const regDate = formatDateTimeDDMMAAAA(r.registered_at);
       const email = `${r.student_number}@ualg.pt`;
       csvContent += `"${r.student_name}","${r.student_number}","${email}","${regDate}"\n`;
@@ -324,7 +335,7 @@ export const Admin: React.FC = () => {
         location: formLocation.trim(),
         max_capacity: Number(formMaxCapacity) || 0,
         speaker: formSpeaker.trim(),
-        registration_opens_at: formRegistrationOpensAt ? formRegistrationOpensAt.trim() : undefined
+        registration_opens_at: formRegistrationOpensAt ? formRegistrationOpensAt.trim() : undefined,
       };
 
       await saveActivity(token, payload);
@@ -344,8 +355,8 @@ export const Admin: React.FC = () => {
     try {
       setUpdatingCollabId(collabId);
       await apiUpdateCollaboratorStatus(token, collabId, newStatus);
-      setCollaborators(prev =>
-        prev.map(c => (c.id === collabId ? { ...c, status: newStatus } : c))
+      setCollaborators((prev) =>
+        prev.map((c) => (c.id === collabId ? { ...c, status: newStatus } : c))
       );
       showFeedback(collabId, `Estado atualizado para "${getCollabStatusLabel(newStatus)}"`);
     } catch (err: any) {
@@ -359,7 +370,7 @@ export const Admin: React.FC = () => {
     if (!token) return;
     try {
       await apiDeleteCollaboratorApplication(token, collabId);
-      setCollaborators(prev => prev.filter(c => c.id !== collabId));
+      setCollaborators((prev) => prev.filter((c) => c.id !== collabId));
       setConfirmDeleteCollab(null);
       showFeedback('collab-deleted', 'Candidatura removida com sucesso!');
     } catch (err: any) {
@@ -373,11 +384,14 @@ export const Admin: React.FC = () => {
       return;
     }
     const emails = filteredCollaborators
-      .map(c => c.email || `${c.student_number}@ualg.pt`)
+      .map((c) => c.email || `${c.student_number}@ualg.pt`)
       .filter(Boolean)
       .join('; ');
     navigator.clipboard.writeText(emails);
-    showFeedback('copy-collabs', `${filteredCollaborators.length} emails de colaboradores copiados!`);
+    showFeedback(
+      'copy-collabs',
+      `${filteredCollaborators.length} emails de colaboradores copiados!`
+    );
   };
 
   const exportCollabCsv = () => {
@@ -387,9 +401,10 @@ export const Admin: React.FC = () => {
     }
 
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'Nome,Numero de Aluno,Email,Telemovel,Curso,Ano,Areas de Interesse,Estado,Data Submissao,Motivacao\n';
+    csvContent +=
+      'Nome,Numero de Aluno,Email,Telemovel,Curso,Ano,Areas de Interesse,Estado,Data Submissao,Motivacao\n';
 
-    filteredCollaborators.forEach(c => {
+    filteredCollaborators.forEach((c) => {
       const regDate = formatDateTimeDDMMAAAA(c.created_at);
       const safeMotiv = (c.motivation || '').replace(/"/g, '""').replace(/\n/g, ' ');
       const safeAreas = (c.areas_of_interest || '').replace(/"/g, '""');
@@ -399,7 +414,10 @@ export const Admin: React.FC = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `candidaturas_colaboradores_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      'download',
+      `candidaturas_colaboradores_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -432,7 +450,7 @@ export const Admin: React.FC = () => {
   };
 
   // Filtragem de Colaboradores
-  const filteredCollaborators = collaborators.filter(c => {
+  const filteredCollaborators = collaborators.filter((c) => {
     const matchesStatus = collabFilterStatus === 'all' || c.status === collabFilterStatus;
     const q = collabSearch.toLowerCase().trim();
     const matchesQuery =
@@ -445,7 +463,7 @@ export const Admin: React.FC = () => {
     return matchesStatus && matchesQuery;
   });
 
-  const pendingCollabCount = collaborators.filter(c => c.status === 'pending').length;
+  const pendingCollabCount = collaborators.filter((c) => c.status === 'pending').length;
 
   // Helpers & Ações de Vagas
   const getJobStatusLabel = (status: JobStatus) => {
@@ -479,9 +497,7 @@ export const Admin: React.FC = () => {
     try {
       setUpdatingJobId(jobId);
       await apiUpdateJobStatus(token, jobId, newStatus);
-      setJobs(prev =>
-        prev.map(j => (j.id === jobId ? { ...j, status: newStatus } : j))
-      );
+      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: newStatus } : j)));
       showFeedback(jobId, `Estado da vaga atualizado para "${getJobStatusLabel(newStatus)}"`);
     } catch (err: any) {
       alert(err.message || 'Erro ao atualizar estado da vaga');
@@ -494,7 +510,7 @@ export const Admin: React.FC = () => {
     if (!token) return;
     try {
       await apiDeleteJobOffer(token, jobId);
-      setJobs(prev => prev.filter(j => j.id !== jobId));
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
       setConfirmDeleteJob(null);
       showFeedback('job-deleted', 'Oferta de vaga removida com sucesso!');
     } catch (err: any) {
@@ -508,7 +524,7 @@ export const Admin: React.FC = () => {
       return;
     }
     const emails = filteredJobs
-      .map(j => j.email)
+      .map((j) => j.email)
       .filter(Boolean)
       .join(', ');
     if (!emails) {
@@ -525,9 +541,10 @@ export const Admin: React.FC = () => {
       return;
     }
     let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'Empresa,Titulo,Tipo,Localizacao,Email,Telefone,Website,Estado,Data de Submissao,Descricao\n';
+    csvContent +=
+      'Empresa,Titulo,Tipo,Localizacao,Email,Telefone,Website,Estado,Data de Submissao,Descricao\n';
 
-    filteredJobs.forEach(j => {
+    filteredJobs.forEach((j) => {
       const regDate = formatDateDDMMAAAA(j.created_at);
       const safeDesc = (j.description || '').replace(/"/g, '""').replace(/\n/g, ' ');
       csvContent += `"${j.company}","${j.title}","${j.type}","${j.location}","${j.email}","${j.phone}","${j.link || ''}","${getJobStatusLabel(j.status)}","${regDate}","${safeDesc}"\n`;
@@ -543,10 +560,10 @@ export const Admin: React.FC = () => {
   };
 
   // Filtragem de Vagas
-  const pendingJobCount = jobs.filter(j => j.status === 'pending').length;
-  const publishedJobCount = jobs.filter(j => j.status === 'published').length;
+  const pendingJobCount = jobs.filter((j) => j.status === 'pending').length;
+  const publishedJobCount = jobs.filter((j) => j.status === 'published').length;
 
-  const filteredJobs = jobs.filter(j => {
+  const filteredJobs = jobs.filter((j) => {
     const matchesStatus = jobFilterStatus === 'all' || j.status === jobFilterStatus;
     const q = jobSearch.toLowerCase().trim();
     const matchesSearch =
@@ -560,8 +577,8 @@ export const Admin: React.FC = () => {
 
   // Cálculos de Resumo
   const totalRegistrations = activities.reduce((acc, a) => acc + (a.registrations?.length || 0), 0);
-  const ongoingCount = activities.filter(a => a.status === 'ongoing').length;
-  const upcomingCount = activities.filter(a => a.status === 'upcoming').length;
+  const ongoingCount = activities.filter((a) => a.status === 'ongoing').length;
+  const upcomingCount = activities.filter((a) => a.status === 'upcoming').length;
 
   // Se não estiver autenticado, exibe o ecrã de Login
   if (!token) {
@@ -590,7 +607,7 @@ export const Admin: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Insere a senha do NEEI"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-accent-200/40 dark:focus:ring-cyan-500/40"
                   required
                 />
@@ -715,10 +732,11 @@ export const Admin: React.FC = () => {
               setActiveTab('activities');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'activities'
-              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-              }`}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'activities'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+            }`}
           >
             <Calendar size={18} />
             <span>Atividades & Inscrições ({activities.length})</span>
@@ -729,10 +747,11 @@ export const Admin: React.FC = () => {
               setActiveTab('collaborators');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'collaborators'
-              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-              }`}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'collaborators'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+            }`}
           >
             <UserPlus size={18} />
             <span>Pedidos de Colaborador</span>
@@ -752,10 +771,11 @@ export const Admin: React.FC = () => {
               setActiveTab('jobs');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'jobs'
-              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-              }`}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'jobs'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+            }`}
           >
             <Briefcase size={18} />
             <span>Vagas & Oportunidades</span>
@@ -831,8 +851,13 @@ export const Admin: React.FC = () => {
 
               {loading && activities.length === 0 ? (
                 <div className="py-16 text-center">
-                  <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
-                  <p className="text-sm text-text-200 dark:text-slate-400">A carregar atividades...</p>
+                  <Loader2
+                    className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3"
+                    size={32}
+                  />
+                  <p className="text-sm text-text-200 dark:text-slate-400">
+                    A carregar atividades...
+                  </p>
                 </div>
               ) : error ? (
                 <div className="p-6 bg-red-50 dark:bg-red-950/30 border border-red-200 rounded-2xl text-center text-red-600">
@@ -849,17 +874,18 @@ export const Admin: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                activities.map(activity => {
+                activities.map((activity) => {
                   const isExpanded = expandedActivityId === activity.id;
                   const registrations = activity.registrations || [];
 
                   return (
                     <div
                       key={activity.id}
-                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
-                        ? 'border-emerald-500/40 dark:border-emerald-500/30'
-                        : 'border-gray-200 dark:border-cyan-950/60'
-                        }`}
+                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
+                        activity.status === 'ongoing'
+                          ? 'border-emerald-500/40 dark:border-emerald-500/30'
+                          : 'border-gray-200 dark:border-cyan-950/60'
+                      }`}
                     >
                       {/* Cabeçalho do Card da Atividade */}
                       <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -869,12 +895,13 @@ export const Admin: React.FC = () => {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                : activity.status === 'upcoming'
-                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-                                  : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
-                                }`}
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                                activity.status === 'ongoing'
+                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                  : activity.status === 'upcoming'
+                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                                    : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
+                              }`}
                             >
                               {activity.status === 'ongoing'
                                 ? '● A Decorrer'
@@ -921,19 +948,21 @@ export const Admin: React.FC = () => {
                           <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                             <button
                               onClick={() => handleToggleStatus(activity, 'ongoing')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
-                                ? 'bg-emerald-600 text-white shadow-sm'
-                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                                }`}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                                activity.status === 'ongoing'
+                                  ? 'bg-emerald-600 text-white shadow-sm'
+                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                              }`}
                             >
                               A Decorrer
                             </button>
                             <button
                               onClick={() => handleToggleStatus(activity, 'upcoming')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
-                                ? 'bg-blue-600 text-white shadow-sm'
-                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                                }`}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                                activity.status === 'upcoming'
+                                  ? 'bg-blue-600 text-white shadow-sm'
+                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                              }`}
                             >
                               Futura
                             </button>
@@ -1008,7 +1037,10 @@ export const Admin: React.FC = () => {
 
                           {registrations.length === 0 ? (
                             <div className="py-8 text-center bg-white dark:bg-slate-900/60 rounded-xl border border-dashed border-gray-200 dark:border-slate-800">
-                              <Users size={28} className="mx-auto text-gray-300 dark:text-slate-600 mb-2" />
+                              <Users
+                                size={28}
+                                className="mx-auto text-gray-300 dark:text-slate-600 mb-2"
+                              />
                               <p className="text-xs font-medium text-text-200 dark:text-slate-400">
                                 Ainda não existem inscrições registadas para esta atividade.
                               </p>
@@ -1031,8 +1063,13 @@ export const Admin: React.FC = () => {
                                     const regDate = formatDateTimeDDMMAAAA(reg.registered_at);
 
                                     return (
-                                      <tr key={reg.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition">
-                                        <td className="py-3 px-4 text-gray-400 font-mono">{index + 1}</td>
+                                      <tr
+                                        key={reg.id}
+                                        className="hover:bg-gray-50/80 dark:hover:bg-slate-800/50 transition"
+                                      >
+                                        <td className="py-3 px-4 text-gray-400 font-mono">
+                                          {index + 1}
+                                        </td>
                                         <td className="py-3 px-4 font-semibold text-text-100 dark:text-white">
                                           {reg.student_name}
                                         </td>
@@ -1052,7 +1089,7 @@ export const Admin: React.FC = () => {
                                                 regId: reg.id,
                                                 studentName: reg.student_name,
                                                 studentNumber: reg.student_number,
-                                                activityId: activity.id
+                                                activityId: activity.id,
                                               })
                                             }
                                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md transition font-medium text-[11px]"
@@ -1115,7 +1152,7 @@ export const Admin: React.FC = () => {
                     Contactados
                   </span>
                   <div className="text-3xl font-extrabold text-blue-500 mt-1">
-                    {collaborators.filter(c => c.status === 'contacted').length}
+                    {collaborators.filter((c) => c.status === 'contacted').length}
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-500 flex items-center justify-center">
@@ -1129,7 +1166,7 @@ export const Admin: React.FC = () => {
                     Aceites / Ativos
                   </span>
                   <div className="text-3xl font-extrabold text-emerald-500 mt-1">
-                    {collaborators.filter(c => c.status === 'accepted').length}
+                    {collaborators.filter((c) => c.status === 'accepted').length}
                   </div>
                 </div>
                 <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-500 flex items-center justify-center">
@@ -1142,12 +1179,15 @@ export const Admin: React.FC = () => {
             <div className="bg-white dark:bg-[#0c1724] p-4 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="w-full md:w-auto flex flex-wrap items-center gap-3 flex-1">
                 <div className="relative w-full sm:w-72">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     type="text"
                     placeholder="Pesquisar candidato, nº, curso..."
                     value={collabSearch}
-                    onChange={e => setCollabSearch(e.target.value)}
+                    onChange={(e) => setCollabSearch(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-text-100 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accent-200/30"
                   />
                   {collabSearch && (
@@ -1162,19 +1202,24 @@ export const Admin: React.FC = () => {
 
                 {/* Filtros de Estado */}
                 <div className="flex flex-wrap gap-1.5">
-                  {(['all', 'pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
-                    const label = st === 'all' ? 'Todos' : getCollabStatusLabel(st as CollaboratorStatus);
-                    const count = st === 'all' ? collaborators.length : collaborators.filter(c => c.status === st).length;
+                  {(['all', 'pending', 'contacted', 'accepted', 'rejected'] as const).map((st) => {
+                    const label =
+                      st === 'all' ? 'Todos' : getCollabStatusLabel(st as CollaboratorStatus);
+                    const count =
+                      st === 'all'
+                        ? collaborators.length
+                        : collaborators.filter((c) => c.status === st).length;
                     const isSelected = collabFilterStatus === st;
 
                     return (
                       <button
                         key={st}
                         onClick={() => setCollabFilterStatus(st)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
-                          ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
-                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                          }`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                          isSelected
+                            ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
+                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                        }`}
                       >
                         {label} ({count})
                       </button>
@@ -1207,8 +1252,13 @@ export const Admin: React.FC = () => {
             {/* Lista de Pedidos de Colaborador */}
             {loading && collaborators.length === 0 ? (
               <div className="py-16 text-center">
-                <Loader2 className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3" size={32} />
-                <p className="text-sm text-text-200 dark:text-slate-400">A carregar candidaturas a colaborador...</p>
+                <Loader2
+                  className="animate-spin mx-auto text-accent-200 dark:text-cyan-400 mb-3"
+                  size={32}
+                />
+                <p className="text-sm text-text-200 dark:text-slate-400">
+                  A carregar candidaturas a colaborador...
+                </p>
               </div>
             ) : filteredCollaborators.length === 0 ? (
               <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-300 dark:border-slate-800">
@@ -1224,11 +1274,14 @@ export const Admin: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredCollaborators.map(collab => {
+                {filteredCollaborators.map((collab) => {
                   const regDate = formatDateTimeDDMMAAAA(collab.created_at);
                   const isUpdating = updatingCollabId === collab.id;
                   const areasList = collab.areas_of_interest
-                    ? collab.areas_of_interest.split(',').map(s => s.trim()).filter(Boolean)
+                    ? collab.areas_of_interest
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean)
                     : [];
 
                   return (
@@ -1259,31 +1312,36 @@ export const Admin: React.FC = () => {
                         {/* Seletor de Estado Rápido & Ações */}
                         <div className="flex items-center gap-2 self-start sm:self-auto">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {(['pending', 'contacted', 'accepted', 'rejected'] as const).map(st => {
-                              const isCurrent = collab.status === st;
-                              return (
-                                <button
-                                  key={st}
-                                  disabled={isUpdating}
-                                  onClick={() => handleUpdateCollabStatus(collab.id, st)}
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
-                                    ? getCollabStatusBadgeClass(st)
-                                    : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            {(['pending', 'contacted', 'accepted', 'rejected'] as const).map(
+                              (st) => {
+                                const isCurrent = collab.status === st;
+                                return (
+                                  <button
+                                    key={st}
+                                    disabled={isUpdating}
+                                    onClick={() => handleUpdateCollabStatus(collab.id, st)}
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${
+                                      isCurrent
+                                        ? getCollabStatusBadgeClass(st)
+                                        : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
                                     }`}
-                                >
-                                  {isCurrent && isUpdating ? (
-                                    <Loader2 size={12} className="animate-spin inline mr-1" />
-                                  ) : null}
-                                  {getCollabStatusLabel(st)}
-                                </button>
-                              );
-                            })}
+                                  >
+                                    {isCurrent && isUpdating ? (
+                                      <Loader2 size={12} className="animate-spin inline mr-1" />
+                                    ) : null}
+                                    {getCollabStatusLabel(st)}
+                                  </button>
+                                );
+                              }
+                            )}
                           </div>
 
                           <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block" />
 
                           <button
-                            onClick={() => setConfirmDeleteCollab({ id: collab.id, name: collab.name })}
+                            onClick={() =>
+                              setConfirmDeleteCollab({ id: collab.id, name: collab.name })
+                            }
                             className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                             title="Eliminar esta candidatura"
                           >
@@ -1304,7 +1362,10 @@ export const Admin: React.FC = () => {
                           </a>
                         </div>
                         <div className="flex items-center gap-2 truncate">
-                          <Phone size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <Phone
+                            size={14}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           <a
                             href={`tel:${collab.phone}`}
                             className="hover:text-accent-200 dark:hover:text-cyan-400 truncate"
@@ -1313,7 +1374,10 @@ export const Admin: React.FC = () => {
                           </a>
                         </div>
                         <div className="flex items-center gap-2 truncate">
-                          <GraduationCap size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <GraduationCap
+                            size={14}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           <span className="truncate">{collab.course}</span>
                         </div>
                       </div>
@@ -1324,7 +1388,7 @@ export const Admin: React.FC = () => {
                           <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 mr-1">
                             Áreas de Interesse:
                           </span>
-                          {areasList.map(area => (
+                          {areasList.map((area) => (
                             <span
                               key={area}
                               className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-primary-100/70 dark:bg-slate-800 text-primary-300 dark:text-cyan-300 border border-transparent dark:border-slate-700"
@@ -1407,7 +1471,7 @@ export const Admin: React.FC = () => {
                     ['all', 'Todas', jobs.length],
                     ['pending', 'Pendentes', pendingJobCount],
                     ['published', 'Publicadas', publishedJobCount],
-                    ['rejected', 'Rejeitadas', jobs.filter(j => j.status === 'rejected').length]
+                    ['rejected', 'Rejeitadas', jobs.filter((j) => j.status === 'rejected').length],
                   ] as const
                 ).map(([st, label, count]) => {
                   const isSelected = jobFilterStatus === st;
@@ -1429,11 +1493,14 @@ export const Admin: React.FC = () => {
 
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 sm:w-64">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search
+                    size={15}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
                   <input
                     type="text"
                     value={jobSearch}
-                    onChange={e => setJobSearch(e.target.value)}
+                    onChange={(e) => setJobSearch(e.target.value)}
                     placeholder="Pesquisar empresa, cargo, cidade..."
                     className="w-full pl-9 pr-3.5 py-1.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30"
                   />
@@ -1479,7 +1546,7 @@ export const Admin: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredJobs.map(job => {
+                {filteredJobs.map((job) => {
                   const regDate = formatDateDDMMAAAA(job.created_at);
                   const isUpdating = updatingJobId === job.id;
 
@@ -1512,7 +1579,7 @@ export const Admin: React.FC = () => {
                         {/* Seletor de Estado Rápido & Ações */}
                         <div className="flex items-center gap-2 self-start sm:self-auto">
                           <div className="flex flex-wrap items-center gap-1.5">
-                            {(['pending', 'published', 'rejected'] as const).map(st => {
+                            {(['pending', 'published', 'rejected'] as const).map((st) => {
                               const isCurrent = job.status === st;
                               return (
                                 <button
@@ -1537,7 +1604,13 @@ export const Admin: React.FC = () => {
                           <div className="h-5 w-px bg-gray-200 dark:bg-slate-700 hidden sm:block" />
 
                           <button
-                            onClick={() => setConfirmDeleteJob({ id: job.id, title: job.title, company: job.company })}
+                            onClick={() =>
+                              setConfirmDeleteJob({
+                                id: job.id,
+                                title: job.title,
+                                company: job.company,
+                              })
+                            }
                             className="p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
                             title="Eliminar esta oferta de vaga"
                           >
@@ -1558,7 +1631,10 @@ export const Admin: React.FC = () => {
                           </a>
                         </div>
                         <div className="flex items-center gap-2 truncate">
-                          <Phone size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <Phone
+                            size={14}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           <a
                             href={`tel:${job.phone}`}
                             className="hover:text-accent-200 dark:hover:text-cyan-400 truncate"
@@ -1567,11 +1643,17 @@ export const Admin: React.FC = () => {
                           </a>
                         </div>
                         <div className="flex items-center gap-2 truncate">
-                          <MapPin size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <MapPin
+                            size={14}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           <span className="truncate">{job.location}</span>
                         </div>
                         <div className="flex items-center gap-2 truncate">
-                          <ExternalLink size={14} className="text-accent-200 dark:text-cyan-400 shrink-0" />
+                          <ExternalLink
+                            size={14}
+                            className="text-accent-200 dark:text-cyan-400 shrink-0"
+                          />
                           {job.link ? (
                             <a
                               href={job.link}
@@ -1629,8 +1711,14 @@ export const Admin: React.FC = () => {
             </div>
             <p className="text-sm text-text-200 dark:text-slate-300">
               Tens a certeza de que pretendes desinscrever o aluno{' '}
-              <strong className="text-text-100 dark:text-white">{confirmDeleteReg.studentName}</strong> (
-              <span className="font-mono text-emerald-600 dark:text-emerald-400">{confirmDeleteReg.studentNumber}</span>)?
+              <strong className="text-text-100 dark:text-white">
+                {confirmDeleteReg.studentName}
+              </strong>{' '}
+              (
+              <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                {confirmDeleteReg.studentNumber}
+              </span>
+              )?
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -1656,10 +1744,13 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">Eliminar Atividade</h3>
+              <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                Eliminar Atividade
+              </h3>
             </div>
             <p className="text-sm text-text-200 dark:text-slate-300">
-              Atenção: Ao eliminar esta atividade, todas as inscrições associadas serão também removidas de forma irreversível.
+              Atenção: Ao eliminar esta atividade, todas as inscrições associadas serão também
+              removidas de forma irreversível.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
@@ -1685,7 +1776,9 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">Eliminar Candidatura</h3>
+              <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                Eliminar Candidatura
+              </h3>
             </div>
             <p className="text-sm text-text-200 dark:text-slate-300">
               Tens a certeza de que pretendes eliminar a candidatura de{' '}
@@ -1716,11 +1809,14 @@ export const Admin: React.FC = () => {
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">Eliminar Oferta de Vaga</h3>
+              <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                Eliminar Oferta de Vaga
+              </h3>
             </div>
             <p className="text-sm text-text-200 dark:text-slate-300">
               Tens a certeza de que pretendes eliminar a oferta{' '}
-              <strong className="text-text-100 dark:text-white">"{confirmDeleteJob.title}"</strong> da empresa{' '}
+              <strong className="text-text-100 dark:text-white">"{confirmDeleteJob.title}"</strong>{' '}
+              da empresa{' '}
               <strong className="text-text-100 dark:text-white">{confirmDeleteJob.company}</strong>?
               Esta ação é irreversível.
             </p>
@@ -1762,7 +1858,7 @@ export const Admin: React.FC = () => {
                   type="text"
                   required
                   value={formTitle}
-                  onChange={e => setFormTitle(e.target.value)}
+                  onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="ex.: Workshop de React e Tailwind"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
@@ -1774,7 +1870,7 @@ export const Admin: React.FC = () => {
                   required
                   rows={3}
                   value={formDescription}
-                  onChange={e => setFormDescription(e.target.value)}
+                  onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Descreve os objetivos, tópicos abordados e pré-requisitos..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
@@ -1785,7 +1881,7 @@ export const Admin: React.FC = () => {
                   <label className="block font-semibold mb-1">Categoria</label>
                   <select
                     value={formCategory}
-                    onChange={e => setFormCategory(e.target.value)}
+                    onChange={(e) => setFormCategory(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   >
                     <option value="Workshop">Workshop</option>
@@ -1801,7 +1897,7 @@ export const Admin: React.FC = () => {
                   <label className="block font-semibold mb-1">Estado das Inscrições</label>
                   <select
                     value={formStatus}
-                    onChange={e => setFormStatus(e.target.value as ActivityStatus)}
+                    onChange={(e) => setFormStatus(e.target.value as ActivityStatus)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   >
                     <option value="ongoing">A Decorrer (Inscrições Abertas)</option>
@@ -1818,7 +1914,7 @@ export const Admin: React.FC = () => {
                     type="date"
                     required
                     value={formDate}
-                    onChange={e => setFormDate(e.target.value)}
+                    onChange={(e) => setFormDate(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
                 </div>
@@ -1829,7 +1925,7 @@ export const Admin: React.FC = () => {
                     type="text"
                     required
                     value={formTime}
-                    onChange={e => setFormTime(e.target.value)}
+                    onChange={(e) => setFormTime(e.target.value)}
                     placeholder="ex.: 14:30 - 17:30"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
@@ -1843,7 +1939,7 @@ export const Admin: React.FC = () => {
                     type="text"
                     required
                     value={formLocation}
-                    onChange={e => setFormLocation(e.target.value)}
+                    onChange={(e) => setFormLocation(e.target.value)}
                     placeholder="ex.: Lab 1.15, Edifício 1, Gambelas"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
@@ -1855,7 +1951,7 @@ export const Admin: React.FC = () => {
                     type="number"
                     min="0"
                     value={formMaxCapacity}
-                    onChange={e => setFormMaxCapacity(parseInt(e.target.value, 10) || 0)}
+                    onChange={(e) => setFormMaxCapacity(parseInt(e.target.value, 10) || 0)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
                 </div>
@@ -1866,22 +1962,25 @@ export const Admin: React.FC = () => {
                 <input
                   type="text"
                   value={formSpeaker}
-                  onChange={e => setFormSpeaker(e.target.value)}
+                  onChange={(e) => setFormSpeaker(e.target.value)}
                   placeholder="ex.: Equipa NEEI ou Convidado"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
               </div>
 
               <div>
-                <label className="block font-semibold mb-1">Data de Abertura das Inscrições (opcional)</label>
+                <label className="block font-semibold mb-1">
+                  Data de Abertura das Inscrições (opcional)
+                </label>
                 <input
                   type="date"
                   value={formRegistrationOpensAt}
-                  onChange={e => setFormRegistrationOpensAt(e.target.value)}
+                  onChange={(e) => setFormRegistrationOpensAt(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
                 <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
-                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem (ex.: "Inscrições abrem a 28-09-2026").
+                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem
+                  (ex.: "Inscrições abrem a 28-09-2026").
                 </span>
               </div>
 

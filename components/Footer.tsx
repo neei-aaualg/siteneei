@@ -2,7 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Github, Linkedin, Mail, MapPin, ExternalLink, Instagram, Facebook } from 'lucide-react';
 
-const DiscordIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className = '' }) => (
+const DiscordIcon: React.FC<{ size?: number; className?: string }> = ({
+  size = 20,
+  className = '',
+}) => (
   <svg
     width={size}
     height={size}
@@ -33,20 +36,35 @@ const Footer: React.FC = () => {
           {/* Info */}
           <div>
             <h3 className="text-xl font-bold mb-4 text-primary-100 dark:text-cyan-300">
-              <Link to="/" onClick={() => handleFooterNavClick('/')} className="hover:opacity-80 transition-opacity">
+              <Link
+                to="/"
+                onClick={() => handleFooterNavClick('/')}
+                className="hover:opacity-80 transition-opacity"
+              >
                 NEEI
               </Link>
             </h3>
             <p className="text-gray-300 dark:text-slate-400 text-sm leading-relaxed">
-              Núcleo de Estudantes de Engenharia Informática. Promovendo a excelência académica e o desenvolvimento profissional desde 2010.
+              Núcleo de Estudantes de Engenharia Informática. Promovendo a excelência académica e o
+              desenvolvimento profissional desde 2010.
             </p>
           </div>
 
           {/* Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-primary-100 dark:text-cyan-300">Links Rápidos</h3>
+            <h3 className="text-lg font-semibold mb-4 text-primary-100 dark:text-cyan-300">
+              Links Rápidos
+            </h3>
             <ul className="space-y-2 text-sm text-gray-300 dark:text-slate-400">
-              <li><Link to="/sobre" onClick={() => handleFooterNavClick('/sobre')} className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Sobre Nós</Link></li>
+              <li>
+                <Link
+                  to="/sobre"
+                  onClick={() => handleFooterNavClick('/sobre')}
+                  className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors"
+                >
+                  Sobre Nós
+                </Link>
+              </li>
               <li>
                 <a
                   href="https://github.com/neei-aaualg/student-showcase"
@@ -58,9 +76,33 @@ const Footer: React.FC = () => {
                   <ExternalLink size={12} className="opacity-75" />
                 </a>
               </li>
-              <li><Link to="/vagas" onClick={() => handleFooterNavClick('/vagas')} className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Oportunidades</Link></li>
-              <li><Link to="/quack" onClick={() => handleFooterNavClick('/quack')} className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Quack</Link></li>
-              <li><Link to="/links" onClick={() => handleFooterNavClick('/links')} className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors">Links & QR Codes</Link></li>
+              <li>
+                <Link
+                  to="/vagas"
+                  onClick={() => handleFooterNavClick('/vagas')}
+                  className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors"
+                >
+                  Oportunidades
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/quack"
+                  onClick={() => handleFooterNavClick('/quack')}
+                  className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors"
+                >
+                  Quack
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/links"
+                  onClick={() => handleFooterNavClick('/links')}
+                  className="hover:text-accent-100 dark:hover:text-cyan-300 transition-colors"
+                >
+                  Links & QR Codes
+                </Link>
+              </li>
               <li>
                 <a
                   href="https://box.neei.online"
@@ -77,7 +119,9 @@ const Footer: React.FC = () => {
 
           {/* Contact */}
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-primary-100 dark:text-cyan-300">Contactos</h3>
+            <h3 className="text-lg font-semibold mb-4 text-primary-100 dark:text-cyan-300">
+              Contactos
+            </h3>
             <ul className="space-y-3 text-sm text-gray-300 dark:text-slate-400">
               <li className="flex items-center gap-2">
                 <MapPin size={16} className="text-accent-100 dark:text-cyan-400" />

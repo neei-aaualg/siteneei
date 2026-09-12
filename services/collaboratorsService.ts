@@ -2,7 +2,7 @@ import {
   CollaboratorApplication,
   CollaboratorStatus,
   ApplyCollaboratorPayload,
-  ApplyCollaboratorResponse
+  ApplyCollaboratorResponse,
 } from '../types/collaborators';
 
 const API_BASE = '/api';
@@ -21,7 +21,9 @@ async function parseResponse<T>(res: Response, fallbackError: string): Promise<T
   if (!res.ok) {
     const errorMsg =
       data?.error ||
-      (text && !text.includes('<!DOCTYPE') ? text : `${fallbackError} (${res.status} ${res.statusText})`);
+      (text && !text.includes('<!DOCTYPE')
+        ? text
+        : `${fallbackError} (${res.status} ${res.statusText})`);
     throw new Error(errorMsg);
   }
 
@@ -37,7 +39,7 @@ export async function submitCollaboratorApplication(
   const res = await fetch(`${API_BASE}/collaborators/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   return parseResponse<ApplyCollaboratorResponse>(res, 'Erro ao enviar a candidatura.');
@@ -46,16 +48,17 @@ export async function submitCollaboratorApplication(
 /**
  * Obtém todas as candidaturas de colaboradores (requer token admin)
  */
-export async function fetchAdminCollaborators(
-  token: string
-): Promise<CollaboratorApplication[]> {
+export async function fetchAdminCollaborators(token: string): Promise<CollaboratorApplication[]> {
   const res = await fetch(`${API_BASE}/admin/collaborators`, {
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 
-  return parseResponse<CollaboratorApplication[]>(res, 'Erro ao carregar candidaturas de colaboradores.');
+  return parseResponse<CollaboratorApplication[]>(
+    res,
+    'Erro ao carregar candidaturas de colaboradores.'
+  );
 }
 
 /**
@@ -71,9 +74,9 @@ export async function updateCollaboratorStatus(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ id, status, notes })
+    body: JSON.stringify({ id, status, notes }),
   });
 
   return parseResponse<{ success: boolean }>(res, 'Erro ao atualizar o estado da candidatura.');
@@ -89,8 +92,8 @@ export async function deleteCollaboratorApplication(
   const res = await fetch(`${API_BASE}/admin/collaborators/${id}`, {
     method: 'DELETE',
     headers: {
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   return parseResponse<{ success: boolean }>(res, 'Erro ao eliminar candidatura.');

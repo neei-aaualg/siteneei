@@ -40,6 +40,7 @@ O portal centraliza a comunicação com a comunidade académica, divulgação e 
 ## ✨ Funcionalidades Principais
 
 ### 1. Quack (Tutor IA & Sandbox de Execução) 🦆
+
 - **Execução Real:** Compilação e execução isolada de código **C (GCC)** e **Java (OpenJDK)** através da API do [Piston](https://github.com/engineer-man/piston).
 - **Tutor IA com Google Gemini:** Em caso de erro de sintaxe, compilação ou falha em casos de teste, o modelo Gemini analisa a falha e providencia explicações e pistas pedagógicas em Português de Portugal (pt-PT), estimulando o raciocínio sem entregar a solução pronta.
 - **Banco de Exercícios Curriculares:** Exercícios organizados pelas unidades curriculares do curso de Engenharia Informática:
@@ -50,12 +51,14 @@ O portal centraliza a comunicação com a comunidade académica, divulgação e 
 - **Validação Automática:** Testes de input/output integrados com feedback instantâneo.
 
 ### 2. Gestão de Atividades & Inscrições 📅
+
 - **Calendário Público Dinâmico:** Visualização de eventos passados, presentes e futuros com data, hora, localização, orador e vagas disponíveis.
 - **Inscrições Nativas:** Sistema de inscrição utilizando o número de estudante institucional UAlg (`aXXXXX`).
-- **Data de Abertura Programada:** Suporte para indicação visual e temporizada de abertura de inscrições (*ex.: "Inscrições abrem a 28-09-2026"*).
+- **Data de Abertura Programada:** Suporte para indicação visual e temporizada de abertura de inscrições (_ex.: "Inscrições abrem a 28-09-2026"_).
 - **Controlo de Visibilidade (`SHOW_CALENDAR`):** Variável de ambiente que permite ocultar temporariamente o calendário público antes de anúncios oficiais, mantendo o `/admin` totalmente operacional.
 
 ### 3. Candidaturas a Colaborador 🤝
+
 - **Formulário Nativo (`/colaborar`):** Recolha de dados de identificação, contacto, percurso académico, áreas de interesse e texto de motivação.
 - **Duração Curricular Específica por Curso:**
   - **LEI (Licenciatura em Eng. Informática):** 1º, 2º e 3º Ano.
@@ -64,12 +67,14 @@ O portal centraliza a comunicação com a comunidade académica, divulgação e 
 - **Validação Numérica de Contacto:** Campo de telemóvel restrito estritamente a números (dígitos).
 
 ### 4. Painel de Administração (`/admin`) 🛡️
+
 - **Autenticação Segura:** Acesso protegido por palavra-passe (comparação em tempo constante) e tokens de sessão aleatórios de 256 bits com expiração de 7 dias.
 - **Gestão de Atividades:** Criação, edição e eliminação em cascata de eventos.
 - **Gestão de Inscritos:** Listagem de alunos por atividade, contador em tempo real, cópia de emails institucionais num clique e descarregamento de lista em formato `.csv`.
-- **Pipeline de Colaboradores:** Acompanhamento de candidaturas com filtros por estado (*Pendente*, *Contactado*, *Aceite*, *Rejeitado*), pesquisa instantânea por texto, notas internas, exportação CSV e eliminação protegida por modal.
+- **Pipeline de Colaboradores:** Acompanhamento de candidaturas com filtros por estado (_Pendente_, _Contactado_, _Aceite_, _Rejeitado_), pesquisa instantânea por texto, notas internas, exportação CSV e eliminação protegida por modal.
 
 ### 5. Hub Académico & Comunidade 🎓
+
 - **Projetos:** Montra de projetos tecnológicos desenvolvidos pelos estudantes ligada diretamente ao repositório oficial no GitHub ([student-showcase](https://github.com/neei-aaualg/student-showcase)).
 - **Recursos:** Repositório curado de apontamentos, provas-modelo e materiais de estudo.
 - **Vagas:** Divulgação de ofertas de estágio e propostas de trabalho em empresas parceiras.
@@ -142,7 +147,7 @@ flowchart TB
 ```mermaid
 erDiagram
     ACTIVITIES ||--o{ REGISTRATIONS : "possui (1:N)"
-    
+
     ACTIVITIES {
         text id PK "act-workshop-intro-prog-1"
         text title "Título da atividade"
@@ -215,7 +220,7 @@ sequenceDiagram
     Aluno->>UI: Escreve código C/Java e clica em "Executar"
     UI->>Piston: POST /api/v2/execute (Código + Linguagem + Test Input)
     Piston-->>UI: Retorna stdout, stderr e código de saída
-    
+
     alt Execução bem-sucedida e resultado correto
         UI-->>Aluno: Apresenta sucesso ✅ e resultado
     else Código falhou ou Output incorreto
@@ -232,17 +237,17 @@ sequenceDiagram
 
 ## 🛠️ Tecnologias
 
-| Área | Tecnologia | Propósito |
-| :--- | :--- | :--- |
-| **Frontend** | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) | Interface reativa, modular e tipada |
-| **Build Tool** | [Vite 6](https://vitejs.dev/) | Compilação ultrarrápida e Hot Module Replacement (HMR) |
-| **Estilos** | [Tailwind CSS 3](https://tailwindcss.com/) | Estilização utilitária responsiva com tema Dark/Light |
-| **Ícones & UI** | [Lucide React](https://lucide.dev/) + [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti) | Iconografia consistente e micro-interações visuais |
-| **Backend** | [Node.js](https://nodejs.org/) (módulo nativo `node:http`) | Servidor web leve e de alta performance |
-| **Base de Dados** | [SQLite](https://sqlite.org/) via [`node:sqlite`](https://nodejs.org/api/sqlite.html) | Persistência relacional embutida sem dependências externas |
-| **Inteligência Artificial** | [Google Gemini Flash](https://ai.google.dev/) via `@google/genai` | Análise pedagógica de código e mentoria do Quack |
-| **Sandbox de Código** | [Piston API](https://github.com/engineer-man/piston) | Execução segura e isolada de código C e Java |
-| **Deploy & Hosting** | [Coolify](https://coolify.io/) + [Docker](https://www.docker.com/) | CI/CD automático e orquestração de contentores |
+| Área                        | Tecnologia                                                                                             | Propósito                                                  |
+| :-------------------------- | :----------------------------------------------------------------------------------------------------- | :--------------------------------------------------------- |
+| **Frontend**                | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)                         | Interface reativa, modular e tipada                        |
+| **Build Tool**              | [Vite 6](https://vitejs.dev/)                                                                          | Compilação ultrarrápida e Hot Module Replacement (HMR)     |
+| **Estilos**                 | [Tailwind CSS 3](https://tailwindcss.com/)                                                             | Estilização utilitária responsiva com tema Dark/Light      |
+| **Ícones & UI**             | [Lucide React](https://lucide.dev/) + [Canvas Confetti](https://www.npmjs.com/package/canvas-confetti) | Iconografia consistente e micro-interações visuais         |
+| **Backend**                 | [Node.js](https://nodejs.org/) (módulo nativo `node:http`)                                             | Servidor web leve e de alta performance                    |
+| **Base de Dados**           | [SQLite](https://sqlite.org/) via [`node:sqlite`](https://nodejs.org/api/sqlite.html)                  | Persistência relacional embutida sem dependências externas |
+| **Inteligência Artificial** | [Google Gemini Flash](https://ai.google.dev/) via `@google/genai`                                      | Análise pedagógica de código e mentoria do Quack           |
+| **Sandbox de Código**       | [Piston API](https://github.com/engineer-man/piston)                                                   | Execução segura e isolada de código C e Java               |
+| **Deploy & Hosting**        | [Coolify](https://coolify.io/) + [Docker](https://www.docker.com/)                                     | CI/CD automático e orquestração de contentores             |
 
 ---
 
@@ -250,32 +255,35 @@ sequenceDiagram
 
 Cria um ficheiro `.env` na raiz do projeto (para desenvolvimento local) ou configura as variáveis no painel da tua aplicação no **Coolify**:
 
-| Variável | Obrigatória | Valor Padrão | Descrição |
-| :--- | :---: | :--- | :--- |
-| `PORT` | Não | `3000` | Porta em que o servidor HTTP irá escutar |
-| `HOST` | Não | `0.0.0.0` | Endereço de interface de rede |
-| `DATABASE_PATH` | Não | `data/activities.db` | Caminho para o ficheiro SQLite local (no Coolify: `/app/data/activities.db`) |
-| `SHOW_CALENDAR` | Não | `true` | `true`/`1` para exibir o calendário no portal; `false`/`0` para exibir *"Calendário será anunciado brevemente..."* |
-| `ADMIN_PASSWORD` | Não | `neei2026!` | Palavra-passe de acesso ao painel de administração (`/admin`) — define sempre em produção |
-| `GEMINI_API_KEY` | Sim (p/ Quack) | — | Chave de API da Google Gemini (obtida gratuitamente no [Google AI Studio](https://aistudio.google.com/)) |
+| Variável         |  Obrigatória   | Valor Padrão         | Descrição                                                                                                          |
+| :--------------- | :------------: | :------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| `PORT`           |      Não       | `3000`               | Porta em que o servidor HTTP irá escutar                                                                           |
+| `HOST`           |      Não       | `0.0.0.0`            | Endereço de interface de rede                                                                                      |
+| `DATABASE_PATH`  |      Não       | `data/activities.db` | Caminho para o ficheiro SQLite local (no Coolify: `/app/data/activities.db`)                                       |
+| `SHOW_CALENDAR`  |      Não       | `true`               | `true`/`1` para exibir o calendário no portal; `false`/`0` para exibir _"Calendário será anunciado brevemente..."_ |
+| `ADMIN_PASSWORD` |      Não       | `neei2026!`          | Palavra-passe de acesso ao painel de administração (`/admin`) — define sempre em produção                          |
+| `GEMINI_API_KEY` | Sim (p/ Quack) | —                    | Chave de API da Google Gemini (obtida gratuitamente no [Google AI Studio](https://aistudio.google.com/))           |
 
 ---
 
 ## 🚀 Instalação & Execução Local
 
 ### Pré-requisitos
+
 - **Node.js:** versão 22 ou superior (necessária para suporte ao módulo nativo `node:sqlite`).
 - **NPM** ou gerenciador de pacotes compatível.
 
 ### Passos de Configuração
 
 1. **Clonar o Repositório:**
+
    ```bash
    git clone https://github.com/neei-aaualg/siteneei.git
    cd siteneei
    ```
 
 2. **Instalar as Dependências:**
+
    ```bash
    npm install
    # No Windows PowerShell:
@@ -284,6 +292,7 @@ Cria um ficheiro `.env` na raiz do projeto (para desenvolvimento local) ou confi
 
 3. **Configurar as Variáveis de Ambiente:**
    Cria o ficheiro `.env` com base no exemplo:
+
    ```env
    PORT=3000
    DATABASE_PATH=./data/activities.db
@@ -293,6 +302,7 @@ Cria um ficheiro `.env` na raiz do projeto (para desenvolvimento local) ou confi
    ```
 
 4. **Executar em Modo de Desenvolvimento (Frontend Vite):**
+
    ```bash
    npm run dev
    # No Windows PowerShell:

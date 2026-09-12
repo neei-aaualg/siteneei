@@ -29,7 +29,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       <Header />
       <main className="flex-grow flex flex-col overflow-x-clip">
-        <div key={location.pathname} className="page-transition flex-1 flex flex-col overflow-x-clip">
+        <div
+          key={location.pathname}
+          className="page-transition flex-1 flex flex-col overflow-x-clip"
+        >
           {children}
         </div>
       </main>
@@ -38,4 +41,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default Layout;

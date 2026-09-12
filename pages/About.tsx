@@ -18,10 +18,16 @@ const About: React.FC = () => {
   ];
 
   const vogais = [
-    'Barbara Pereira', 'Beatriz Mateia', 'David Silvestre',
-    'Francisco Neves', 'João Miguel Batista',
-    'José Tico', 'Leonardo Albudane', 'Miguel Alvito',
-    'Raquel Nunes', 'Ricardo Vicente'
+    'Barbara Pereira',
+    'Beatriz Mateia',
+    'David Silvestre',
+    'Francisco Neves',
+    'João Miguel Batista',
+    'José Tico',
+    'Leonardo Albudane',
+    'Miguel Alvito',
+    'Raquel Nunes',
+    'Ricardo Vicente',
   ];
 
   // Mapeamento de fotos reais dos membros armazenadas em /assets/
@@ -61,14 +67,18 @@ const About: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
       {/* Mission & Vision */}
       <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold text-text-100 dark:text-slate-100 mb-6">Sobre o NEEI - UAlg</h1>
+        <h1 className="text-4xl font-bold text-text-100 dark:text-slate-100 mb-6">
+          Sobre o NEEI - UAlg
+        </h1>
         <div className="flex items-center justify-center gap-2 text-accent-200 dark:text-cyan-400 mb-6 font-medium">
           <MapPin size={20} />
           <span>Faculdade de Ciências e Tecnologia (FCT), Campus de Gambelas</span>
         </div>
         <p className="text-lg text-text-200 dark:text-slate-300 leading-relaxed">
-          O Núcleo de Estudantes de Engenharia Informática da Universidade do Algarve é a estrutura representativa de todos os alunos dos cursos de informática da FCT.
-          Trabalhamos diariamente para dinamizar o campus, defender os direitos dos estudantes e criar oportunidades de ligação ao tecido empresarial do Algarve.
+          O Núcleo de Estudantes de Engenharia Informática da Universidade do Algarve é a estrutura
+          representativa de todos os alunos dos cursos de informática da FCT. Trabalhamos
+          diariamente para dinamizar o campus, defender os direitos dos estudantes e criar
+          oportunidades de ligação ao tecido empresarial do Algarve.
         </p>
       </div>
 
@@ -78,34 +88,47 @@ const About: React.FC = () => {
             <Target className="text-accent-200 dark:text-cyan-400" size={32} />
           </div>
           <h3 className="text-xl font-bold text-text-100 dark:text-slate-100 mb-4">Missão</h3>
-          <p className="text-text-200 dark:text-slate-400">Ajudar os estudantes de LEI no seu percurso académico.</p>
+          <p className="text-text-200 dark:text-slate-400">
+            Ajudar os estudantes de LEI no seu percurso académico.
+          </p>
         </div>
         <div className="bg-bg-200 dark:bg-[#0c1724] border border-transparent dark:border-cyan-900/40 p-8 rounded-2xl text-center hover:bg-primary-100 dark:hover:bg-cyan-950/40 transition-colors">
           <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
             <Eye className="text-accent-200 dark:text-cyan-400" size={32} />
           </div>
           <h3 className="text-xl font-bold text-text-100 dark:text-slate-100 mb-4">Visão</h3>
-          <p className="text-text-200 dark:text-slate-400">O NEEI deve ser um porto seguro para qualquer estudante de LEI que esteja a precisar de ajuda com os estudos/integração e tudo aqui que possamos ajudar.</p>
+          <p className="text-text-200 dark:text-slate-400">
+            O NEEI deve ser um porto seguro para qualquer estudante de LEI que esteja a precisar de
+            ajuda com os estudos/integração e tudo aqui que possamos ajudar.
+          </p>
         </div>
         <div className="bg-bg-200 dark:bg-[#0c1724] border border-transparent dark:border-cyan-900/40 p-8 rounded-2xl text-center hover:bg-primary-100 dark:hover:bg-cyan-950/40 transition-colors">
           <div className="w-16 h-16 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
             <Award className="text-accent-200 dark:text-cyan-400" size={32} />
           </div>
           <h3 className="text-xl font-bold text-text-100 dark:text-slate-100 mb-4">Comunidade</h3>
-          <p className="text-text-200 dark:text-slate-400">Promover o espírito de entreajuda, desde os caloiros aos finalistas.</p>
+          <p className="text-text-200 dark:text-slate-400">
+            Promover o espírito de entreajuda, desde os caloiros aos finalistas.
+          </p>
         </div>
       </div>
 
       {/* Team Section */}
       <div className="bg-white dark:bg-[#0c1724] rounded-3xl p-6 sm:p-10 md:p-12 shadow-sm border border-primary-200 dark:border-cyan-900/50">
         <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-bold text-text-100 dark:text-slate-100 mb-2">Órgãos Sociais</h2>
-          <p className="text-accent-200 dark:text-cyan-400 font-bold uppercase tracking-widest text-sm">Mandato 2025 / 2026</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-text-100 dark:text-slate-100 mb-2">
+            Órgãos Sociais
+          </h2>
+          <p className="text-accent-200 dark:text-cyan-400 font-bold uppercase tracking-widest text-sm">
+            Mandato 2025 / 2026
+          </p>
         </div>
 
         {/* Direção */}
         <div className="mb-14">
-          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">Direção</h3>
+          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">
+            Direção
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-items-center">
             {direcao.map((member) => (
               <div key={member.name} className="flex flex-col items-center text-center group">
@@ -123,8 +146,12 @@ const About: React.FC = () => {
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-base md:text-lg text-text-100 dark:text-slate-100">{member.name}</h4>
-                <p className="text-accent-200 dark:text-cyan-400 text-xs md:text-sm font-semibold mt-0.5">{member.role}</p>
+                <h4 className="font-bold text-base md:text-lg text-text-100 dark:text-slate-100">
+                  {member.name}
+                </h4>
+                <p className="text-accent-200 dark:text-cyan-400 text-xs md:text-sm font-semibold mt-0.5">
+                  {member.role}
+                </p>
               </div>
             ))}
           </div>
@@ -132,7 +159,9 @@ const About: React.FC = () => {
 
         {/* Mesa do Plenário */}
         <div className="mb-14">
-          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">Mesa do Plenário</h3>
+          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">
+            Mesa do Plenário
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 justify-items-center">
             {mesaPlenario.map((member) => (
               <div key={member.name} className="flex flex-col items-center text-center group">
@@ -150,8 +179,12 @@ const About: React.FC = () => {
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-sm md:text-base text-text-100 dark:text-slate-100">{member.name}</h4>
-                <p className="text-text-200 dark:text-slate-400 text-xs font-medium mt-0.5">{member.role}</p>
+                <h4 className="font-bold text-sm md:text-base text-text-100 dark:text-slate-100">
+                  {member.name}
+                </h4>
+                <p className="text-text-200 dark:text-slate-400 text-xs font-medium mt-0.5">
+                  {member.role}
+                </p>
               </div>
             ))}
           </div>
@@ -159,13 +192,15 @@ const About: React.FC = () => {
 
         {/* Vogais */}
         <div className="mb-12">
-          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">Vogais da Direção</h3>
+          <h3 className="text-xl font-bold text-center text-text-100 dark:text-slate-100 mb-8 border-b border-bg-300 dark:border-slate-800 pb-2 mx-auto max-w-xs">
+            Vogais da Direção
+          </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 justify-center justify-items-center">
             {vogais.map((name) => (
               <div key={name} className="flex flex-col items-center text-center group">
                 <div className="relative w-24 h-24 md:w-28 md:h-28 mb-3 overflow-hidden rounded-full border-4 border-bg-200 dark:border-slate-800 group-hover:border-accent-200 dark:group-hover:border-cyan-400 transition-all duration-300 shadow-sm bg-white dark:bg-slate-800">
                   <img
-                    src={getMemberPhoto(name, "Vogal")}
+                    src={getMemberPhoto(name, 'Vogal')}
                     alt={name}
                     className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
@@ -175,13 +210,16 @@ const About: React.FC = () => {
                     }}
                   />
                 </div>
-                <h4 className="font-bold text-xs md:text-sm text-text-100 dark:text-slate-100">{name}</h4>
-                <p className="text-text-200 dark:text-slate-400 text-[11px] font-medium mt-0.5">Vogal</p>
+                <h4 className="font-bold text-xs md:text-sm text-text-100 dark:text-slate-100">
+                  {name}
+                </h4>
+                <p className="text-text-200 dark:text-slate-400 text-[11px] font-medium mt-0.5">
+                  Vogal
+                </p>
               </div>
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

@@ -13,11 +13,23 @@ const HOST = process.env.HOST || '0.0.0.0';
 const BUILD_DIR = path.resolve(__dirname, 'build');
 
 const FORBIDDEN_PATTERNS = [
-  'system(', 'exec(', 'fork(', 'popen(', // Processos C/C++
-  'Runtime.getRuntime', 'ProcessBuilder', // Processos Java
-  'upload', 'download', 'socket', 'http', 'ftp', // Rede
-  'while(1)', 'while(true)', 'for(;;)', // Loops infinitos óbvios
-  '/etc/passwd', '/bin/sh', 'cmd.exe' // Acesso ao sistema de ficheiros
+  'system(',
+  'exec(',
+  'fork(',
+  'popen(', // Processos C/C++
+  'Runtime.getRuntime',
+  'ProcessBuilder', // Processos Java
+  'upload',
+  'download',
+  'socket',
+  'http',
+  'ftp', // Rede
+  'while(1)',
+  'while(true)',
+  'for(;;)', // Loops infinitos óbvios
+  '/etc/passwd',
+  '/bin/sh',
+  'cmd.exe', // Acesso ao sistema de ficheiros
 ];
 
 const MIME_TYPES = {
@@ -41,7 +53,7 @@ const MIME_TYPES = {
 
 async function handleAnalyze(req, res) {
   let rawBody = '';
-  req.on('data', chunk => {
+  req.on('data', (chunk) => {
     rawBody += chunk;
     if (rawBody.length > 1e6) {
       req.destroy();
@@ -62,24 +74,28 @@ async function handleAnalyze(req, res) {
 
       if (code.length > 5000) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          status: 'ERROR',
-          details: 'O código é demasiado longo para análise (máx 5000 caracteres).',
-          hint: 'Tenta analisar funções mais pequenas individualmente.'
-        }));
+        res.end(
+          JSON.stringify({
+            status: 'ERROR',
+            details: 'O código é demasiado longo para análise (máx 5000 caracteres).',
+            hint: 'Tenta analisar funções mais pequenas individualmente.',
+          })
+        );
         return;
       }
 
       // 2. Verificação de Segurança
       const cleanCode = code.replace(/\s/g, '');
-      if (FORBIDDEN_PATTERNS.some(pattern => cleanCode.includes(pattern))) {
+      if (FORBIDDEN_PATTERNS.some((pattern) => cleanCode.includes(pattern))) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          status: 'SECURITY_VIOLATION',
-          output: '',
-          details: 'ERRO DE SEGURANÇA: O código contém chamadas de sistema ou padrões proibidos.',
-          hint: 'Remove chamadas ao sistema, acesso a rede ou ficheiros.'
-        }));
+        res.end(
+          JSON.stringify({
+            status: 'SECURITY_VIOLATION',
+            output: '',
+            details: 'ERRO DE SEGURANÇA: O código contém chamadas de sistema ou padrões proibidos.',
+            hint: 'Remove chamadas ao sistema, acesso a rede ou ficheiros.',
+          })
+        );
         return;
       }
 
@@ -87,11 +103,13 @@ async function handleAnalyze(req, res) {
       const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
       if (!apiKey) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          status: 'ERROR',
-          details: 'Erro de configuração no servidor (GEMINI_API_KEY em falta).',
-          hint: 'Configura a variável GEMINI_API_KEY nas configurações da aplicação no Coolify.'
-        }));
+        res.end(
+          JSON.stringify({
+            status: 'ERROR',
+            details: 'Erro de configuração no servidor (GEMINI_API_KEY em falta).',
+            hint: 'Configura a variável GEMINI_API_KEY nas configurações da aplicação no Coolify.',
+          })
+        );
         return;
       }
 
@@ -142,7 +160,7 @@ async function handleAnalyze(req, res) {
           details: { type: 'STRING' },
           hint: { type: 'STRING' },
         },
-        required: ['status', 'output', 'details', 'hint']
+        required: ['status', 'output', 'details', 'hint'],
       };
 
       const result = await ai.models.generateContent({
@@ -152,24 +170,34 @@ async function handleAnalyze(req, res) {
           responseMimeType: 'application/json',
           responseSchema: responseSchema,
           safetySettings: [
-            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
-            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE }
-          ]
-        }
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+          ],
+        },
       });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(result.text);
-
     } catch (error) {
       console.error('API Error:', error);
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        status: 'ERROR',
-        details: 'Erro interno ao processar o pedido com a IA.',
-        hint: 'Tenta novamente dentro de alguns momentos.'
-      }));
+      res.end(
+        JSON.stringify({
+          status: 'ERROR',
+          details: 'Erro interno ao processar o pedido com a IA.',
+          hint: 'Tenta novamente dentro de alguns momentos.',
+        })
+      );
     }
   });
 }
@@ -187,7 +215,7 @@ function serveStaticFile(req, res, filePath) {
         }
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'no-cache'
+          'Cache-Control': 'no-cache',
         });
         res.end(content);
       });
@@ -196,7 +224,8 @@ function serveStaticFile(req, res, filePath) {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const isImmutableAsset = filePath.includes(path.join(BUILD_DIR, 'assets')) && (ext === '.js' || ext === '.css');
+    const isImmutableAsset =
+      filePath.includes(path.join(BUILD_DIR, 'assets')) && (ext === '.js' || ext === '.css');
     const isStaticAsset = filePath.includes(path.join(BUILD_DIR, 'assets'));
 
     let cacheControl = 'no-cache';
@@ -208,7 +237,7 @@ function serveStaticFile(req, res, filePath) {
 
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Cache-Control': cacheControl
+      'Cache-Control': cacheControl,
     });
 
     const stream = fs.createReadStream(filePath);

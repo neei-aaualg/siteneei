@@ -28,7 +28,10 @@ const App: React.FC = () => {
             <Route path="/sobre" element={<About />} />
             <Route path="/eventos" element={<Events />} />
             <Route path="/atividades" element={<Events />} />
-            <Route path="/projetos" element={<ExternalRedirect to="https://github.com/neei-aaualg/student-showcase" />} />
+            <Route
+              path="/projetos"
+              element={<ExternalRedirect to="https://github.com/neei-aaualg/student-showcase" />}
+            />
             <Route path="/colaborar" element={<Join />} />
             <Route path="/vagas" element={<Jobs />} />
             <Route path="/quack" element={<Quack />} />
