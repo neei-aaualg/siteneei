@@ -21,12 +21,6 @@ const Header: React.FC = () => {
 
   const exploreItems: ExploreItem[] = [
     {
-      name: 'Atividades',
-      path: '/atividades',
-      icon: <Calendar size={18} />,
-      desc: 'Atividades e eventos'
-    },
-    {
       name: 'Vagas',
       path: '/vagas',
       icon: <Briefcase size={18} />,
@@ -228,6 +222,17 @@ const Header: React.FC = () => {
               </div>
 
               <Link
+                to="/atividades"
+                onClick={() => jumpToPageTop('/atividades')}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/atividades')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  }`}
+              >
+                Atividades
+              </Link>
+
+              <Link
                 to="/colaborar"
                 onClick={() => jumpToPageTop('/colaborar')}
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/colaborar')
@@ -387,6 +392,20 @@ const Header: React.FC = () => {
                 </div>
               )}
             </div>
+
+            <Link
+              to="/atividades"
+              onClick={() => {
+                setIsMenuOpen(false);
+                jumpToPageTop('/atividades');
+              }}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/atividades')
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
+            >
+              Atividades
+            </Link>
 
             <Link
               to="/colaborar"

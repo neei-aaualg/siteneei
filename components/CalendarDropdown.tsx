@@ -105,22 +105,19 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
           <span>{label}</span>
           <ChevronDown
             size={13}
-            className={`transition-transform duration-200 opacity-60 ${
-              direction === 'up'
-                ? isOpen ? '' : 'rotate-180'
-                : isOpen ? 'rotate-180' : ''
-            }`}
+            className={`transition-transform duration-200 opacity-60 ${direction === 'up'
+              ? isOpen ? '' : 'rotate-180'
+              : isOpen ? 'rotate-180' : ''
+              }`}
           />
         </button>
       )}
 
       {isOpen && (
         <div
-          className={`absolute ${
-            align === 'right' ? 'right-0' : 'left-0'
-          } ${
-            direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
-          } w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-2xl shadow-cyan-950/25 dark:shadow-black/90 py-2 z-50 animate-fadeIn`}
+          className={`absolute ${align === 'right' ? 'right-0' : 'left-0'
+            } ${direction === 'up' ? 'bottom-full mb-2.5' : 'top-full mt-2.5'
+            } w-60 rounded-2xl bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-900/60 shadow-2xl shadow-cyan-950/25 dark:shadow-black/90 py-2 z-50 animate-fadeIn`}
           role="menu"
         >
           <div className="px-3 py-1.5 border-b border-gray-100 dark:border-slate-800/80 mb-1">
@@ -143,7 +140,6 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
             </div>
             <div className="flex flex-col flex-1 leading-tight">
               <span className="font-semibold">Google Calendar</span>
-              <span className="text-[10px] text-text-200 dark:text-slate-400">Web & Android</span>
             </div>
             <ExternalLink size={12} className="opacity-40 group-hover:opacity-100" />
           </a>
@@ -162,7 +158,6 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
             </div>
             <div className="flex flex-col flex-1 leading-tight">
               <span className="font-semibold">Outlook Calendar</span>
-              <span className="text-[10px] text-text-200 dark:text-slate-400">Web & Office 365</span>
             </div>
             <ExternalLink size={12} className="opacity-40 group-hover:opacity-100" />
           </a>
@@ -179,7 +174,6 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
             </div>
             <div className="flex flex-col flex-1 leading-tight">
               <span className="font-semibold">iPhone & Apple Calendar</span>
-              <span className="text-[10px] text-text-200 dark:text-slate-400">Ficheiro iCal (.ics)</span>
             </div>
             <Download size={12} className="opacity-40 group-hover:opacity-100" />
           </button>
