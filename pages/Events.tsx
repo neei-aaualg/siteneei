@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Calendar,
   CalendarPlus,
   Send,
   X,
@@ -157,7 +158,7 @@ export const Events: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300 mb-4">
-                <Sparkles size={14} className="animate-pulse text-accent-200 dark:text-cyan-400" />
+                <CalendarIcon size={14} className="animate-pulse text-accent-200 dark:text-cyan-400" />
                 <span>Calendário Oficial do Mandato</span>
               </div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-text-100 dark:text-white mb-4">
