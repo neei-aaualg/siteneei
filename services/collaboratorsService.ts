@@ -7,6 +7,27 @@ import {
 
 const API_BASE = '/api';
 
+async function parseResponse<T>(res: Response, fallbackError: string): Promise<T> {
+  const text = await res.text();
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // not json
+    }
+  }
+
+  if (!res.ok) {
+    const errorMsg =
+      data?.error ||
+      (text && !text.includes('<!DOCTYPE') ? text : `${fallbackError} (${res.status} ${res.statusText})`);
+    throw new Error(errorMsg);
+  }
+
+  return (data !== null ? data : {}) as T;
+}
+
 /**
  * Submete uma candidatura de colaborador
  */
@@ -19,11 +40,7 @@ export async function submitCollaboratorApplication(
     body: JSON.stringify(payload)
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao enviar a candidatura.');
-  }
-  return data;
+  return parseResponse<ApplyCollaboratorResponse>(res, 'Erro ao enviar a candidatura.');
 }
 
 /**
@@ -38,11 +55,7 @@ export async function fetchAdminCollaborators(
     }
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao carregar candidaturas de colaboradores.');
-  }
-  return data;
+  return parseResponse<CollaboratorApplication[]>(res, 'Erro ao carregar candidaturas de colaboradores.');
 }
 
 /**
@@ -63,11 +76,7 @@ export async function updateCollaboratorStatus(
     body: JSON.stringify({ id, status, notes })
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao atualizar o estado da candidatura.');
-  }
-  return data;
+  return parseResponse<{ success: boolean }>(res, 'Erro ao atualizar o estado da candidatura.');
 }
 
 /**
@@ -84,9 +93,5 @@ export async function deleteCollaboratorApplication(
     }
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao eliminar candidatura.');
-  }
-  return data;
+  return parseResponse<{ success: boolean }>(res, 'Erro ao eliminar candidatura.');
 }

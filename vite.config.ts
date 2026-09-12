@@ -13,6 +13,7 @@ function activitiesApiPlugin() {
             url.pathname.startsWith('/api/activities') ||
             url.pathname.startsWith('/api/admin/') ||
             url.pathname.startsWith('/api/collaborators') ||
+            url.pathname.startsWith('/api/jobs') ||
             url.pathname === '/api/config'
           ) {
             const { handleActivitiesApi } = await import('./server/api.js');

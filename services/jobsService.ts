@@ -7,6 +7,27 @@ import {
 
 const API_BASE = '/api';
 
+async function parseResponse<T>(res: Response, fallbackError: string): Promise<T> {
+  const text = await res.text();
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // not json
+    }
+  }
+
+  if (!res.ok) {
+    const errorMsg =
+      data?.error ||
+      (text && !text.includes('<!DOCTYPE') ? text : `${fallbackError} (${res.status} ${res.statusText})`);
+    throw new Error(errorMsg);
+  }
+
+  return (data !== null ? data : {}) as T;
+}
+
 /**
  * Submete uma oferta de emprego ou estágio (formulário público para empresas)
  */
@@ -19,11 +40,7 @@ export async function submitJobOffer(
     body: JSON.stringify(payload)
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao submeter a oferta de emprego.');
-  }
-  return data;
+  return parseResponse<SubmitJobResponse>(res, 'Erro ao submeter a oferta de emprego.');
 }
 
 /**
@@ -31,11 +48,7 @@ export async function submitJobOffer(
  */
 export async function fetchPublicJobs(): Promise<JobOffer[]> {
   const res = await fetch(`${API_BASE}/jobs`);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao carregar ofertas de emprego.');
-  }
-  return data;
+  return parseResponse<JobOffer[]>(res, 'Erro ao carregar ofertas de emprego.');
 }
 
 /**
@@ -50,11 +63,7 @@ export async function fetchAdminJobs(
     }
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao carregar ofertas de emprego para administração.');
-  }
-  return data;
+  return parseResponse<JobOffer[]>(res, 'Erro ao carregar ofertas de emprego para administração.');
 }
 
 /**
@@ -75,11 +84,7 @@ export async function updateJobStatus(
     body: JSON.stringify({ id, status, notes })
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao atualizar o estado da oferta de emprego.');
-  }
-  return data;
+  return parseResponse<{ success: boolean }>(res, 'Erro ao atualizar o estado da oferta de emprego.');
 }
 
 /**
@@ -96,9 +101,5 @@ export async function deleteJobOffer(
     }
   });
 
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Erro ao eliminar a oferta de emprego.');
-  }
-  return data;
+  return parseResponse<{ success: boolean }>(res, 'Erro ao eliminar a oferta de emprego.');
 }
