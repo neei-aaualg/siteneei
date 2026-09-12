@@ -1,6 +1,11 @@
 /**
- * Utilitários de Formatação de Datas em DD-MM-AAAA para o Portal NEEI
+ * Utilitários de Formatação de Datas para o Portal NEEI
  */
+
+export const MONTH_SIGLAS = [
+  'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+  'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+] as const;
 
 /**
  * Converte uma data (string ISO, YYYY-MM-DD ou objeto Date) para o formato DD-MM-AAAA
@@ -54,6 +59,50 @@ export function formatDateDDMMAAAA(dateInput?: string | Date | null): string {
 }
 
 /**
+ * Converte data para formato com sigla do mês (ex.: "30 SET 2026" ou "30 SET")
+ */
+export function formatDateWithMonthSigla(dateInput?: string | Date | null, includeYear = true): string {
+  if (!dateInput) return '';
+  const clean = typeof dateInput === 'string' ? dateInput.trim().split('T')[0] : '';
+  let day = '';
+  let monthIndex = -1;
+  let year = '';
+
+  if (typeof dateInput === 'string') {
+    const parts = clean.split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        // YYYY-MM-DD
+        year = parts[0];
+        monthIndex = parseInt(parts[1], 10) - 1;
+        day = String(parseInt(parts[2], 10)).padStart(2, '0');
+      } else if (parts[2].length === 4) {
+        // DD-MM-YYYY
+        day = String(parseInt(parts[0], 10)).padStart(2, '0');
+        monthIndex = parseInt(parts[1], 10) - 1;
+        year = parts[2];
+      }
+    }
+  }
+
+  if (monthIndex < 0 || monthIndex > 11) {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput as string);
+    if (!isNaN(d.getTime())) {
+      day = String(d.getDate()).padStart(2, '0');
+      monthIndex = d.getMonth();
+      year = String(d.getFullYear());
+    }
+  }
+
+  if (monthIndex >= 0 && monthIndex <= 11) {
+    const sigla = MONTH_SIGLAS[monthIndex];
+    return includeYear && year ? `${day} ${sigla} ${year}` : `${day} ${sigla}`;
+  }
+
+  return clean || String(dateInput);
+}
+
+/**
  * Converte data e hora para DD-MM-AAAA HH:mm
  * Exemplo: "2026-09-12T14:30:00Z" -> "12-09-2026 15:30" (ajustado ao fuso local)
  */
@@ -72,25 +121,36 @@ export function formatDateTimeDDMMAAAA(dateInput?: string | Date | null): string
 }
 
 /**
- * Devolve dia (DD) e mês abreviado em maiúsculas (pt-PT) para cartões de calendário
+ * Devolve dia (DD), mês com sigla oficial em maiúsculas (ex.: "SET", "OUT") e ano para cartões de calendário
  */
-export function getCalendarDayMonth(dateStr: string): { day: string; month: string } {
-  if (!dateStr) return { day: '--', month: 'MÊS' };
+export function getCalendarDayMonth(dateStr: string): { day: string; month: string; year: string } {
+  if (!dateStr) return { day: '--', month: 'MÊS', year: '' };
   try {
     const cleanDate = dateStr.trim().split('T')[0];
     const parts = cleanDate.split('-');
-    if (parts.length === 3 && parts[0].length === 4) {
-      const year = parseInt(parts[0], 10);
-      const monthIndex = parseInt(parts[1], 10) - 1;
-      const day = parseInt(parts[2], 10);
-      const d = new Date(year, monthIndex, day);
-      return {
-        day: String(day).padStart(2, '0'),
-        month: d.toLocaleDateString('pt-PT', { month: 'short' }).toUpperCase().replace('.', '')
-      };
+    if (parts.length === 3) {
+      let year = '';
+      let monthIndex = -1;
+      let day = '';
+      if (parts[0].length === 4) {
+        year = parts[0];
+        monthIndex = parseInt(parts[1], 10) - 1;
+        day = String(parseInt(parts[2], 10)).padStart(2, '0');
+      } else if (parts[2].length === 4) {
+        day = String(parseInt(parts[0], 10)).padStart(2, '0');
+        monthIndex = parseInt(parts[1], 10) - 1;
+        year = parts[2];
+      }
+      if (monthIndex >= 0 && monthIndex <= 11) {
+        return {
+          day,
+          month: MONTH_SIGLAS[monthIndex],
+          year
+        };
+      }
     }
   } catch {
     // fallback
   }
-  return { day: '--', month: 'MÊS' };
+  return { day: '--', month: 'MÊS', year: '' };
 }

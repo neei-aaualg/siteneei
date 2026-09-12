@@ -17,7 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Activity } from '../types/activities';
 import { fetchPublicActivities, registerForActivity, fetchAppConfig } from '../services/activitiesService';
-import { formatDateDDMMAAAA, getCalendarDayMonth } from '../utils/dateHelpers';
+import { formatDateDDMMAAAA, formatDateWithMonthSigla, getCalendarDayMonth } from '../utils/dateHelpers';
 
 export const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -135,16 +135,17 @@ export const Events: React.FC = () => {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    const { day, month } = getCalendarDayMonth(dateStr);
+    const { day, month, year } = getCalendarDayMonth(dateStr);
     return {
       day,
       month,
-      full: formatDateDDMMAAAA(dateStr)
+      year,
+      full: formatDateWithMonthSigla(dateStr)
     };
   };
 
   const formatOpenDate = (dateStr?: string) => {
-    return formatDateDDMMAAAA(dateStr);
+    return formatDateWithMonthSigla(dateStr);
   };
 
   const createGoogleCalendarUrl = (activity: Activity) => {
@@ -423,7 +424,7 @@ export const Events: React.FC = () => {
                                 {activity.category}
                               </span>
                               <span className="text-[11px] font-mono font-medium text-text-200 dark:text-slate-400">
-                                {formatDateDDMMAAAA(activity.date)}
+                                {formatDateWithMonthSigla(activity.date)}
                               </span>
                             </div>
                           </div>
