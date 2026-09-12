@@ -457,10 +457,6 @@ export const Events: React.FC = () => {
                                 <CalendarIcon size={12} className="shrink-0" />
                                 <span>Inscrições abrem a {formatOpenDate(activity.registration_opens_at)}</span>
                               </span>
-                            ) : Boolean(activity.open_soon) ? (
-                              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/20">
-                                Inscrições abrem brevemente
-                              </span>
                             ) : (
                               <span />
                             )}
