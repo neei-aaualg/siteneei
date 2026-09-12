@@ -66,77 +66,154 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_activities_status ON activities(status);
 `);
 
+// Lista de atividades iniciais oficiais do Calendário NEEI
+export const INITIAL_ACTIVITIES = [
+  {
+    id: 'act-workshop-intro-prog-1',
+    title: 'Workshop: Introdução à Programação',
+    description: 'Workshop prático introdutório focado nos conceitos fundamentais de lógica de programação, algoritmos e resolução de problemas para os novos estudantes de LEI e MEI.',
+    category: 'Workshop',
+    status: 'ongoing',
+    date: '2026-09-30',
+    time: '14:30 - 17:00',
+    location: 'Laboratórios de Informática, Campus de Gambelas',
+    max_capacity: 30,
+    speaker: 'David Rodrigues'
+  },
+  {
+    id: 'act-workshop-intro-prog-2',
+    title: 'Workshop: Introdução à Programação (Sessão 2)',
+    description: 'Segunda sessão prática do workshop de introdução à programação, aprofundando estruturas de decisão, ciclos e modularização.',
+    category: 'Workshop',
+    status: 'upcoming',
+    date: '2026-10-05',
+    time: '14:30 - 16:30',
+    location: 'Laboratórios de Informática, Campus de Gambelas',
+    max_capacity: 30,
+    speaker: 'David Rodrigues'
+  },
+  {
+    id: 'act-workshop-intro-prog-3',
+    title: 'Continuação do Workshop de Introdução à Programação',
+    description: 'Sessão de continuação, consolidação de conceitos e resolução guiada de exercícios práticos.',
+    category: 'Workshop',
+    status: 'upcoming',
+    date: '2026-10-07',
+    time: '14:30 - 16:30',
+    location: 'Laboratórios de Informática, Campus de Gambelas',
+    max_capacity: 30,
+    speaker: 'David Rodrigues'
+  },
+  {
+    id: 'act-churrasco-penha-2026',
+    title: 'Churrasco Convívio LEI e MEI com BeerPong',
+    description: 'Grande convívio e churrasco de integração aberto aos estudantes de LEI e MEI com torneio de BeerPong.',
+    category: 'Convívio',
+    status: 'upcoming',
+    date: '2026-10-15',
+    time: '17:00 - 22:30',
+    location: 'Campus da Penha',
+    max_capacity: 0,
+    speaker: 'João Baptista'
+  },
+  {
+    id: 'act-palestra-neei-2026',
+    title: 'Palestra NEEI: Engenharia e Tecnologia',
+    description: 'Sessão formativa e palestra técnica promovida pelo NEEI sobre desafios tecnológicos, ferramentas essenciais e futuro da engenharia informática.',
+    category: 'Palestra',
+    status: 'upcoming',
+    date: '2026-10-28',
+    time: '15:00 - 16:30',
+    location: 'Grande Auditório, Campus de Gambelas',
+    max_capacity: 0,
+    speaker: 'NEEI'
+  },
+  {
+    id: 'act-workshop-bot-discord-2026',
+    title: 'Workshop: Desenvolvimento de Bot para Discord',
+    description: 'Aprende a criar um bot interativo para Discord utilizando Node.js/JavaScript, gerindo comandos slash, eventos e integração com serviços externos.',
+    category: 'Workshop',
+    status: 'upcoming',
+    date: '2026-11-04',
+    time: '14:30 - 17:30',
+    location: 'Laboratório de Informática, Campus da Penha',
+    max_capacity: 35,
+    speaker: 'Martim Neves'
+  },
+  {
+    id: 'act-torneio-jogos-1-2026',
+    title: 'Torneio de Jogos NEEI',
+    description: 'Tarde de competição e convívio gamer para os estudantes do curso com modalidades competitivas e prémios para os melhores classificados.',
+    category: 'Torneio',
+    status: 'upcoming',
+    date: '2026-11-11',
+    time: '14:30 - 19:00',
+    location: 'Sala de Convívio / Laboratórios NEEI, Campus da Penha',
+    max_capacity: 32,
+    speaker: 'NEEI'
+  },
+  {
+    id: 'act-torneio-jogos-2-2026',
+    title: 'Torneio de Jogos NEEI (2ª Edição)',
+    description: 'Segunda ronda dos torneios de videojogos do NEEI aberta à participação de todos os alunos.',
+    category: 'Torneio',
+    status: 'upcoming',
+    date: '2026-11-18',
+    time: '14:30 - 19:00',
+    location: 'Sala de Convívio / Laboratórios NEEI, Campus da Penha',
+    max_capacity: 32,
+    speaker: 'NEEI'
+  }
+];
+
+const LEGACY_MOCK_IDS = [
+  'act-git-docker-2026',
+  'act-gamejam-2026',
+  'act-ai-palestra-2026',
+  'act-torneio-codigo-2026'
+];
+
+// Migração: se a base de dados ainda tiver as atividades mock antigas e não o calendário novo, atualiza
+try {
+  const hasLegacy = db.prepare(`SELECT COUNT(*) as count FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`).get(...LEGACY_MOCK_IDS);
+  const hasNewSeed = db.prepare("SELECT COUNT(*) as count FROM activities WHERE id = 'act-workshop-intro-prog-1'").get();
+  if (hasLegacy && hasLegacy.count > 0 && hasNewSeed && hasNewSeed.count === 0) {
+    console.log('[DB] A substituir atividades mock antigas pelas atividades do calendário oficial NEEI...');
+    const deleteLegacy = db.prepare(`DELETE FROM activities WHERE id IN (${LEGACY_MOCK_IDS.map(() => '?').join(',')})`);
+    deleteLegacy.run(...LEGACY_MOCK_IDS);
+  }
+} catch (mErr) {
+  console.warn('[DB Migration Warning]:', mErr.message);
+}
+
 // Seed inicial caso a tabela de atividades esteja vazia
 const countStmt = db.prepare('SELECT COUNT(*) as count FROM activities');
 const { count } = countStmt.get();
 
 if (count === 0) {
-  console.log('[DB] Nenhuma atividade encontrada na base de dados. A carregar seed padrão...');
+  console.log('[DB] A carregar 8 atividades do calendário oficial NEEI...');
   const insertActivity = db.prepare(`
     INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const now = new Date().toISOString();
-
-  // Atividade a decorrer
-  insertActivity.run(
-    'act-git-docker-2026',
-    'Workshop Prático: Git, GitHub e Docker na Prática',
-    'Aprende a dominar controlo de versões profissional com Git e a empacotar as tuas aplicações com Docker para os teus projetos curriculares e profissionais.',
-    'Workshop',
-    'ongoing',
-    '2026-03-25',
-    '14:30 - 17:30',
-    'Laboratório 1.15, Edifício 1, Campus de Gambelas',
-    35,
-    'Equipa Técnica NEEI',
-    now
-  );
-
-  // Atividades futuras para o calendário
-  insertActivity.run(
-    'act-gamejam-2026',
-    'NEEI Game Jam 2026: 48h de Criação',
-    'A maratona anual de desenvolvimento de videojogos do NEEI. Junta uma equipa ou vem sozinho criar um jogo do zero sobre o tema surpresa.',
-    'Hackathon',
-    'upcoming',
-    '2026-04-10',
-    'Sexta 18:00 até Domingo 18:00',
-    'Complexo Pedagógico da Penha & Online',
-    50,
-    'NEEI & Convidados da Indústria',
-    now
-  );
-
-  insertActivity.run(
-    'act-ai-palestra-2026',
-    'Palestra: Inteligência Artificial Generativa e o Futuro da Engenharia',
-    'Uma visão prática sobre agentes autónomos, LLMs locais e o impacto da IA no recrutamento tecnológico com engenheiros convidados de topo.',
-    'Palestra',
-    'upcoming',
-    '2026-04-22',
-    '15:00 - 16:30',
-    'Anfiteatro Paulo Freire, Campus de Gambelas',
-    100,
-    'Investigadores & Engenheiros de Software',
-    now
-  );
-
-  insertActivity.run(
-    'act-torneio-codigo-2026',
-    'Torneio de Programação Inter-Cadeiras',
-    'Desafios algorítmicos em C, Java e Python para estudantes de todos os anos da Licenciatura em Engenharia Informática, com prémios para os melhores classificados.',
-    'Torneio',
-    'upcoming',
-    '2026-05-08',
-    '14:00 - 18:00',
-    'Laboratórios de Informática, Edifício 1',
-    40,
-    'Núcleo Pedagógico NEEI',
-    now
-  );
-  console.log('[DB] Seed padrão carregado com sucesso.');
+  for (const act of INITIAL_ACTIVITIES) {
+    insertActivity.run(
+      act.id,
+      act.title,
+      act.description,
+      act.category,
+      act.status,
+      act.date,
+      act.time,
+      act.location,
+      act.max_capacity,
+      act.speaker,
+      now
+    );
+  }
+  console.log(`[DB] ${INITIAL_ACTIVITIES.length} atividades oficiais do calendário carregadas com sucesso.`);
 } else {
   console.log(`[DB] Base de dados carregada com sucesso com ${count} atividade(s) persistida(s).`);
 }
