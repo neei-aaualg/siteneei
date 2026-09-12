@@ -64,7 +64,7 @@ O portal centraliza a comunicação com a comunidade académica, divulgação e 
 - **Validação Numérica de Contacto:** Campo de telemóvel restrito estritamente a números (dígitos).
 
 ### 4. Painel de Administração (`/admin`) 🛡️
-- **Autenticação Segura:** Acesso protegido por palavra-passe e tokens de sessão assinados com HMAC-SHA256.
+- **Autenticação Segura:** Acesso protegido por palavra-passe (comparação em tempo constante) e tokens de sessão aleatórios de 256 bits com expiração de 7 dias.
 - **Gestão de Atividades:** Criação, edição e eliminação em cascata de eventos.
 - **Gestão de Inscritos:** Listagem de alunos por atividade, contador em tempo real, cópia de emails institucionais num clique e descarregamento de lista em formato `.csv`.
 - **Pipeline de Colaboradores:** Acompanhamento de candidaturas com filtros por estado (*Pendente*, *Contactado*, *Aceite*, *Rejeitado*), pesquisa instantânea por texto, notas internas, exportação CSV e eliminação protegida por modal.
@@ -93,17 +93,19 @@ flowchart TB
         SPA --> UI_Admin
     end
 
-    subgraph Server["Servidor Node.js (server.js & server/api.js)"]
+    subgraph Server["Servidor Node.js (server.js & server/api.js & server/db.js & server/auth.js)"]
         HTTP["HTTP Router & Middleware"]
         Static["Servidor de Ficheiros Estáticos (SPA Fallback)"]
         API_Act["API de Atividades & Inscrições"]
         API_Collab["API de Candidaturas a Colaborador"]
-        API_Admin["API Admin (Auth & Auditoria)"]
+        API_Jobs["API de Vagas & Ofertas de Emprego"]
+        API_Admin["API Admin (Auth & Gestão)"]
         API_Quack["Handler /api/analyze"]
 
         HTTP --> Static
         HTTP --> API_Act
         HTTP --> API_Collab
+        HTTP --> API_Jobs
         HTTP --> API_Admin
         HTTP --> API_Quack
     end
@@ -119,8 +121,9 @@ flowchart TB
         SQLite --- DB_File
     end
 
-    UI_Home -- "GET /api/activities\nPOST /api/activities/:id/register" --> API_Act
+    UI_Home -- "GET /api/activities\nPOST /api/activities/register" --> API_Act
     UI_Home -- "POST /api/collaborators/apply" --> API_Collab
+    UI_Home -- "GET /api/jobs\nPOST /api/jobs/submit" --> API_Jobs
     UI_Admin -- "Bearer Token + JSON APIs" --> API_Admin
     UI_Quack -- "Execução de Código" --> Piston
     UI_Quack -- "POST /api/analyze" --> API_Quack
@@ -128,6 +131,7 @@ flowchart TB
 
     API_Act --> SQLite
     API_Collab --> SQLite
+    API_Jobs --> SQLite
     API_Admin --> SQLite
 ```
 
@@ -177,6 +181,22 @@ erDiagram
         text notes "Anotações do Admin"
         text created_at "Timestamp ISO8601"
     }
+
+    JOB_OFFERS {
+        text id PK "job_1720000000_xyz12"
+        text company "Nome da empresa"
+        text title "Título da função"
+        text type "Estágio | Full-time | Part-time | Bolsa"
+        text location "Localização"
+        text email "Email de contacto"
+        text phone "Telemóvel (apenas dígitos)"
+        text link "Link de candidatura (opcional)"
+        text description "Descrição da vaga"
+        text requirements "Requisitos (opcional)"
+        text status "pending | published | rejected"
+        text notes "Anotações do Admin"
+        text created_at "Timestamp ISO8601"
+    }
 ```
 
 ---
@@ -199,7 +219,7 @@ sequenceDiagram
     alt Execução bem-sucedida e resultado correto
         UI-->>Aluno: Apresenta sucesso ✅ e resultado
     else Código falhou ou Output incorreto
-        UI->>Server: POST /api/analyze { code, error, expected, output }
+        UI->>Server: POST /api/analyze { code, language, context { hasError, errorMessage, output, input, expected } }
         Server->>Server: Validação de segurança (regex de chamadas proibidas)
         Server->>Gemini: Gera explicação pedagógica e pistas em pt-PT
         Gemini-->>Server: Retorna JSON estruturado com pistas
@@ -236,8 +256,7 @@ Cria um ficheiro `.env` na raiz do projeto (para desenvolvimento local) ou confi
 | `HOST` | Não | `0.0.0.0` | Endereço de interface de rede |
 | `DATABASE_PATH` | Não | `data/activities.db` | Caminho para o ficheiro SQLite local (no Coolify: `/app/data/activities.db`) |
 | `SHOW_CALENDAR` | Não | `true` | `true`/`1` para exibir o calendário no portal; `false`/`0` para exibir *"Calendário será anunciado brevemente..."* |
-| `ADMIN_PASSWORD` | Não | `admin123` | Palavra-passe de acesso ao painel de administração (`/admin`) |
-| `ADMIN_JWT_SECRET` | Não | *gerado internamente* | Chave secreta de assinatura dos tokens de sessão administrativa |
+| `ADMIN_PASSWORD` | Não | `neei2026!` | Palavra-passe de acesso ao painel de administração (`/admin`) — define sempre em produção |
 | `GEMINI_API_KEY` | Sim (p/ Quack) | — | Chave de API da Google Gemini (obtida gratuitamente no [Google AI Studio](https://aistudio.google.com/)) |
 
 ---
@@ -310,7 +329,7 @@ Como o contentor Docker é efémero por padrão, o SQLite apagaria todas as insc
 - **Sanitização de Código de Entrada:** Todas as submissões enviadas para o backend do Quack passam por filtros rigorosos para impedir comandos de sistema perigosos (`fork`, `system`, `Runtime.getRuntime`, acesso a sockets ou leitura de ficheiros do SO).
 - **Isolamento em Sandbox:** O código dos utilizadores nunca é executado no mesmo ambiente da aplicação web, sendo canalizado para a API do Piston.
 - **Proteção CSP (Content Security Policy):** Diretivas configuradas no `index.html` para prevenir vulnerabilidades de Cross-Site Scripting (XSS).
-- **Sessões Administrativas Criptografadas:** Autenticação baseada em tokens com tempo de expiração e validação com `crypto.createHmac`.
+- **Sessões Administrativas Temporárias:** Tokens de sessão aleatórios com tempo de expiração, armazenados em memória e comparados de forma segura contra ataques de timing.
 
 ---
 
@@ -318,30 +337,43 @@ Como o contentor Docker é efémero por padrão, o SQLite apagaria todas as insc
 
 ```text
 siteneei/
-├── components/           # Componentes reutilizáveis (Header, Footer, CodeEditor, Layout)
+├── App.tsx               # Rotas e providers globais da aplicação
+├── index.tsx             # Ponto de entrada React
+├── index.html            # Documento base HTML
+├── components/           # Componentes reutilizáveis
+│   ├── Header.tsx / Footer.tsx / Layout.tsx
+│   ├── CalendarDropdown.tsx     # Dropdown de calendário das atividades
+│   └── qrcodes/                 # Componentes de QR (QRPreview, NeeiPresentation, Toast)
+├── constants/            # Dados estáticos (presets.ts - cartões QR oficiais)
+├── context/              # Contextos React (ThemeContext - tema Dark/Light)
 ├── data/                 # Exercícios curriculares do Quack (PI, LP, AED, POO)
 ├── pages/                # Páginas principais da aplicação
 │   ├── Home.tsx          # Página principal e destaques
 │   ├── Events.tsx        # Calendário de atividades e inscrições
 │   ├── Join.tsx          # Formulário de candidatura a colaborador
-│   ├── Admin.tsx         # Dashboard administrativo (atividades & colaboradores)
+│   ├── Admin.tsx         # Dashboard administrativo (atividades, colaboradores & vagas)
 │   ├── Quack.tsx         # Tutor de programação e editor interativo
 │   ├── About.tsx         # Apresentação do núcleo e equipa
 │   ├── Jobs.tsx          # Quadro de vagas e estágios
-│   └── Links.tsx         # Agregador de recursos úteis
+│   └── Links.tsx         # Apresentação QR das redes oficiais
 ├── server/               # Lógica de backend
-│   ├── api.js            # Endpoints da API REST (atividades, admin, colaboradores)
+│   ├── api.js            # Endpoints da API REST (atividades, admin, colaboradores, vagas)
+│   ├── auth.js           # Autenticação e sessões administrativas
 │   └── db.js             # Gestão da base de dados SQLite (node:sqlite) e queries
 ├── services/             # Clientes de comunicação com APIs
 │   ├── activitiesService.ts   # Chamadas à API de atividades
 │   ├── collaboratorsService.ts# Chamadas à API de colaboradores
-│   └── geminiService.ts       # Integração com a API do Quack
+│   ├── jobsService.ts         # Chamadas à API de vagas/emprego
+│   └── geminiService.ts       # Execução Piston + integração com a API do Quack
 ├── types/                # Definições de tipos TypeScript
+│   ├── types.ts          # Tipos partilhados (Language, ExecutionStatus)
 │   ├── activities.ts     # Tipos de eventos, inscrições e admin
-│   └── collaborators.ts  # Tipos de candidaturas de colaboradores
+│   ├── collaborators.ts  # Tipos de candidaturas de colaboradores
+│   ├── jobs.ts           # Tipos de ofertas de emprego
+│   └── qrcode.ts         # Tipos de cartões QR
 ├── utils/                # Utilitários e formatadores de data/hora
 ├── Dockerfile            # Configuração de build e imagem Docker
-├── server.js             # Servidor HTTP Node.js principal
+├── server.js             # Servidor HTTP Node.js principal (+ /api/analyze)
 ├── vite.config.ts        # Configuração do Vite e plugins
 └── package.json          # Metadados e dependências do projeto
 ```
