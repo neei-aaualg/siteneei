@@ -234,29 +234,36 @@ const HighlightsCarousel: React.FC = () => {
     }
   ];
 
-  const [isMobile, setIsMobile] = useState<boolean>(() => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(() => {
     if (typeof window !== 'undefined') {
-      return window.innerWidth < 768;
+      return Math.min(window.innerWidth - 32, 1280);
     }
-    return false;
+    return 360;
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const updateMobile = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
+    if (!containerRef.current) return;
+    const el = containerRef.current;
+    const updateSize = () => {
+      if (el && el.clientWidth > 0) {
+        setContainerWidth(el.clientWidth);
+      }
     };
-    setIsMobile(mediaQuery.matches);
+    updateSize();
 
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', updateMobile);
-      return () => mediaQuery.removeEventListener('change', updateMobile);
-    } else {
-      mediaQuery.addListener(updateMobile);
-      return () => mediaQuery.removeListener(updateMobile);
-    }
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
+  const isMobile = containerWidth > 0 ? containerWidth < 768 : (typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const itemsPerPage = isMobile ? 1 : 3;
   const totalPages = Math.ceil(highlights.length / itemsPerPage);
   const [currentPage, setCurrentPage] = useState(0);
@@ -275,7 +282,7 @@ const HighlightsCarousel: React.FC = () => {
 
   // Rotação automática de 10 em 10 segundos (para permanentemente após toque/arraste)
   useEffect(() => {
-    if (!autoPlay) return;
+    if (!autoPlay || totalPages <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentPage(prev => (prev < totalPages - 1 ? prev + 1 : 0));
@@ -410,13 +417,13 @@ const HighlightsCarousel: React.FC = () => {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 overflow-hidden">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <div className="text-center mb-12">
         <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">Destaques do Mandato</h2>
       </div>
 
       {/* Carrossel com setas laterais flutuantes e suporte a swipe/arraste */}
-      <div className="relative group/carousel px-1 sm:px-0">
+      <div className="relative group/carousel w-full">
         {/* Seta esquerda flutuante */}
         <button
           onClick={prevSlide}
@@ -437,7 +444,8 @@ const HighlightsCarousel: React.FC = () => {
 
         {/* Viewport do Carrossel com touch & swipe */}
         <div
-          className="mx-9 sm:mx-0 overflow-hidden py-3 px-1 touch-pan-y select-none cursor-grab active:cursor-grabbing"
+          ref={containerRef}
+          className="mx-8 sm:mx-0 overflow-hidden py-3 touch-pan-y select-none cursor-grab active:cursor-grabbing"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -450,8 +458,7 @@ const HighlightsCarousel: React.FC = () => {
           <div
             className="flex"
             style={{
-              width: `${totalPages * 100}%`,
-              transform: `translateX(calc(-${(currentPage * 100) / totalPages}% + ${dragOffset}px))`,
+              transform: `translateX(${-(currentPage * containerWidth) + dragOffset}px)`,
               transition: isDragging ? 'none' : 'transform 500ms cubic-bezier(0.25, 1, 0.5, 1)',
             }}
           >
@@ -460,8 +467,8 @@ const HighlightsCarousel: React.FC = () => {
               return (
                 <div
                   key={pageIdx}
-                  style={{ width: `${100 / totalPages}%` }}
-                  className={`flex-shrink-0 px-2 sm:px-1 ${
+                  style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100%' }}
+                  className={`flex-shrink-0 px-1 sm:px-1 ${
                     isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
                   }`}
                 >
@@ -523,7 +530,7 @@ const HighlightsCarousel: React.FC = () => {
 
 const Home: React.FC = () => {
   return (
-    <div className="flex flex-col gap-16">
+    <div className="flex flex-col gap-16 w-full max-w-full overflow-x-hidden">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-b from-primary-100 to-bg-100 dark:from-[#0c1827] dark:to-[#070d14] py-20 md:py-32 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
