@@ -30,6 +30,9 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Cria diretório de dados com permissões para o utilizador node
 RUN mkdir -p /app/data && chown -R node:node /app/data
 
+# Volume persistente para a base de dados SQLite (atividades e inscrições)
+VOLUME ["/app/data"]
+
 # Copia os ficheiros compilados e o servidor HTTP + backend
 COPY --chown=node:node --from=builder /app/build ./build
 COPY --chown=node:node server.js ./

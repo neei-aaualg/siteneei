@@ -11,9 +11,15 @@ const DB_PATH = process.env.DATABASE_PATH || path.resolve(__dirname, '../data/ac
 
 // Assegura que o diretório da base de dados existe
 const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+try {
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+} catch (err) {
+  console.error(`[DB ERROR] Não foi possível verificar/criar a pasta ${dbDir}:`, err);
 }
+
+console.log(`[DB] Base de dados ativa em: ${DB_PATH}`);
 
 export const db = new DatabaseSync(DB_PATH);
 
@@ -65,6 +71,7 @@ const countStmt = db.prepare('SELECT COUNT(*) as count FROM activities');
 const { count } = countStmt.get();
 
 if (count === 0) {
+  console.log('[DB] Nenhuma atividade encontrada na base de dados. A carregar seed padrão...');
   const insertActivity = db.prepare(`
     INSERT INTO activities (id, title, description, category, status, date, time, location, max_capacity, speaker, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -129,6 +136,9 @@ if (count === 0) {
     'Núcleo Pedagógico NEEI',
     now
   );
+  console.log('[DB] Seed padrão carregado com sucesso.');
+} else {
+  console.log(`[DB] Base de dados carregada com sucesso com ${count} atividade(s) persistida(s).`);
 }
 
 /**
