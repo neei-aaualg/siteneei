@@ -32,10 +32,28 @@
   animation: fadeIn 0.25s ease-out forwards;
 }
 
-/* Dark Mode Scrollbars */
-.dark ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* Unified Scrollbar - Identical dimensions in Light and Dark prevent any layout shift */
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .dark ::-webkit-scrollbar-track {
@@ -44,7 +62,7 @@
 
 .dark ::-webkit-scrollbar-thumb {
   background: #1e293b;
-  border-radius: 4px;
+  border-radius: 5px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
@@ -63,10 +81,16 @@
 }
 
 /* View Transitions API - Circular Expanding Theme Switch */
+::view-transition-group(root) {
+  animation-duration: 0.48s;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
+  height: 100%;
+  overflow: clip;
 }
 
 ::view-transition-old(root) {

@@ -220,7 +220,7 @@ const Header: React.FC = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center justify-center bg-white hover:bg-slate-50 border-primary-200 text-slate-700 shadow-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-amber-300 active:scale-95"
+              className="w-9 h-9 shrink-0 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center justify-center bg-white hover:bg-slate-50 border-primary-200 text-slate-700 shadow-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-amber-300 active:scale-95"
               title={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
               aria-label={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
             >
@@ -256,7 +256,7 @@ const Header: React.FC = () => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="p-1.5 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center bg-white dark:bg-slate-900 border-primary-200 dark:border-slate-700 text-slate-700 dark:text-amber-300 shadow-sm"
+              className="w-8 h-8 shrink-0 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center bg-white dark:bg-slate-900 border-primary-200 dark:border-slate-700 text-slate-700 dark:text-amber-300 shadow-sm"
               title={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
               aria-label={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
             >

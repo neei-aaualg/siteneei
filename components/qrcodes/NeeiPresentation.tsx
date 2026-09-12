@@ -5,15 +5,12 @@ import {
   Check,
   Maximize,
   Minimize,
-  Sun,
-  Moon,
   CameraOff,
   MapPin,
   Globe
 } from 'lucide-react'
 import type { QRCodeCardItem } from '../../types/qrcode'
 import { QRPreview } from './QRPreview'
-import { useTheme } from '../../context/ThemeContext'
 
 const InstagramIcon = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -44,7 +41,6 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
   cards,
   onNotify
 }) => {
-  const { isDark, toggleTheme } = useTheme()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const slideRef = useRef<HTMLDivElement>(null)
@@ -103,46 +99,26 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
     }, 2500)
   }
 
-  // Colors based on theme
-  const pageBg = isDark ? 'bg-[#070d14] text-slate-100' : 'bg-[#f0f7fa] text-[#1d1c1c]'
-  const cardBg = isDark
-    ? 'bg-[#0c1724] border border-cyan-900/50 shadow-2xl shadow-cyan-950/40 text-slate-100'
-    : 'bg-white border border-[#b6ccd8]/70 shadow-lg shadow-cyan-900/5 text-[#1d1c1c]'
+  // Pure presentation styling
+  const pageBg = 'bg-[#f0f7fa] text-[#1d1c1c]'
+  const cardBg = 'bg-white border border-[#b6ccd8]/70 shadow-lg shadow-cyan-900/5 text-[#1d1c1c]'
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${pageBg}`}>
+    <div className={`min-h-screen flex flex-col font-sans ${pageBg}`}>
       {/* Top Controls Bar (Hidden during Fullscreen) */}
       {!isFullscreen && (
-        <div className={`backdrop-blur-xl border-b transition-colors duration-300 px-4 sm:px-8 py-3 ${isDark ? 'bg-[#0a1420]/90 border-cyan-950/60' : 'bg-white/95 border-[#d4eaf7]'
-          }`}>
+        <div className="backdrop-blur-xl border-b px-4 sm:px-8 py-3 bg-white/95 border-[#d4eaf7]">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
             {/* Left: Status & Branding */}
             <div className="flex items-center gap-2.5">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className={`text-xs font-semibold tracking-wide ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+              <span className="text-xs font-semibold tracking-wide text-slate-700">
                 Canais Oficiais &bull; Apresentação
               </span>
             </div>
 
-            {/* Right Controls: Theme & Fullscreen */}
+            {/* Right Controls: Fullscreen */}
             <div className="flex items-center gap-2.5">
-              {/* Theme Toggle */}
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className={`p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${isDark
-                  ? 'bg-slate-900 hover:bg-slate-800 border-slate-750 text-amber-300'
-                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
-                  }`}
-                title={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
-              >
-                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                <span className="hidden sm:inline text-[11px] font-semibold">
-                  {isDark ? 'Tema Claro' : 'Tema Escuro'}
-                </span>
-              </button>
-
-              {/* Fullscreen Button */}
               <button
                 type="button"
                 onClick={toggleFullscreen}
@@ -160,7 +136,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
       {/* Presentation Canvas / Slide */}
       <div
         ref={slideRef}
-        className={`flex-1 flex flex-col justify-center items-center transition-colors duration-300 ${pageBg} ${isFullscreen
+        className={`flex-1 flex flex-col justify-center items-center ${pageBg} ${isFullscreen
           ? 'p-6 sm:p-10 min-h-screen w-screen overflow-y-auto'
           : 'py-8 sm:py-12 px-4 sm:px-8 max-w-6xl mx-auto w-full'
           }`}
@@ -192,17 +168,18 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                 }}
               />
               <div className="text-left leading-tight">
-                <span className={`text-[13px] font-medium block ${isDark ? 'text-cyan-400' : 'text-[#00668c]'}`}>
+                <span className="text-[13px] font-medium block text-[#00668c]">
                   Núcleo de Estudantes de Engenharia Informática &bull; UAlg
                 </span>
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-sm transition-colors"
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-sm transition-colors"
               style={{
-                backgroundColor: isDark ? 'rgba(8, 145, 178, 0.15)' : '#d4eaf7',
-                borderColor: isDark ? 'rgba(8, 145, 178, 0.4)' : '#b6ccd8',
-                color: isDark ? '#38bdf8' : '#00668c'
+                backgroundColor: '#d4eaf7',
+                borderColor: '#b6ccd8',
+                color: '#00668c'
               }}
             >
               <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -212,7 +189,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight m-0">
               Junta-te aos Nossos Canais
             </h1>
-            <p className={`text-xs sm:text-sm max-w-lg mx-auto ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            <p className="text-xs sm:text-sm max-w-lg mx-auto text-slate-600">
               Aponta a câmara do teu telemóvel para qualquer um dos QR Codes abaixo para acederes aos grupos e redes oficiais.
             </p>
           </div>
@@ -261,8 +238,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
 
                   {/* URL / Action */}
                   <div className="w-full mt-4 space-y-2">
-                    <div className={`p-2 rounded-xl text-center font-mono text-[11px] truncate border ${isDark ? 'bg-slate-900/80 border-slate-800 text-cyan-300' : 'bg-slate-50 border-slate-200 text-[#00668c]'
-                      }`}>
+                    <div className="p-2 rounded-xl text-center font-mono text-[11px] truncate border bg-slate-50 border-slate-200 text-[#00668c]">
                       {card.url}
                     </div>
 
@@ -271,10 +247,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                         href={card.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isDark
-                          ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md'
-                          : 'bg-[#00668c] hover:bg-[#005574] text-white shadow-sm'
-                          }`}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-[#00668c] hover:bg-[#005574] text-white shadow-sm"
                       >
                         <span>Aceder</span>
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -285,9 +258,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                         onClick={() => handleCopy(card.url, card.title)}
                         className={`p-1.5 rounded-xl border transition-all cursor-pointer ${copiedLink === card.url
                           ? 'bg-emerald-600 border-emerald-500 text-white'
-                          : isDark
-                            ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
-                            : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                          : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
                           }`}
                         title="Copiar link"
                       >
@@ -301,30 +272,22 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
           </div>
 
           {/* FALLBACK LINK FOR PEOPLE WHOSE CAMERA IS NOT WORKING */}
-          <div className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 border transition-all duration-300 shadow-md ${isDark
-            ? 'bg-gradient-to-r from-[#0c1b2c] via-[#081320] to-[#0a1829] border-cyan-800/50'
-            : 'bg-gradient-to-r from-white via-[#f0f7fa] to-[#d4eaf7]/80 border-[#b6ccd8]'
-            }`}>
+          <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 border transition-all duration-300 shadow-md bg-gradient-to-r from-white via-[#f0f7fa] to-[#d4eaf7]/80 border-[#b6ccd8]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <CameraOff className="w-4 h-4 text-[#00668c] dark:text-cyan-400" />
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#00668c] dark:text-cyan-400">
+                  <CameraOff className="w-4 h-4 text-[#00668c]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#00668c]">
                     Sem câmara ou não consegues ler o QR Code?
                   </span>
                 </div>
-                <p className={`text-xs sm:text-sm m-0 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                <p className="text-xs sm:text-sm m-0 text-slate-700">
                   Abre o teu navegador e acede a todos os canais e links diretamente em:
                 </p>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <div
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-mono text-sm sm:text-base font-bold border shadow-sm ${isDark
-                    ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60'
-                    : 'bg-[#d4eaf7] text-[#00668c] border-[#b6ccd8]'
-                    }`}
-                >
+                <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-mono text-sm sm:text-base font-bold border shadow-sm bg-[#d4eaf7] text-[#00668c] border-[#b6ccd8]">
                   <Globe className="w-4 h-4" />
                   <span>neei.online/links</span>
                 </div>
