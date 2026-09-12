@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
-  ArrowLeft,
   ExternalLink,
   Copy,
   Check,
@@ -37,13 +36,11 @@ const DiscordIcon = ({ className = 'w-3.5 h-3.5' }: { className?: string }) => (
 
 interface NeeiPresentationProps {
   cards: QRCodeCardItem[]
-  onBack: () => void
   onNotify: (msg: string) => void
 }
 
 export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
   cards,
-  onBack,
   onNotify
 }) => {
   const [isDark, setIsDark] = useState(false)
@@ -115,60 +112,20 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-300 ${pageBg}`}>
       {/* Top Controls Bar (Hidden during Fullscreen) */}
       {!isFullscreen && (
-        <header className={`sticky top-0 z-40 backdrop-blur-xl border-b transition-colors duration-300 px-4 sm:px-8 py-3 ${
+        <div className={`backdrop-blur-xl border-b transition-colors duration-300 px-4 sm:px-8 py-3 ${
           isDark ? 'bg-[#0a1420]/90 border-cyan-950/60' : 'bg-white/95 border-[#d4eaf7]'
         }`}>
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-            {/* Left: Voltar ao editor */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onBack}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  isDark
-                    ? 'bg-cyan-950/60 hover:bg-cyan-900/70 border border-cyan-800/60 text-cyan-300'
-                    : 'bg-[#d4eaf7] hover:bg-[#b6ccd8] border border-[#b6ccd8] text-[#00668c]'
-                }`}
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Voltar ao Editor</span>
-              </button>
-
-              <div className="h-4 w-px bg-slate-400/30" />
-
-              <span className={`text-xs font-medium ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-                Página de Apresentação &bull; NEEI
+            {/* Left: Status & Branding */}
+            <div className="flex items-center gap-2.5">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`text-xs font-semibold tracking-wide ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                Canais Oficiais &bull; Apresentação
               </span>
             </div>
 
             {/* Right Controls: Theme & Fullscreen */}
             <div className="flex items-center gap-2.5">
-              {/* Optional card picker if more than 3 cards */}
-              {cards.length > 3 && (
-                <div className="hidden md:flex items-center gap-1 text-xs mr-2">
-                  <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>3 Códigos:</span>
-                  {cards.map((c) => {
-                    const isSelected = selectedIds.includes(c.id)
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => toggleCardSelection(c.id)}
-                        className={`px-2 py-0.5 rounded-lg text-[11px] font-medium border transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#00668c] border-[#005574] text-white'
-                            : isDark
-                            ? 'bg-slate-900 border-slate-800 text-slate-400'
-                            : 'bg-white border-slate-200 text-slate-600'
-                        }`}
-                      >
-                        {c.title.split(' ')[0]} {isSelected && '✓'}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-
               {/* Theme Toggle */}
               <button
                 type="button"
@@ -191,14 +148,14 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                 type="button"
                 onClick={toggleFullscreen}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-[#00668c] hover:bg-[#005574] text-white shadow-md active:scale-95"
-                title="Apresentar em Ecrã Inteiro (sem cabeçalhos, como um slide)"
+                title="Apresentar em Ecrã Inteiro (como um slide de evento)"
               >
                 <Maximize className="w-3.5 h-3.5" />
                 <span>Ecrã Inteiro</span>
               </button>
             </div>
           </div>
-        </header>
+        </div>
       )}
 
       {/* Presentation Canvas / Slide */}
