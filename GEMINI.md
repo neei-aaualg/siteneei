@@ -32,6 +32,9 @@
 - **`SHOW_CALENDAR`:** Controla a visibilidade pública do calendário de atividades no portal (`true` por defeito).
   - Se configurada como `false` (ou `0`) nas Environment Variables do Coolify ou `.env`, o calendário e as atividades públicas são ocultados e a página `/eventos` apresenta apenas _"Calendário será anunciado brevemente..."_.
   - O painel de administração (`/admin`) continua 100% funcional para a equipa poder preparar e gerir atividades antes do anúncio oficial.
+- **`ADMIN_PASSWORD` (obrigatória):** Senha da equipa NEEI para o painel `/admin`. Sem esta variável o login devolve erro 500 — **não existe senha em branco por omissão**.
+- **`GEMINI_API_KEY` (obrigatória):** Chave da Google Gemini usada pelo backend em `/api/analyze` (Tutor Inteligente). Fica apenas no servidor (Coolify) — **nunca** é incluída no bundle do cliente.
+- Limites de taxa (`server.js`): `/api/admin/login` >5 pedidos/min, `/api/analyze` >30, `/api/admin/*` >60, restantes `/api/*` >120 (por IP).
 
 ## Verificação de Portas e Execução Local em Paralelo
 
