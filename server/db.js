@@ -132,9 +132,57 @@ if (count === 0) {
 }
 
 /**
+ * Verifica se uma data (YYYY-MM-DD) ocorre na mesma semana da data atual (segunda-feira a domingo)
+ */
+export function isDateInCurrentWeek(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const cleanDate = dateStr.trim();
+  const target = new Date(cleanDate + 'T00:00:00');
+  if (isNaN(target.getTime())) return false;
+
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+  const distanceToMonday = (dayOfWeek + 6) % 7;
+
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - distanceToMonday);
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return target >= monday && target <= sunday;
+}
+
+/**
+ * Sincroniza automaticamente para 'ongoing' quaisquer atividades agendadas para a semana corrente
+ */
+export function syncActivitiesWeeklyStatus() {
+  try {
+    const upcoming = db.prepare("SELECT id, date FROM activities WHERE status = 'upcoming'").all();
+    const updateStmt = db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?");
+    let changed = 0;
+    for (const act of upcoming) {
+      if (isDateInCurrentWeek(act.date)) {
+        updateStmt.run(act.id);
+        changed++;
+      }
+    }
+    return changed;
+  } catch (err) {
+    console.error('Error syncing weekly activities status:', err);
+    return 0;
+  }
+}
+
+/**
  * Retorna atividades públicas (ongoing e upcoming) com a contagem de inscrições
  */
 export function getPublicActivities() {
+  // Sincroniza automaticamente eventos da semana corrente para 'ongoing'
+  syncActivitiesWeeklyStatus();
+
   const stmt = db.prepare(`
     SELECT 
       a.id, a.title, a.description, a.category, a.status, a.date, a.time, a.location, a.max_capacity, a.speaker, a.created_at,
@@ -200,6 +248,12 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
     throw err;
   }
 
+  // Se a atividade estiver como 'upcoming' mas acontecer nesta semana, atualiza para 'ongoing'
+  if (activity.status === 'upcoming' && isDateInCurrentWeek(activity.date)) {
+    db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?").run(activityId);
+    activity.status = 'ongoing';
+  }
+
   if (activity.status !== 'ongoing') {
     const err = new Error('As inscrições para esta atividade não se encontram abertas no momento');
     err.statusCode = 400;
@@ -251,6 +305,9 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
  * Consulta todas as atividades com a lista completa de inscritos (área de administração)
  */
 export function getAllActivitiesWithRegistrations() {
+  // Sincroniza automaticamente eventos da semana corrente para 'ongoing'
+  syncActivitiesWeeklyStatus();
+
   const activitiesStmt = db.prepare('SELECT * FROM activities ORDER BY date DESC, created_at DESC');
   const activities = activitiesStmt.all();
 
@@ -291,6 +348,11 @@ export function saveActivity(data) {
   const existingStmt = db.prepare('SELECT id FROM activities WHERE id = ?');
   const existing = existingStmt.get(id);
 
+  let finalStatus = data.status || 'upcoming';
+  if (finalStatus === 'upcoming' && isDateInCurrentWeek(data.date)) {
+    finalStatus = 'ongoing';
+  }
+
   if (existing) {
     const updateStmt = db.prepare(`
       UPDATE activities 
@@ -301,7 +363,7 @@ export function saveActivity(data) {
       data.title,
       data.description,
       data.category,
-      data.status,
+      finalStatus,
       data.date,
       data.time,
       data.location,
@@ -319,7 +381,7 @@ export function saveActivity(data) {
       data.title,
       data.description,
       data.category,
-      data.status || 'upcoming',
+      finalStatus,
       data.date,
       data.time,
       data.location,

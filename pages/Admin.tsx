@@ -19,7 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Pencil
 } from 'lucide-react';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
 import {
@@ -609,9 +610,11 @@ export const Admin: React.FC = () => {
 
                       <button
                         onClick={() => openEditModal(activity)}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-slate-800 text-text-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/50 dark:hover:bg-cyan-500/30 shadow-sm transition-all"
+                        title="Editar dados da atividade"
                       >
-                        Editar
+                        <Pencil size={13} className="text-sky-600 dark:text-cyan-400" />
+                        <span>Editar</span>
                       </button>
 
                       <button
