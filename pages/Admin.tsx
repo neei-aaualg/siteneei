@@ -1249,6 +1249,37 @@ export const Admin: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO DE CANDIDATURA DE COLABORADOR */}
+      {confirmDeleteCollab && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <AlertCircle size={24} />
+              <h3 className="text-lg font-bold text-text-100 dark:text-white">Eliminar Candidatura</h3>
+            </div>
+            <p className="text-sm text-text-200 dark:text-slate-300">
+              Tens a certeza de que pretendes eliminar a candidatura de{' '}
+              <strong className="text-text-100 dark:text-white">{confirmDeleteCollab.name}</strong>?
+              Esta ação é irreversível.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setConfirmDeleteCollab(null)}
+                className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteCollab(confirmDeleteCollab.id)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
+              >
+                Eliminar Definitivamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL DE CRIAR/EDITAR ATIVIDADE (SEM TAGS) */}
       {isActivityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
