@@ -163,9 +163,9 @@ export const PRESET_ICONS: PresetIcon[] = [
 export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
   {
     id: 'card-whatsapp',
-    title: 'WhatsApp Oficial',
+    title: 'WhatsApp LEI',
     category: 'whatsapp',
-    url: 'https://wa.me/351912345678',
+    url: 'https://chat.whatsapp.com/GZk6qaL0nqZ8597PaSJJwq',
     logoUrl: svgToDataUri(SVG_ICONS.whatsapp),
     logoPresetId: 'whatsapp',
     logoMargin: 6,
@@ -185,9 +185,9 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
   },
   {
     id: 'card-instagram',
-    title: 'Instagram @empresa',
+    title: 'Instagram @neeiualg',
     category: 'instagram',
-    url: 'https://instagram.com/empresa',
+    url: 'https://instagram.com/neeiualg/',
     logoUrl: svgToDataUri(SVG_ICONS.instagram),
     logoPresetId: 'instagram',
     logoMargin: 6,
@@ -206,9 +206,9 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
   },
   {
     id: 'card-discord',
-    title: 'Discord Comunidade',
+    title: 'Discord NEEI UAlg',
     category: 'discord',
-    url: 'https://discord.gg/comunidade',
+    url: 'https://discord.gg/HzBuRFCAb5',
     logoUrl: svgToDataUri(SVG_ICONS.discord),
     logoPresetId: 'discord',
     logoMargin: 6,
@@ -222,7 +222,7 @@ export const DEFAULT_INITIAL_CARDS: QRCodeCardItem[] = [
     cornerSquareColor: '#5865F2',
     cornerDotColor: '#5865F2',
     errorCorrectionLevel: 'H',
-    discordInvite: 'comunidade',
+    discordInvite: 'HzBuRFCAb5',
     themeName: 'discord'
   }
 ]

@@ -244,16 +244,11 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
                   key={card.id || index}
                   className={`flex flex-col items-center justify-between p-6 sm:p-7 rounded-3xl transition-all duration-300 ${cardBg}`}
                 >
-                  {/* Category Pill & Number */}
-                  <div className="w-full flex items-center justify-between mb-3">
+                  {/* Category Pill */}
+                  <div className="w-full flex items-center justify-start mb-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-sm ${badgeColor}`}>
                       <CategoryIcon className="w-3.5 h-3.5" />
                       <span>{card.title.split(' ')[0] || 'Canal'}</span>
-                    </span>
-                    <span className={`text-[11px] font-mono font-semibold px-2 py-0.5 rounded-lg ${
-                      isDark ? 'bg-cyan-950/60 text-cyan-400 border border-cyan-900/50' : 'bg-[#d4eaf7] text-[#00668c] border border-[#b6ccd8]'
-                    }`}>
-                      0{index + 1}
                     </span>
                   </div>
 
@@ -333,45 +328,16 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
-                <a
-                  href="https://neei.online/links"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-mono text-sm sm:text-base font-bold transition-all group cursor-pointer border shadow-md ${
+                <div
+                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl font-mono text-sm sm:text-base font-bold border shadow-sm ${
                     isDark
-                      ? 'bg-[#00a3c4] hover:bg-[#38bdf8] text-slate-950 border-cyan-300'
-                      : 'bg-[#00668c] hover:bg-[#005574] text-white border-[#005070]'
+                      ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/60'
+                      : 'bg-[#d4eaf7] text-[#00668c] border-[#b6ccd8]'
                   }`}
                 >
-                  <Globe className="w-4 h-4 transition-transform group-hover:rotate-12" />
+                  <Globe className="w-4 h-4" />
                   <span>neei.online/links</span>
-                  <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => handleCopy('https://neei.online/links', 'neei.online/links')}
-                  className={`flex items-center gap-1.5 px-3 py-2.5 rounded-2xl text-xs font-semibold border transition-all cursor-pointer ${
-                    copiedLink === 'https://neei.online/links'
-                      ? 'bg-emerald-600 text-white border-emerald-500'
-                      : isDark
-                      ? 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
-                      : 'bg-white hover:bg-slate-50 text-[#00668c] border-[#b6ccd8]'
-                  }`}
-                  title="Copiar link"
-                >
-                  {copiedLink === 'https://neei.online/links' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-white" />
-                      <span>Copiado</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar</span>
-                    </>
-                  )}
-                </button>
+                </div>
               </div>
             </div>
           </div>
