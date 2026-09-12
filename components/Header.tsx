@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, FileText, QrCode } from 'lucide-react';
+import { Menu, X, Terminal, Box, ExternalLink, ChevronDown, Calendar, FolderOpen, Briefcase, FileText, QrCode, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface ExploreItem {
   name: string;
@@ -11,6 +12,7 @@ interface ExploreItem {
 }
 
 const Header: React.FC = () => {
+  const { isDark, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
@@ -90,7 +92,7 @@ const Header: React.FC = () => {
   }, [isExploreActive]);
 
   return (
-    <header className="sticky top-0 z-50 bg-bg-100/90 backdrop-blur-md border-b border-primary-200 shadow-sm print:hidden">
+    <header className="sticky top-0 z-50 bg-bg-100/90 dark:bg-[#0a1420]/90 backdrop-blur-md border-b border-primary-200 dark:border-cyan-950/60 shadow-sm print:hidden transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side: Logo & Desktop Nav */}
@@ -114,8 +116,8 @@ const Header: React.FC = () => {
               <Link
                 to="/"
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/')
-                  ? 'text-accent-200 bg-primary-100'
-                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Início
@@ -124,8 +126,8 @@ const Header: React.FC = () => {
               <Link
                 to="/sobre"
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/sobre')
-                  ? 'text-accent-200 bg-primary-100'
-                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Sobre
@@ -139,19 +141,19 @@ const Header: React.FC = () => {
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
                   className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isExploreActive || isDropdownOpen
-                    ? 'text-accent-200 bg-primary-100'
-                    : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                     }`}
                 >
                   <span>Explorar</span>
                   <ChevronDown
                     size={15}
-                    className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-accent-200' : 'text-text-200 opacity-70'}`}
+                    className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400 opacity-70'}`}
                   />
                 </button>
 
                 {isDropdownOpen && (
-                  <div className="absolute left-0 top-full mt-2 w-64 rounded-xl bg-white border border-primary-200 shadow-xl py-2 z-50">
+                  <div className="absolute left-0 top-full mt-2 w-64 rounded-xl bg-white dark:bg-[#0c1724] border border-primary-200 dark:border-cyan-900/60 shadow-xl py-2 z-50">
                     {exploreItems.map((item) =>
                       item.isExternal ? (
                         <a
@@ -160,9 +162,9 @@ const Header: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm text-text-200 hover:bg-bg-200 hover:text-accent-200 transition-all duration-150 group"
+                          className="flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300 transition-all duration-150 group"
                         >
-                          <div className="p-2 rounded-lg bg-primary-100 text-accent-200 group-hover:bg-accent-200 group-hover:text-white transition-colors">
+                          <div className="p-2 rounded-lg bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300 group-hover:bg-accent-200 group-hover:text-white transition-colors">
                             {item.icon}
                           </div>
                           <div className="flex flex-col flex-1">
@@ -170,7 +172,7 @@ const Header: React.FC = () => {
                               <span className="font-medium leading-tight">{item.name}</span>
                               <ExternalLink size={12} className="opacity-60 group-hover:opacity-100 transition-opacity" />
                             </div>
-                            <span className="text-[11px] text-gray-500 font-normal mt-0.5">{item.desc}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">{item.desc}</span>
                           </div>
                         </a>
                       ) : (
@@ -179,19 +181,19 @@ const Header: React.FC = () => {
                           to={item.path}
                           onClick={() => setIsDropdownOpen(false)}
                           className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 ${isActive(item.path)
-                            ? 'bg-primary-100 text-accent-200 font-semibold'
-                            : 'text-text-200 hover:bg-bg-200 hover:text-accent-200'
+                            ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
                             }`}
                         >
                           <div className={`p-2 rounded-lg transition-colors ${isActive(item.path)
                             ? 'bg-accent-200 text-white'
-                            : 'bg-primary-100 text-accent-200'
+                            : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
                             }`}>
                             {item.icon}
                           </div>
                           <div className="flex flex-col">
                             <span className="font-medium leading-tight">{item.name}</span>
-                            <span className="text-[11px] text-gray-500 font-normal mt-0.5">{item.desc}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">{item.desc}</span>
                           </div>
                         </Link>
                       )
@@ -203,8 +205,8 @@ const Header: React.FC = () => {
               <Link
                 to="/pertencer"
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 ${isActive('/pertencer')
-                  ? 'text-accent-200 bg-primary-100'
-                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Colaborar
@@ -212,8 +214,19 @@ const Header: React.FC = () => {
             </nav>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons & Theme Toggle */}
           <div className="hidden md:flex items-center gap-2 lg:gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center justify-center bg-white hover:bg-slate-50 border-primary-200 text-slate-700 shadow-sm dark:bg-slate-900 dark:hover:bg-slate-800 dark:border-slate-700 dark:text-amber-300 active:scale-95"
+              title={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+              aria-label={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
             <a
               href="https://box.neei.online"
               target="_blank"
@@ -238,11 +251,21 @@ const Header: React.FC = () => {
             </Link>
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile menu button & Theme Toggle */}
+          <div className="md:hidden flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-1.5 rounded-lg border text-xs transition-all cursor-pointer flex items-center justify-center bg-white dark:bg-slate-900 border-primary-200 dark:border-slate-700 text-slate-700 dark:text-amber-300 shadow-sm"
+              title={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+              aria-label={isDark ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro'}
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-text-200 hover:text-accent-200 focus:outline-none"
+              className="text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 focus:outline-none p-1"
             >
               {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -252,14 +275,14 @@ const Header: React.FC = () => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden bg-bg-100 border-t border-primary-200 shadow-lg">
+        <div className="md:hidden bg-bg-100 dark:bg-[#0a1420] border-t border-primary-200 dark:border-cyan-950/60 shadow-lg">
           <div className="px-3 pt-3 pb-4 space-y-1 sm:px-4">
             <Link
               to="/"
               onClick={() => setIsMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/')
-                ? 'text-accent-200 bg-primary-100'
-                : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Início
@@ -269,8 +292,8 @@ const Header: React.FC = () => {
               to="/sobre"
               onClick={() => setIsMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/sobre')
-                ? 'text-accent-200 bg-primary-100'
-                : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Sobre
@@ -282,19 +305,19 @@ const Header: React.FC = () => {
                 type="button"
                 onClick={() => setIsMobileDropdownOpen(prev => !prev)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${isExploreActive
-                  ? 'text-accent-200 bg-primary-100'
-                  : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 <span>Explorar</span>
                 <ChevronDown
                   size={18}
-                  className={`transition-transform duration-200 ${isMobileDropdownOpen ? 'rotate-180 text-accent-200' : 'text-text-200'}`}
+                  className={`transition-transform duration-200 ${isMobileDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400'}`}
                 />
               </button>
 
               {isMobileDropdownOpen && (
-                <div className="pl-4 pr-1 py-1 space-y-1 border-l-2 border-primary-200 ml-3">
+                <div className="pl-4 pr-1 py-1 space-y-1 border-l-2 border-primary-200 dark:border-cyan-900/50 ml-3">
                   {exploreItems.map((item) =>
                     item.isExternal ? (
                       <a
@@ -303,13 +326,13 @@ const Header: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-text-200 hover:text-accent-200 hover:bg-bg-200"
+                        className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80"
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className="text-accent-200">{item.icon}</span>
+                          <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
                           <span>{item.name}</span>
                         </div>
-                        <ExternalLink size={14} className="opacity-60 text-text-200" />
+                        <ExternalLink size={14} className="opacity-60 text-text-200 dark:text-slate-400" />
                       </a>
                     ) : (
                       <Link
@@ -317,11 +340,11 @@ const Header: React.FC = () => {
                         to={item.path}
                         onClick={() => setIsMenuOpen(false)}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
-                          ? 'text-accent-200 bg-primary-100 font-semibold'
-                          : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                          ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                          : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                           }`}
                       >
-                        <span className="text-accent-200">{item.icon}</span>
+                        <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
                         <span>{item.name}</span>
                       </Link>
                     )
@@ -334,14 +357,14 @@ const Header: React.FC = () => {
               to="/pertencer"
               onClick={() => setIsMenuOpen(false)}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/pertencer')
-                ? 'text-accent-200 bg-primary-100'
-                : 'text-text-200 hover:text-accent-200 hover:bg-bg-200'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Colaborar
             </Link>
 
-            <div className="pt-3 space-y-2 border-t border-primary-200 mt-2">
+            <div className="pt-3 space-y-2 border-t border-primary-200 dark:border-cyan-950/60 mt-2">
               <a
                 href="https://box.neei.online"
                 target="_blank"

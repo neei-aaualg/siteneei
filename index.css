@@ -31,3 +31,33 @@
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
 }
+
+/* Dark Mode Scrollbars */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #070d14;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Selection Color */
+::selection {
+  background-color: #71c4ef;
+  color: #070d14;
+}
+
+.dark ::selection {
+  background-color: #0284c7;
+  color: #ffffff;
+}

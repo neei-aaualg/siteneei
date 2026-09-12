@@ -249,7 +249,7 @@ const HighlightsCarousel: React.FC = () => {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
       <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-bold text-text-100">Destaques do Mandato</h2>
+        <h2 className="text-3xl md:text-4xl font-bold text-text-100 dark:text-slate-100">Destaques do Mandato</h2>
       </div>
 
       {/* Carrossel com setas laterais flutuantes */}
@@ -258,7 +258,7 @@ const HighlightsCarousel: React.FC = () => {
         <button
           onClick={prevSlide}
           aria-label="Página anterior"
-          className="flex absolute -left-3 sm:-left-5 lg:-left-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+          className="flex absolute -left-3 sm:-left-5 lg:-left-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
         >
           <ChevronLeft size={22} />
         </button>
@@ -267,7 +267,7 @@ const HighlightsCarousel: React.FC = () => {
         <button
           onClick={nextSlide}
           aria-label="Próxima página"
-          className="flex absolute -right-3 sm:-right-5 lg:-right-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 backdrop-blur-sm border border-primary-200 text-text-100 shadow-md hover:bg-primary-100 hover:border-accent-200 hover:text-accent-200 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
+          className="flex absolute -right-3 sm:-right-5 lg:-right-6 top-1/2 -translate-y-1/2 z-20 p-2.5 sm:p-3 rounded-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-primary-200 dark:border-slate-700 text-text-100 dark:text-slate-200 shadow-md hover:bg-primary-100 dark:hover:bg-slate-800 hover:border-accent-200 dark:hover:border-cyan-500 hover:text-accent-200 dark:hover:text-cyan-300 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer items-center justify-center opacity-90 group-hover/carousel:opacity-100"
         >
           <ChevronRight size={22} />
         </button>
@@ -288,21 +288,21 @@ const HighlightsCarousel: React.FC = () => {
                   {pageItems.map((item, i) => (
                     <div
                       key={i}
-                      className="h-full bg-white p-6 rounded-2xl shadow-sm border border-primary-200 hover:border-accent-200/50 hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
+                      className="h-full bg-white dark:bg-[#0c1724] p-6 rounded-2xl shadow-sm border border-primary-200 dark:border-cyan-900/50 hover:border-accent-200/50 dark:hover:border-cyan-500/50 hover:shadow-xl dark:hover:shadow-cyan-950/40 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group"
                     >
                       <div>
                         <div className="flex justify-between items-start mb-5">
-                          <div className="p-3.5 bg-primary-100 rounded-xl group-hover:bg-accent-200/10 group-hover:scale-110 transition-all duration-300 text-accent-200">
+                          <div className="p-3.5 bg-primary-100 dark:bg-cyan-950/60 rounded-xl group-hover:bg-accent-200/10 dark:group-hover:bg-cyan-900/40 group-hover:scale-110 transition-all duration-300 text-accent-200 dark:text-cyan-400">
                             {item.icon}
                           </div>
-                          <span className="text-xs font-bold text-accent-200 bg-primary-100 border border-primary-200 px-2.5 py-1 rounded-full">
+                          <span className="text-xs font-bold text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/60 border border-primary-200 dark:border-cyan-900/60 px-2.5 py-1 rounded-full">
                             {item.date}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-text-100 mb-2.5 group-hover:text-accent-200 transition-colors leading-snug">
+                        <h3 className="text-xl font-bold text-text-100 dark:text-slate-100 mb-2.5 group-hover:text-accent-200 dark:group-hover:text-cyan-300 transition-colors leading-snug">
                           {item.title}
                         </h3>
-                        <p className="text-text-200 text-sm leading-relaxed">
+                        <p className="text-text-200 dark:text-slate-400 text-sm leading-relaxed">
                           {item.desc}
                         </p>
                       </div>
@@ -321,7 +321,7 @@ const HighlightsCarousel: React.FC = () => {
           <button
             key={idx}
             onClick={() => setCurrentPage(idx)}
-            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx ? 'w-8 bg-accent-200' : 'w-2.5 bg-primary-200 hover:bg-accent-100'
+            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx ? 'w-8 bg-accent-200 dark:bg-cyan-400' : 'w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
               }`}
             aria-label={`Ir para página ${idx + 1}`}
           />
@@ -335,25 +335,25 @@ const Home: React.FC = () => {
   return (
     <div className="flex flex-col gap-16">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-primary-100 to-bg-100 py-20 md:py-32">
+      <section className="relative bg-gradient-to-b from-primary-100 to-bg-100 dark:from-[#0c1827] dark:to-[#070d14] py-20 md:py-32 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 space-y-6 text-center md:text-left mb-12 md:mb-0">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-primary-200 text-accent-200 text-xs font-bold uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-slate-900/90 border border-primary-200 dark:border-cyan-900/60 text-accent-200 dark:text-cyan-400 text-xs font-bold uppercase tracking-wider mb-2 shadow-sm">
               <MapPin size={12} />
               Sala 0.18, Edifício 1, Campus de Gambelas, Faro
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-text-100 leading-tight">
-              <span className="text-accent-200">N</span>úcleo de <span className="text-accent-200">E</span>studantes de <span className="text-accent-200">E</span>ngenharia <span className="text-accent-200">I</span>nformática da <span className="text-accent-200">UAlg</span>
+            <h1 className="text-4xl md:text-6xl font-bold text-text-100 dark:text-slate-100 leading-tight">
+              <span className="text-accent-200 dark:text-cyan-400">N</span>úcleo de <span className="text-accent-200 dark:text-cyan-400">E</span>studantes de <span className="text-accent-200 dark:text-cyan-400">E</span>ngenharia <span className="text-accent-200 dark:text-cyan-400">I</span>nformática da <span className="text-accent-200 dark:text-cyan-400">UAlg</span>
             </h1>
-            <p className="text-lg text-text-200 max-w-lg mx-auto md:mx-0">
+            <p className="text-lg text-text-200 dark:text-slate-300 max-w-lg mx-auto md:mx-0">
               Somos o órgão responsável por proporcionar atividades, workshops e eventos dedicados aos estudantes de Engenharia Informática da UAlg. Fomentamos a integração e a cooperação para uma experiência académica completa.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center md:justify-start">
-              <Link to="/pertencer" className="bg-accent-200 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:bg-accent-100 hover:-translate-y-1 transition-all duration-300">
+              <Link to="/pertencer" className="bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:-translate-y-1 transition-all duration-300">
                 Ser Colaborador
               </Link>
-              <Link to="/eventos" className="bg-white text-accent-200 border border-accent-200 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 transition-all duration-300 flex items-center justify-center gap-2">
+              <Link to="/eventos" className="bg-white dark:bg-slate-900 text-accent-200 dark:text-cyan-400 border border-accent-200 dark:border-cyan-600 px-8 py-3 rounded-lg font-semibold hover:bg-primary-100 dark:hover:bg-slate-800 transition-all duration-300 flex items-center justify-center gap-2">
                 <Calendar size={20} />
                 Calendário
               </Link>
@@ -380,7 +380,7 @@ const Home: React.FC = () => {
               </div>
 
               {/* Pequena dica abaixo da moldura */}
-              <div className="text-center mt-4 opacity-60 text-xs font-mono text-gray-500">
+              <div className="text-center mt-4 opacity-60 text-xs font-mono text-gray-500 dark:text-slate-400">
                 <TerminalIcon size={12} className="inline mr-1" />
                 Sistema Interativo: Tenta escrever "help" ou "ls"
               </div>

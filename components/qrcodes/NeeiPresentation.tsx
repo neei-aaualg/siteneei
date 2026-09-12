@@ -43,7 +43,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
   cards,
   onNotify
 }) => {
-  const [isDark, setIsDark] = useState(false)
+  const { isDark, toggleTheme } = useTheme()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [copiedLink, setCopiedLink] = useState<string | null>(null)
   const slideRef = useRef<HTMLDivElement>(null)
@@ -128,7 +128,7 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({
               {/* Theme Toggle */}
               <button
                 type="button"
-                onClick={() => setIsDark(!isDark)}
+                onClick={toggleTheme}
                 className={`p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 ${isDark
                   ? 'bg-slate-900 hover:bg-slate-800 border-slate-750 text-amber-300'
                   : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm'

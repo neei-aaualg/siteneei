@@ -158,9 +158,9 @@ const Quack: React.FC = () => {
       
       {/* Sidebar Navigation */}
       <div className="hidden md:flex w-64 flex-col gap-4 overflow-y-auto pr-1">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-primary-200">
-            <h2 className="font-bold text-text-100 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
-                <BookOpen size={16} className="text-accent-200"/>
+        <div className="bg-white dark:bg-[#0c1724] p-4 rounded-xl shadow-sm border border-primary-200 dark:border-cyan-900/50">
+            <h2 className="font-bold text-text-100 dark:text-slate-100 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                <BookOpen size={16} className="text-accent-200 dark:text-cyan-400"/>
                 Cadeiras
             </h2>
             <div className="space-y-3">
@@ -173,8 +173,8 @@ const Quack: React.FC = () => {
                             }}
                             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-colors flex justify-between items-center ${
                                 selectedCourse.id === course.id 
-                                ? 'bg-primary-300 text-white shadow-md' 
-                                : 'text-text-200 hover:bg-primary-100'
+                                ? 'bg-primary-300 dark:bg-cyan-700 text-white shadow-md' 
+                                : 'text-text-200 dark:text-slate-300 hover:bg-primary-100 dark:hover:bg-slate-800/80'
                             }`}
                         >
                             {course.shortName}
@@ -182,18 +182,18 @@ const Quack: React.FC = () => {
                         </button>
                         
                         {selectedCourse.id === course.id && (
-                            <div className="ml-3 mt-2 pl-3 border-l-2 border-primary-200 space-y-1">
+                            <div className="ml-3 mt-2 pl-3 border-l-2 border-primary-200 dark:border-cyan-900/50 space-y-1">
                                 {course.exercises.map(ex => (
                                     <button
                                         key={ex.id}
                                         onClick={() => setSelectedExercise(ex)}
                                         className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all flex items-center gap-2 ${
                                             selectedExercise.id === ex.id
-                                            ? 'text-accent-200 font-bold bg-accent-100/10'
-                                            : 'text-text-200 hover:text-accent-200 hover:translate-x-1'
+                                            ? 'text-accent-200 dark:text-cyan-300 font-bold bg-accent-100/10 dark:bg-cyan-950/50'
+                                            : 'text-text-200 dark:text-slate-400 hover:text-accent-200 dark:hover:text-cyan-300 hover:translate-x-1'
                                         }`}
                                     >
-                                        <div className={`w-1.5 h-1.5 rounded-full ${selectedExercise.id === ex.id ? 'bg-accent-200' : 'bg-gray-300'}`}></div>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${selectedExercise.id === ex.id ? 'bg-accent-200 dark:bg-cyan-400' : 'bg-gray-300 dark:bg-slate-600'}`}></div>
                                         <span className="truncate">{ex.title}</span>
                                     </button>
                                 ))}
@@ -209,19 +209,19 @@ const Quack: React.FC = () => {
       <div className="flex-1 flex flex-col min-h-0 gap-4">
         
         {/* Header - Exercise Info */}
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-primary-200 flex flex-col gap-3">
+        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-xl shadow-sm border border-primary-200 dark:border-cyan-900/50 flex flex-col gap-3">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-xl font-bold text-text-100 flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-text-100 dark:text-slate-100 flex items-center gap-2">
                         {selectedExercise.title}
                         {status === ExecutionStatus.SUCCESS && <CheckCircle size={18} className="text-green-500"/>}
                     </h1>
-                    <p className="text-text-200 text-sm mt-1">{selectedExercise.description}</p>
+                    <p className="text-text-200 dark:text-slate-300 text-sm mt-1">{selectedExercise.description}</p>
                 </div>
                 <div className="flex gap-2">
                      <button
                         onClick={handleUseSolution}
-                        className="p-2 text-accent-200 hover:bg-accent-100/10 rounded-lg transition-colors"
+                        className="p-2 text-accent-200 dark:text-cyan-400 hover:bg-accent-100/10 dark:hover:bg-cyan-950/40 rounded-lg transition-colors"
                         title="Ver Solução"
                     >
                         <Unlock size={18} />
@@ -231,7 +231,7 @@ const Quack: React.FC = () => {
                         disabled={status === ExecutionStatus.RUNNING}
                         className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-white shadow-md transition-all text-sm ${
                             status === ExecutionStatus.RUNNING 
-                            ? 'bg-gray-400 cursor-not-allowed' 
+                            ? 'bg-gray-400 dark:bg-slate-700 cursor-not-allowed' 
                             : 'bg-green-600 hover:bg-green-500 hover:shadow-lg active:translate-y-0.5'
                         }`}
                     >
@@ -242,10 +242,10 @@ const Quack: React.FC = () => {
             </div>
             
             {/* Quick Stats / Tags */}
-            <div className="flex items-center gap-4 text-xs text-text-200 border-t border-gray-100 pt-3 mt-1">
-                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded"><Code2 size={12}/> {selectedCourse.language === 'c' ? 'GCC 10.2' : 'OpenJDK 15'}</span>
-                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded"><Clock size={12}/> 30s Timeout</span>
-                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded"><ShieldAlert size={12}/> Sandbox (Piston)</span>
+            <div className="flex items-center gap-4 text-xs text-text-200 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 pt-3 mt-1">
+                <span className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded"><Code2 size={12}/> {selectedCourse.language === 'c' ? 'GCC 10.2' : 'OpenJDK 15'}</span>
+                <span className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded"><Clock size={12}/> 30s Timeout</span>
+                <span className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded"><ShieldAlert size={12}/> Sandbox (Piston)</span>
             </div>
         </div>
 
@@ -256,14 +256,14 @@ const Quack: React.FC = () => {
              <CodeEditor code={code} setCode={setCode} language={selectedCourse.language} />
 
             {/* Right: Output & Tools */}
-            <div className="flex flex-col bg-white rounded-xl shadow-xl border border-primary-200 overflow-hidden">
+            <div className="flex flex-col bg-white dark:bg-[#0c1724] rounded-xl shadow-xl border border-primary-200 dark:border-cyan-900/50 overflow-hidden">
                 
                 {/* Tabs Header */}
-                <div className="flex border-b border-gray-200 bg-gray-50">
+                <div className="flex border-b border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-[#081320]">
                     <button 
                         onClick={() => setActiveTab('terminal')}
                         className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-                            activeTab === 'terminal' ? 'border-accent-200 text-accent-200 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'
+                            activeTab === 'terminal' ? 'border-accent-200 dark:border-cyan-400 text-accent-200 dark:text-cyan-400 bg-white dark:bg-[#0c1724]' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                     >
                         <Terminal size={16} /> Terminal
@@ -271,13 +271,13 @@ const Quack: React.FC = () => {
                     <button 
                          onClick={() => setActiveTab('details')}
                          className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-                            activeTab === 'details' ? 'border-accent-200 text-accent-200 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'
+                            activeTab === 'details' ? 'border-accent-200 dark:border-cyan-400 text-accent-200 dark:text-cyan-400 bg-white dark:bg-[#0c1724]' : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
                         }`}
                     >
                         {status === ExecutionStatus.SUCCESS ? <CheckCircle size={16}/> : <AlertCircle size={16}/>}
                         Resultados
                         {status !== ExecutionStatus.IDLE && status !== ExecutionStatus.RUNNING && (
-                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${status === ExecutionStatus.SUCCESS ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${status === ExecutionStatus.SUCCESS ? 'bg-green-100 dark:bg-green-950/70 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300'}`}>
                                 {status === ExecutionStatus.SUCCESS ? 'PASSOU' : 'ERRO'}
                              </span>
                         )}
@@ -286,7 +286,7 @@ const Quack: React.FC = () => {
                          <button 
                             onClick={() => setActiveTab('hint')}
                             className={`px-4 py-3 text-sm font-medium flex items-center gap-2 border-b-2 transition-colors ${
-                                activeTab === 'hint' ? 'border-yellow-400 text-yellow-600 bg-white' : 'border-transparent text-yellow-600 hover:bg-yellow-50'
+                                activeTab === 'hint' ? 'border-yellow-400 text-yellow-600 dark:text-yellow-400 bg-white dark:bg-[#0c1724]' : 'border-transparent text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950/30'
                             }`}
                         >
                             <Lightbulb size={16} className={activeTab === 'hint' ? 'fill-yellow-400' : ''}/> AI Tutor
@@ -318,9 +318,9 @@ const Quack: React.FC = () => {
 
                     {/* DETAILS TAB */}
                     {activeTab === 'details' && (
-                        <div className="p-6 bg-white h-full overflow-y-auto">
+                        <div className="p-6 bg-white dark:bg-[#0c1724] h-full overflow-y-auto">
                             {status === ExecutionStatus.IDLE ? (
-                                <div className="text-center text-gray-400 mt-10">
+                                <div className="text-center text-gray-400 dark:text-slate-500 mt-10">
                                     <Play size={48} className="mx-auto mb-2 opacity-20"/>
                                     <p>Executa o código para ver a análise.</p>
                                 </div>
@@ -328,9 +328,9 @@ const Quack: React.FC = () => {
                                 <div className="space-y-6">
                                     {/* Status Banner */}
                                     <div className={`p-4 rounded-lg flex items-start gap-3 ${
-                                        status === ExecutionStatus.SUCCESS ? 'bg-green-50 text-green-800' : 
-                                        status === ExecutionStatus.TIMEOUT ? 'bg-orange-50 text-orange-800' :
-                                        'bg-red-50 text-red-800'
+                                        status === ExecutionStatus.SUCCESS ? 'bg-green-50 dark:bg-green-950/40 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800' : 
+                                        status === ExecutionStatus.TIMEOUT ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800' :
+                                        'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'
                                     }`}>
                                         {status === ExecutionStatus.SUCCESS ? <CheckCircle className="mt-0.5 shrink-0"/> : <AlertTriangle className="mt-0.5 shrink-0"/>}
                                         <div>
@@ -344,20 +344,20 @@ const Quack: React.FC = () => {
 
                                     {/* Test Cases List */}
                                     <div>
-                                        <h4 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                                        <h4 className="font-bold text-gray-700 dark:text-slate-200 mb-3 flex items-center gap-2">
                                             <Code2 size={16}/> Casos de Teste
                                         </h4>
                                         <div className="space-y-3">
                                             {selectedExercise.testCases.map((tc, idx) => (
-                                                <div key={idx} className="border border-gray-200 rounded-lg p-3 text-sm">
+                                                <div key={idx} className="border border-gray-200 dark:border-slate-800 rounded-lg p-3 text-sm">
                                                     <div className="grid grid-cols-2 gap-4 mb-2">
                                                         <div>
-                                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Input</span>
-                                                            <div className="font-mono bg-gray-100 p-1.5 rounded text-gray-800 mt-1">{tc.input || "(vazio)"}</div>
+                                                            <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Input</span>
+                                                            <div className="font-mono bg-gray-100 dark:bg-[#070d14] p-1.5 rounded text-gray-800 dark:text-slate-200 mt-1 border border-transparent dark:border-slate-800">{tc.input || "(vazio)"}</div>
                                                         </div>
                                                         <div>
-                                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Esperado</span>
-                                                            <div className="font-mono bg-gray-100 p-1.5 rounded text-gray-800 mt-1">{tc.expectedOutput}</div>
+                                                            <span className="text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Esperado</span>
+                                                            <div className="font-mono bg-gray-100 dark:bg-[#070d14] p-1.5 rounded text-gray-800 dark:text-slate-200 mt-1 border border-transparent dark:border-slate-800">{tc.expectedOutput}</div>
                                                         </div>
                                                     </div>
                                                 </div>

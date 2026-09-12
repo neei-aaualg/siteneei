@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import About from './pages/About';
@@ -12,8 +13,9 @@ import Links from './pages/Links';
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <Layout>
+    <ThemeProvider>
+      <Router>
+        <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/sobre" element={<About />} />
@@ -26,6 +28,7 @@ const App: React.FC = () => {
         </Routes>
       </Layout>
     </Router>
+  </ThemeProvider>
   );
 };
 
