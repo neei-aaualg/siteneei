@@ -11,7 +11,7 @@ const About: React.FC = () => {
   ];
 
   const mesaPlenario = [
-    { name: 'Francisco Molo', role: 'Presidente' },
+    { name: 'Francisco Melo', role: 'Presidente' },
     { name: 'Leonardo Cantachini', role: 'Vice-Presidente' },
     { name: 'Afonso Francisco', role: 'Secretário' },
     { name: 'Simão Reis', role: 'Primeiro Suplente' },
@@ -34,7 +34,7 @@ const About: React.FC = () => {
   const memberPhotos: Record<string, string> = {
     'José Tico': '/assets/josetico.png',
     'David Gonçalves': '/assets/davidgoncalves.png',
-    'Francisco Molo': '/assets/franciscomolo.png',
+    'Francisco Melo': '/assets/franciscomelo.png',
     'Leonardo Cantachini': '/assets/leonardocantachini.png',
     'Afonso Francisco': '/assets/afonsofrancisco.png',
     'Simão Reis': '/assets/simaoreis.png',
