@@ -10,6 +10,16 @@ function activitiesApiPlugin() {
         try {
           const url = new URL(req.url, 'http://localhost');
           if (
+            url.pathname.startsWith('/api/shop/') ||
+            url.pathname.startsWith('/api/admin/shop/') ||
+            url.pathname === '/api/webhooks/ifthenpay'
+          ) {
+            const { handleShopApi } = await import('./server/shopApi.js');
+            const handled = await handleShopApi(req, res, url.pathname, url.searchParams);
+            if (handled !== false) return;
+          }
+
+          if (
             url.pathname.startsWith('/api/activities') ||
             url.pathname.startsWith('/api/admin/') ||
             url.pathname.startsWith('/api/collaborators') ||

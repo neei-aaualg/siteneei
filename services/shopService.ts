@@ -16,6 +16,12 @@ export async function fetchShopCampaign(): Promise<{
   isSandbox: boolean;
 }> {
   const res = await fetch('/api/shop/campaign');
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(
+      'O servidor de desenvolvimento precisa de ser reiniciado para carregar as novas rotas da loja.'
+    );
+  }
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.error || 'Erro ao carregar a campanha de pré-encomenda.');
