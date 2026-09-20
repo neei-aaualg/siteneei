@@ -209,20 +209,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
               <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/20">
                 Preço Especial: 0.50€
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-cyan-900/30 text-cyan-300 font-mono text-[11px] border border-cyan-500/20">
-                SHOW_TEST_SHOP=true
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-                  sweatsAvailable
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
-                }`}
-              >
-                {sweatsAvailable
-                  ? '● Loja Pública: Aberta'
-                  : '○ Loja Pública: Oculta'}
-              </span>
             </div>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               Permite testar o fluxo de compra e pagamentos reais (MB WAY, Cartões, Apple Pay) com valor reduzido para apenas <strong>0.50€</strong> (mínimo Stripe) sem limitações de sandbox. Ativado via <code>SHOW_TEST_SHOP=true</code>.
