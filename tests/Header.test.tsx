@@ -24,7 +24,7 @@ describe('Header', () => {
   it('apresenta a navegação principal', () => {
     renderHeader();
     expect(screen.getByText('Início')).toBeInTheDocument();
-    expect(screen.getByText('Loja')).toBeInTheDocument();
+    expect(screen.getByText('Merch')).toBeInTheDocument();
     expect(screen.getByText('Atividades')).toBeInTheDocument();
     expect(screen.getByText('Colaborar')).toBeInTheDocument();
   });

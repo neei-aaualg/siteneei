@@ -14,7 +14,6 @@ import {
   QrCode,
   Sun,
   Moon,
-  ShoppingBag,
   Info,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -80,7 +79,9 @@ const Header: React.FC = () => {
     const isSameRoute =
       location.pathname === targetPath ||
       (targetPath === '/atividades' && location.pathname === '/eventos') ||
-      (targetPath === '/eventos' && location.pathname === '/atividades');
+      (targetPath === '/eventos' && location.pathname === '/atividades') ||
+      (targetPath === '/merch' && location.pathname === '/loja') ||
+      (targetPath === '/loja' && location.pathname === '/merch');
 
     if (isSameRoute) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -155,8 +156,8 @@ const Header: React.FC = () => {
                 to="/"
                 onClick={() => jumpToPageTop('/')}
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/')
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Início
@@ -170,8 +171,8 @@ const Header: React.FC = () => {
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
                   className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isExploreActive || isDropdownOpen
-                      ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                      : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                     }`}
                 >
                   <span>Explorar</span>
@@ -218,14 +219,14 @@ const Header: React.FC = () => {
                             jumpToPageTop(item.path);
                           }}
                           className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${isActive(item.path)
-                              ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
-                              : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
+                            ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
                             }`}
                         >
                           <div
                             className={`p-2 rounded-lg transition-colors ${isActive(item.path)
-                                ? 'bg-accent-200 text-white'
-                                : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
+                              ? 'bg-accent-200 text-white'
+                              : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
                               }`}
                           >
                             {item.icon}
@@ -244,26 +245,23 @@ const Header: React.FC = () => {
               </div>
 
               <Link
-                to="/loja"
-                onClick={() => jumpToPageTop('/loja')}
-                className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/loja')
+                to="/merch"
+                onClick={() => jumpToPageTop('/merch')}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/merch') || isActive('/loja')
                     ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                     : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                }`}
               >
-                <ShoppingBag size={14} className="text-cyan-500" />
-                <span>Loja</span>
-                <span className="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
-                  Sweats
-                </span>
+                Merch
               </Link>
 
               <Link
                 to="/atividades"
                 onClick={() => jumpToPageTop('/atividades')}
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/atividades')
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Atividades
@@ -273,8 +271,8 @@ const Header: React.FC = () => {
                 to="/colaborar"
                 onClick={() => jumpToPageTop('/colaborar')}
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/colaborar')
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 Colaborar
@@ -310,8 +308,8 @@ const Header: React.FC = () => {
             <Link
               to="/quack"
               className={`inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${isActive('/quack')
-                  ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
-                  : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
+                ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
+                : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
                 }`}
             >
               <Terminal size={16} />
@@ -352,8 +350,8 @@ const Header: React.FC = () => {
                 jumpToPageTop('/');
               }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Início
@@ -366,8 +364,8 @@ const Header: React.FC = () => {
                 type="button"
                 onClick={() => setIsMobileDropdownOpen((prev) => !prev)}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${isExploreActive
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                   }`}
               >
                 <span>Explorar</span>
@@ -407,8 +405,8 @@ const Header: React.FC = () => {
                           jumpToPageTop(item.path);
                         }}
                         className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
-                            ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                            : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                          ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                          : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                           }`}
                       >
                         <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
@@ -421,17 +419,18 @@ const Header: React.FC = () => {
             </div>
 
             <Link
-              to="/loja"
+              to="/merch"
               onClick={() => {
                 setIsMenuOpen(false);
-                jumpToPageTop('/loja');
+                jumpToPageTop('/merch');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/loja')
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/merch') || isActive('/loja')
                   ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
                   : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              }`}
             >
-              Loja
+              Merch
             </Link>
 
             <Link
@@ -441,8 +440,8 @@ const Header: React.FC = () => {
                 jumpToPageTop('/atividades');
               }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/atividades')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Atividades
@@ -455,8 +454,8 @@ const Header: React.FC = () => {
                 jumpToPageTop('/colaborar');
               }}
               className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/colaborar')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
             >
               Colaborar

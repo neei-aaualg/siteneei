@@ -18,8 +18,13 @@ import {
   X,
   Copy,
   Check,
+  Lock,
+  Package,
+  Layers,
+  Tag,
+  Filter,
 } from 'lucide-react';
-import { ShopCampaign, SweatSize, DeliveryType } from '../types/shop';
+import { ShopCampaign, SweatSize, DeliveryType, MerchProduct } from '../types/shop';
 import {
   fetchShopCampaign,
   submitCheckout,
@@ -44,8 +49,15 @@ const SIZE_GUIDE: Record<
 export const Shop: React.FC = () => {
   const [campaign, setCampaign] = useState<ShopCampaign | null>(null);
   const [isSandbox, setIsSandbox] = useState(false);
+  const [sweatsAvailable, setSweatsAvailable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filtro de categoria no Merch
+  const [activeCategory, setActiveCategory] = useState<'all' | 'clothing' | 'accessories'>('all');
+
+  // Modal de Checkout / Encomenda
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   // Seleções do comprador
   const [selectedSize, setSelectedSize] = useState<SweatSize>('M');
@@ -74,7 +86,12 @@ export const Shop: React.FC = () => {
   const [simulating, setSimulating] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(false);
 
-  // Carrega dados da campanha
+  // Atualiza o título da página
+  useEffect(() => {
+    document.title = 'Merch Oficial · NEEI AAUAlg';
+  }, []);
+
+  // Carrega dados da campanha da loja
   useEffect(() => {
     let mounted = true;
     fetchShopCampaign()
@@ -82,8 +99,11 @@ export const Shop: React.FC = () => {
         if (mounted) {
           setCampaign(data.campaign);
           setIsSandbox(data.isSandbox);
+          // Determina disponibilidade pelas variáveis de ambiente / status
+          const isAvail = data.sweatsAvailable !== false && data.campaign?.is_available !== false;
+          setSweatsAvailable(isAvail);
+
           if (data.campaign?.sizes_available?.length > 0) {
-            // Seleciona tamanho M se disponível, senão o primeiro
             if (data.campaign.sizes_available.includes('M')) {
               setSelectedSize('M');
             } else {
@@ -105,6 +125,43 @@ export const Shop: React.FC = () => {
     };
   }, []);
 
+  // Lista de produtos suportados no catálogo de Merch
+  const products: MerchProduct[] = useMemo(() => {
+    if (!campaign) return [];
+
+    return [
+      {
+        id: 'sweat-ei-2026',
+        name: campaign.item_name || 'Sweat Oficial Engenharia Informática 2026',
+        category: 'clothing',
+        price: campaign.item_price,
+        imageUrl: campaign.image_url || '/assets/sweat_mockup.jpg',
+        badge: sweatsAvailable ? 'Pré-encomenda' : 'Indisponível',
+        description:
+          'A sweat oficial do curso de Engenharia Informática da UAlg. Produzida em algodão premium de 320g/m² cardado, com corte unissexo moderno, bolso frontal canguru e bordado exclusivo.',
+        features: [
+          '80% Algodão cardado / 20% Poliéster (320g/m²)',
+          'Bordado de alta definição NEEI · Engenharia Informática',
+          'Corte unissexo confortável com cordões reforçados',
+          'Recolha no Campus de Gambelas ou Envio CTT',
+        ],
+        available: sweatsAvailable,
+        isPreorder: true,
+        sizes: campaign.sizes_available,
+        allowShipping: campaign.allow_shipping,
+        shippingFee: campaign.shipping_fee,
+        pickupLocation: campaign.pickup_location,
+      },
+    ];
+  }, [campaign, sweatsAvailable]);
+
+  // Produtos filtrados por categoria
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'all') return products;
+    if (activeCategory === 'clothing') return products.filter((p) => p.category === 'clothing');
+    return [];
+  }, [products, activeCategory]);
+
   // Cálculo de dias restantes até ao fim da campanha
   const daysLeft = useMemo(() => {
     if (!campaign?.deadline_date) return null;
@@ -115,7 +172,7 @@ export const Shop: React.FC = () => {
     return diffDays > 0 ? diffDays : 0;
   }, [campaign?.deadline_date]);
 
-  // Cálculo do total
+  // Cálculo do total da encomenda
   const totalPrice = useMemo(() => {
     if (!campaign) return 0;
     const shipping = deliveryType === 'shipping' ? campaign.shipping_fee : 0;
@@ -146,7 +203,6 @@ export const Shop: React.FC = () => {
           setPaymentStatus('paid');
           clearInterval(timer);
           clearInterval(pollInterval);
-          // Lança confetes de celebração
           try {
             confetti({
               particleCount: 120,
@@ -177,6 +233,11 @@ export const Shop: React.FC = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    if (!sweatsAvailable) {
+      setFormError('As encomendas das sweats encontram-se temporariamente encerradas.');
+      return;
+    }
 
     // Validações básicas
     if (!studentName.trim() || studentName.trim().length < 3) {
@@ -266,7 +327,7 @@ export const Shop: React.FC = () => {
       <div className="min-h-[70vh] flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 text-cyan-500 animate-spin mb-4" />
         <p className="text-gray-600 dark:text-gray-300 font-medium">
-          A carregar a Loja de Merchandising do NEEI...
+          A carregar a Coleção de Merch do NEEI...
         </p>
       </div>
     );
@@ -279,10 +340,10 @@ export const Shop: React.FC = () => {
           <AlertCircle size={36} />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Loja Temporariamente Indisponível
+          Merch Temporariamente Indisponível
         </h2>
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          {error || 'Não existe nenhuma campanha de pré-encomenda ativa de momento.'}
+          {error || 'Não existe nenhum artigo de merchandising ativo de momento.'}
         </p>
         <a
           href="/"
@@ -297,44 +358,561 @@ export const Shop: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070e17] text-slate-900 dark:text-slate-100 transition-colors py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {/* Banner de Campanha & Urgência */}
-        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-cyan-200/80 dark:border-cyan-500/30 shadow-sm dark:shadow-cyan-950/20 flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
-          <div className="flex items-center gap-3.5">
-            <span className="flex h-3 w-3 relative flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
-            </span>
-            <div>
-              <span className="text-[11px] uppercase tracking-wider font-extrabold text-cyan-600 dark:text-cyan-400 block mb-0.5">
-                Campanha Oficial de Pré-encomenda
-              </span>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                Sweat Oficial de Engenharia Informática UAlg 2026
-              </h2>
-            </div>
+        {/* Header Hero da Página de Merch */}
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider mb-4">
+            <Sparkles size={14} className="text-cyan-500" />
+            <span>Merchandise Oficial · NEEI AAUAlg</span>
           </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
+            Merch Oficial
+          </h1>
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+            Veste a camisola do curso e apoia as atividades e projetos dos estudantes de Engenharia
+            Informática da Universidade do Algarve.
+          </p>
 
-          <div className="flex items-center gap-2.5 bg-cyan-50/80 dark:bg-slate-900/80 px-4 py-2 rounded-xl border border-cyan-200/60 dark:border-cyan-500/20">
-            <Clock size={16} className="text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
-              {daysLeft !== null && daysLeft > 0 ? (
-                <>
-                  Termina em{' '}
-                  <strong className="text-cyan-700 dark:text-cyan-300 font-bold">
-                    {daysLeft} dias
-                  </strong>{' '}
-                  <span className="text-slate-500 dark:text-slate-400">
-                    ({campaign.deadline_date})
-                  </span>
-                </>
-              ) : (
-                <strong className="text-amber-600 dark:text-amber-400 font-bold">
-                  Últimos dias de encomenda!
-                </strong>
-              )}
-            </span>
+          {/* Filtros de Categoria */}
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-8">
+            <button
+              type="button"
+              onClick={() => setActiveCategory('all')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeCategory === 'all'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+              }`}
+            >
+              Todos os Artigos ({products.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveCategory('clothing')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeCategory === 'clothing'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+              }`}
+            >
+              Vestuário ({products.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveCategory('accessories')}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                activeCategory === 'accessories'
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+              }`}
+            >
+              Acessórios (Brevemente)
+            </button>
           </div>
         </div>
+
+        {/* Alerta Informativo quando as Sweats estão Indisponíveis (SWEATS_AVAILABLE=false) */}
+        {!sweatsAvailable && (
+          <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-200 flex items-start sm:items-center gap-3.5 shadow-sm">
+            <AlertCircle size={22} className="text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
+            <div className="text-xs sm:text-sm leading-relaxed">
+              <strong className="font-bold">Aviso de Disponibilidade:</strong> A pré-encomenda das
+              sweats encontra-se temporariamente indisponível para compra de momento. Acompanha o
+              Instagram{' '}
+              <a
+                href="https://instagram.com/neeiualg"
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-bold text-amber-900 dark:text-amber-100"
+              >
+                @neeiualg
+              </a>{' '}
+              para seres avisado da reabertura de encomendas!
+            </div>
+          </div>
+        )}
+
+        {/* Grelha de Artigos do Merch (Multi-Produto) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {filteredProducts.map((prod) => (
+            <div
+              key={prod.id}
+              className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-950/80 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all flex flex-col group"
+            >
+              {/* Imagem do Produto com Badge de Estado */}
+              <div className="relative aspect-square overflow-hidden bg-slate-900">
+                <img
+                  src={prod.imageUrl}
+                  alt={prod.name}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute top-4 left-4 flex flex-col gap-1.5">
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full shadow-md backdrop-blur-md border ${
+                      prod.available
+                        ? 'bg-emerald-500/90 text-white border-emerald-400'
+                        : 'bg-amber-500/90 text-slate-950 border-amber-400'
+                    }`}
+                  >
+                    {prod.badge}
+                  </span>
+                  {prod.available && daysLeft !== null && daysLeft > 0 && (
+                    <span className="text-[11px] font-semibold bg-slate-950/80 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                      {daysLeft} dias restantes
+                    </span>
+                  )}
+                </div>
+                <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl">
+                  {prod.price.toFixed(2)}€
+                </div>
+              </div>
+
+              {/* Informações e Detalhes */}
+              <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
+                      Vestuário Oficial
+                    </span>
+                    <span>Tamanhos XS ao 3XL</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                    {prod.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed line-clamp-3">
+                    {prod.description}
+                  </p>
+
+                  <ul className="mt-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                    {prod.features.slice(0, 3).map((f, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <CheckCircle2 size={14} className="text-cyan-500 flex-shrink-0" />
+                        <span>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Botões de Ação */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
+                  {prod.available ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsCheckoutOpen(true)}
+                      className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
+                    >
+                      <ShoppingBag size={18} />
+                      <span>Pré-encomendar</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                    >
+                      <Lock size={16} />
+                      <span>Indisponível de momento</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSizeGuideOpen(true)}
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                    title="Ver Guia de Tamanhos"
+                  >
+                    <Ruler size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Card Teaser: Novos Artigos a Caminho */}
+          <div className="rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center bg-slate-100/50 dark:bg-slate-900/20">
+            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-4">
+              <Package size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+              Mais Artigos em Breve
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
+              T-shirts de eventos, autocolantes holográficos para portátil e lanyards exclusivos em
+              preparação para as próximas edições de convívios e workshops do NEEI.
+            </p>
+            <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-cyan-600 dark:text-cyan-400">
+              <span>Novidades em breve</span>
+              <ChevronRight size={14} />
+            </div>
+          </div>
+        </div>
+
+        {/* Modal / Ecrã de Checkout (Pré-encomenda da Sweat) */}
+        {isCheckoutOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200">
+              {/* Botão Fechar */}
+              <button
+                type="button"
+                onClick={() => setIsCheckoutOpen(false)}
+                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                  <ShoppingBag size={20} />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    Pré-encomenda da Sweat Oficial
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Preenche os teus dados para concluir o pedido via MB WAY.
+                  </p>
+                </div>
+              </div>
+
+              {!sweatsAvailable ? (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
+                  As encomendas das sweats estão temporariamente suspensas de momento.
+                </div>
+              ) : (
+                <form onSubmit={handleCheckout} className="space-y-6">
+                  {/* 1. Seleção de Tamanho */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        Tamanho:{' '}
+                        <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
+                          {selectedSize}
+                        </span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsSizeGuideOpen(true)}
+                        className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                      >
+                        <Ruler size={13} />
+                        Guia de Medidas
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {campaign.sizes_available.map((sz) => {
+                        const isSelected = selectedSize === sz;
+                        return (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => setSelectedSize(sz)}
+                            className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
+                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                            }`}
+                          >
+                            {sz}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. Modalidade de Entrega */}
+                  <div>
+                    <label className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">
+                      Como queres receber a tua sweat?
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType('pickup')}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                          deliveryType === 'pickup'
+                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
+                            <MapPin size={16} className="text-cyan-500" />
+                            <span>Gabinete NEEI</span>
+                          </div>
+                          <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                            Grátis
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.
+                        </p>
+                      </button>
+
+                      {/* Opção 2: Envio CTT Nacional */}
+                      <button
+                        type="button"
+                        onClick={() => setDeliveryType('shipping')}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                          deliveryType === 'shipping'
+                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
+                            <Truck size={16} className="text-cyan-500" />
+                            <span>Envio CTT Nacional</span>
+                          </div>
+                          <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
+                            +{campaign.shipping_fee.toFixed(2)}€
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          Recebe em qualquer morada de Portugal Continental ou Ilhas.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Campos de Morada se Envio por Correio */}
+                  {deliveryType === 'shipping' && (
+                    <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-3 animate-in fade-in duration-150">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          Morada de Envio *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={shippingAddress}
+                          onChange={(e) => setShippingAddress(e.target.value)}
+                          placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Código Postal *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={shippingPostalCode}
+                            onChange={(e) => setShippingPostalCode(e.target.value)}
+                            placeholder="8000-000"
+                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Localidade / Cidade *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={shippingCity}
+                            onChange={(e) => setShippingCity(e.target.value)}
+                            placeholder="Faro"
+                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. Dados Pessoais do Aluno */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          Nome Completo *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={studentName}
+                          onChange={(e) => setStudentName(e.target.value)}
+                          placeholder="Teu nome completo"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          Email Institucional ou Pessoal *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={studentEmail}
+                          onChange={(e) => setStudentEmail(e.target.value)}
+                          placeholder="aluno@ualg.pt"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          Telemóvel (MB WAY) *
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          placeholder="912 345 678"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                        />
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Enviaremos o pedido direto para este número.
+                        </span>
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          NIF (Opcional)
+                        </label>
+                        <input
+                          type="text"
+                          value={nif}
+                          onChange={(e) => setNif(e.target.value)}
+                          placeholder="Consumidor Final se vazio"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumo de Valores */}
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                      <span>Sweat Oficial ({selectedSize})</span>
+                      <span>{campaign.item_price.toFixed(2)}€</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                      <span>
+                        Portes:{' '}
+                        {deliveryType === 'shipping'
+                          ? 'Envio CTT Nacional'
+                          : 'Levantamento no Gabinete'}
+                      </span>
+                      <span>
+                        {deliveryType === 'shipping'
+                          ? `${campaign.shipping_fee.toFixed(2)}€`
+                          : 'Grátis'}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
+                      <span>Total a pagar via MB WAY</span>
+                      <span className="text-xl font-black text-cyan-600 dark:text-cyan-400">
+                        {totalPrice.toFixed(2)}€
+                      </span>
+                    </div>
+                  </div>
+
+                  {formError && (
+                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                      <AlertCircle size={16} className="flex-shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
+                  {/* Botão de Submissão */}
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full py-3.5 px-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        <span>A processar encomenda...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Smartphone size={18} />
+                        <span>Pagar {totalPrice.toFixed(2)}€ com MB WAY</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal Guia de Medidas */}
+        {isSizeGuideOpen && (
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+              <button
+                type="button"
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X size={20} />
+              </button>
+
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                <Ruler className="text-cyan-500" size={22} />
+                Guia de Tamanhos (cm)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                Medidas aproximadas com a peça esticada numa superfície plana.
+              </p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                      <th className="py-2.5 px-3">Tamanho</th>
+                      <th className="py-2.5 px-3">Peito (A)</th>
+                      <th className="py-2.5 px-3">Comprimento (B)</th>
+                      <th className="py-2.5 px-3">Manga (C)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                    {Object.entries(SIZE_GUIDE).map(([sz, dims]) => (
+                      <tr
+                        key={sz}
+                        className={
+                          selectedSize === sz
+                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }
+                      >
+                        <td className="py-2 px-3 flex items-center gap-1.5">
+                          <span>{sz}</span>
+                          {selectedSize === sz && (
+                            <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
+                              Escolhido
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3">{dims.chest} cm</td>
+                        <td className="py-2 px-3">{dims.length} cm</td>
+                        <td className="py-2 px-3">{dims.sleeve} cm</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsSizeGuideOpen(false)}
+                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-colors cursor-pointer"
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Ecrã de Pagamento MB WAY Ativo (Modal / Overlay em foco) */}
         {paymentStatus !== 'idle' && (
@@ -390,7 +968,7 @@ export const Shop: React.FC = () => {
                         type="button"
                         onClick={handleSimulatePayment}
                         disabled={simulating}
-                        className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow"
+                        className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
                       >
                         {simulating ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -410,9 +988,10 @@ export const Shop: React.FC = () => {
                         )
                       ) {
                         setPaymentStatus('idle');
+                        setIsCheckoutOpen(false);
                       }
                     }}
-                    className="text-xs text-slate-400 hover:text-white transition-colors underline"
+                    className="text-xs text-slate-400 hover:text-white transition-colors underline cursor-pointer"
                   >
                     Fechar e verificar mais tarde
                   </button>
@@ -441,69 +1020,82 @@ export const Shop: React.FC = () => {
                       <button
                         type="button"
                         onClick={copyOrderId}
-                        className="font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold"
+                        className="font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold cursor-pointer"
                       >
                         {activeOrderId}
                         {copiedOrderId ? <Check size={13} /> : <Copy size={13} />}
                       </button>
                     </div>
                     <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>Entrega:</span>
-                      <span className="text-slate-200 font-medium">
-                        {deliveryType === 'shipping' ? 'Envio CTT' : 'Gabinete NEEI (Penha)'}
-                      </span>
+                      <span>Email de Confirmação:</span>
+                      <span className="text-slate-200 font-medium">{studentEmail}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>Total Pago:</span>
-                      <span className="text-emerald-400 font-bold">{totalPrice.toFixed(2)}€</span>
+                      <span>Modalidade de Entrega:</span>
+                      <span className="text-slate-200 font-medium">
+                        {deliveryType === 'shipping'
+                          ? 'Envio CTT Nacional'
+                          : 'Levantamento no Gabinete NEEI'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-cyan-950/50 border border-cyan-800/60 rounded-xl text-left mb-6">
-                    <p className="text-xs text-cyan-200 leading-relaxed">
-                      ✉️ <strong>Email enviado:</strong> Despachámos a confirmação com o recibo e
-                      instruções detalhadas para <strong>{studentEmail}</strong>.
-                    </p>
+                  <div className="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl text-left text-xs text-cyan-300 mb-6 flex items-start gap-2">
+                    <Info size={16} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <span>
+                      Enviámos um email com todos os detalhes e instruções para{' '}
+                      <strong>{studentEmail}</strong>. Assim que a sweat estiver pronta na fábrica,
+                      avisaremos por email!
+                    </span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
                       setPaymentStatus('idle');
+                      setIsCheckoutOpen(false);
                       setActiveOrderId(null);
-                      // Reset form
-                      setStudentName('');
-                      setPhoneNumber('');
-                      setNif('');
-                      setShippingAddress('');
                     }}
-                    className="w-full py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm transition-all"
+                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
                   >
-                    Concluir
+                    Concluir e Voltar ao Merch
                   </button>
                 </div>
               )}
 
-              {(paymentStatus === 'expired' || paymentStatus === 'failed') && (
+              {paymentStatus === 'expired' && (
                 <div>
-                  <div className="w-16 h-16 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center mx-auto mb-5 text-red-400">
-                    <X size={36} />
+                  <div className="w-16 h-16 bg-amber-500/20 border-2 border-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 text-amber-400">
+                    <Clock size={36} />
                   </div>
-
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    {paymentStatus === 'expired'
-                      ? 'Tempo de Pagamento Expirado'
-                      : 'Pagamento Não Concluído'}
-                  </h3>
+                  <h3 className="text-2xl font-bold text-white mb-2">Tempo Limite Expirado</h3>
                   <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    O pedido de MB WAY expirou ou foi cancelado. Nenhuma cobrança foi efetuada.
-                    Podes tentar novamente quando quiseres.
+                    O pedido de pagamento MB WAY de 5 minutos expirou sem aprovação. Não te
+                    preocupes, podes tentar de novo!
                   </p>
-
                   <button
                     type="button"
                     onClick={() => setPaymentStatus('idle')}
-                    className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all"
+                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+                  >
+                    Tentar Novamente
+                  </button>
+                </div>
+              )}
+
+              {paymentStatus === 'failed' && (
+                <div>
+                  <div className="w-16 h-16 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center mx-auto mb-5 text-red-400">
+                    <AlertCircle size={36} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Pagamento Não Concluído</h3>
+                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                    A transação foi recusada ou cancelada na aplicação MB WAY.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentStatus('idle')}
+                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
                   >
                     Tentar Novamente
                   </button>
@@ -512,427 +1104,10 @@ export const Shop: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Modal Guia de Medidas */}
-        {isSizeGuideOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-150">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-4">
-                <div className="flex items-center gap-2.5">
-                  <Ruler className="text-cyan-500" size={22} />
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Guia de Medidas (Centímetros)
-                  </h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSizeGuideOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-400 mb-4">
-                Para teres a certeza do teu tamanho, estende uma sweat tua que te sirva bem numa
-                mesa e mede o peito (de cava a cava) e o comprimento.
-              </p>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                      <th className="py-2.5 px-3">Tamanho</th>
-                      <th className="py-2.5 px-3">Peito (A)</th>
-                      <th className="py-2.5 px-3">Comprimento (B)</th>
-                      <th className="py-2.5 px-3">Manga (C)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                    {Object.entries(SIZE_GUIDE).map(([sz, dims]) => (
-                      <tr
-                        key={sz}
-                        className={
-                          selectedSize === sz
-                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }
-                      >
-                        <td className="py-2 px-3 flex items-center gap-1.5">
-                          <span>{sz}</span>
-                          {selectedSize === sz && (
-                            <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
-                              Escolhido
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3">{dims.chest} cm</td>
-                        <td className="py-2 px-3">{dims.length} cm</td>
-                        <td className="py-2 px-3">{dims.sleeve} cm</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setIsSizeGuideOpen(false)}
-                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-colors"
-                >
-                  Entendido
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Layout Principal em 2 Colunas */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Coluna Esquerda: Vitrine do Artigo e Detalhes */}
-          <div className="lg:col-span-6 space-y-6">
-            {/* Fotografia / Mockup com Moldura Premium */}
-            <div className="relative rounded-3xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl group">
-              <img
-                src={campaign.image_url}
-                alt={campaign.item_name}
-                className="w-full aspect-square object-cover object-center group-hover:scale-102 transition-transform duration-500"
-              />
-              <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-cyan-400 text-xs font-bold px-3 py-1.5 rounded-full">
-                Algodão Premium 320g/m²
-              </div>
-            </div>
-
-            {/* Descrição & Especificações */}
-            <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm backdrop-blur-sm">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
-                Especificações da Sweat
-              </h3>
-              <ul className="space-y-2.5 text-sm text-slate-600 dark:text-slate-300">
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={18} className="text-cyan-500 flex-shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Composição:</strong> 80% Algodão cardado / 20% Poliéster de alta
-                    gramagem (não encolhe na lavagem).
-                  </span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={18} className="text-cyan-500 flex-shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Design Exclusivo:</strong> Padrão de circuitos integrados com logótipo
-                    oficial de Engenharia Informática UAlg.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2.5">
-                  <CheckCircle2 size={18} className="text-cyan-500 flex-shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Corte Unissexo Moderno:</strong> Bolso canguru frontal e capuz com
-                    cordões reforçados.
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Coluna Direita: Seleção de Opções & Checkout */}
-          <div className="lg:col-span-6 space-y-6">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl backdrop-blur-sm">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
-                    Merchandising Oficial LEI / MEI
-                  </span>
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
-                    {campaign.item_name}
-                  </h1>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-slate-500 block">Preço de Lançamento</span>
-                  <span className="text-3xl font-black text-cyan-600 dark:text-cyan-400">
-                    {campaign.item_price.toFixed(2)}€
-                  </span>
-                </div>
-              </div>
-
-              <form onSubmit={handleCheckout} className="space-y-6">
-                {/* 1. Seleção de Tamanho */}
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      Tamanho Escolhido:{' '}
-                      <span className="text-cyan-500 font-extrabold">{selectedSize}</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setIsSizeGuideOpen(true)}
-                      className="inline-flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold"
-                    >
-                      <Ruler size={14} />
-                      Guia de Medidas
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                    {campaign.sizes_available.map((sz) => {
-                      const isSelected = selectedSize === sz;
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => setSelectedSize(sz)}
-                          className={`py-2.5 rounded-xl font-bold text-sm transition-all border ${isSelected
-                            ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 scale-102'
-                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-                            }`}
-                        >
-                          {sz}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2. Modalidade de Entrega */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-2.5">
-                    Modalidade de Entrega
-                  </label>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Levantamento no Gabinete */}
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryType('pickup')}
-                      className={`p-4 rounded-2xl border text-left transition-all ${deliveryType === 'pickup'
-                        ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
-                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <MapPin
-                            size={18}
-                            className={
-                              deliveryType === 'pickup' ? 'text-cyan-500' : 'text-slate-400'
-                            }
-                          />
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">
-                            Gabinete NEEI
-                          </span>
-                        </div>
-                        <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
-                          Grátis (0€)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Recolha presencial no Campus da Penha ou Gambelas.
-                      </p>
-                    </button>
-
-                    {/* Envio por CTT */}
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryType('shipping')}
-                      className={`p-4 rounded-2xl border text-left transition-all ${deliveryType === 'shipping'
-                        ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
-                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2">
-                          <Truck
-                            size={18}
-                            className={
-                              deliveryType === 'shipping' ? 'text-cyan-500' : 'text-slate-400'
-                            }
-                          />
-                          <span className="font-bold text-sm text-slate-900 dark:text-white">
-                            Envio p/ Morada
-                          </span>
-                        </div>
-                        <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400">
-                          +{campaign.shipping_fee.toFixed(2)}€
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                        Envio por correio registado CTT para todo o país.
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                {/* 3. Dados do Estudante & Checkout */}
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Os teus Dados para Encomenda
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                        Nome Completo *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                        placeholder="Ex: David Rodrigues"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                        Email para Confirmação *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={studentEmail}
-                        onChange={(e) => setStudentEmail(e.target.value)}
-                        placeholder="aXXXXX@ualg.pt"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                        Telemóvel MB WAY *
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          required
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="912 345 678"
-                          className="w-full pl-3.5 pr-14 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                        />
-                        <span className="absolute right-3 top-2.5 text-[10px] font-black text-[#309b42] bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                          MB WAY
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-slate-500 mt-1 block">
-                        Receberás o push para aprovar neste número.
-                      </span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                        NIF para Fatura (Opcional)
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={9}
-                        value={nif}
-                        onChange={(e) => setNif(e.target.value)}
-                        placeholder="Consumidor Final"
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Campos de Morada se envio CTT */}
-                  {deliveryType === 'shipping' && (
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3 animate-in fade-in duration-200">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
-                        Morada de Destino (Portugal)
-                      </span>
-                      <div>
-                        <input
-                          type="text"
-                          required={deliveryType === 'shipping'}
-                          value={shippingAddress}
-                          onChange={(e) => setShippingAddress(e.target.value)}
-                          placeholder="Rua, Número, Andar / Bloco"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          required={deliveryType === 'shipping'}
-                          value={shippingPostalCode}
-                          onChange={(e) => setShippingPostalCode(e.target.value)}
-                          placeholder="Código Postal (ex: 8000-117)"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white"
-                        />
-                        <input
-                          type="text"
-                          required={deliveryType === 'shipping'}
-                          value={shippingCity}
-                          onChange={(e) => setShippingCity(e.target.value)}
-                          placeholder="Localidade / Cidade"
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Mensagem de Erro de validação */}
-                {formError && (
-                  <div className="p-3 bg-red-100 dark:bg-red-950/60 border border-red-300 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-                    <AlertCircle size={16} className="flex-shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                )}
-
-                {/* Resumo Final & Botão de Pagamento */}
-                <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <div className="flex justify-between items-center text-sm mb-1.5 text-slate-600 dark:text-slate-400">
-                    <span>Sweat Oficial (Tam. {selectedSize}):</span>
-                    <span>{campaign.item_price.toFixed(2)}€</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm mb-3 text-slate-600 dark:text-slate-400">
-                    <span>Portes de Envio:</span>
-                    <span>
-                      {deliveryType === 'shipping'
-                        ? `${campaign.shipping_fee.toFixed(2)}€`
-                        : '0.00€ (Gabinete)'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-lg font-black text-slate-900 dark:text-white mb-5 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <span>Total a Pagar:</span>
-                    <span className="text-2xl text-cyan-600 dark:text-cyan-400 font-extrabold">
-                      {totalPrice.toFixed(2)}€
-                    </span>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-base shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={20} className="animate-spin" />
-                        <span>A preparar pedido MB WAY...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Smartphone size={20} />
-                        <span>Pagar com MB WAY ({totalPrice.toFixed(2)}€)</span>
-                      </>
-                    )}
-                  </button>
-
-                  <div className="mt-4 flex items-center justify-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                    <ShieldCheck size={14} className="text-emerald-500" />
-                    <span>Pagamento Seguro certificado em parceria com a AAUAlg</span>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
+export const Merch = Shop;
 export default Shop;

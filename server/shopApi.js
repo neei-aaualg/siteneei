@@ -37,8 +37,11 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       if (!campaign) {
         return sendJson(res, 404, { error: 'Nenhuma campanha ativa no momento.' });
       }
+      const sweatsAvailable =
+        process.env.SWEATS_AVAILABLE !== 'false' && process.env.SWEATS_AVAILABLE !== '0';
       return sendJson(res, 200, {
         campaign,
+        sweatsAvailable: Boolean(campaign.is_available) && sweatsAvailable,
         isSandbox: isPaymentSandbox(),
       });
     }

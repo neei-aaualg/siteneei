@@ -140,7 +140,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         document.body.appendChild(a);
         a.click();
         a.remove();
-        showFeedback('csv-exported', 'Ficheiro CSV para a fábrica descarregado com sucesso!');
+        showFeedback('csv-exported', 'Ficheiro CSV descarregado com sucesso!');
       })
       .catch((err) => {
         alert(err.message || 'Erro ao descarregar ficheiro CSV.');
@@ -220,9 +220,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
             {stats?.pickupCount || 0}
           </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            Recolha presencial pelos estudantes
-          </span>
         </div>
 
         {/* Envio CTT */}
@@ -238,9 +235,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
             {stats?.shippingCount || 0}
           </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            Portes pagos incluídos no total
-          </span>
         </div>
       </div>
 
@@ -250,7 +244,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <FileSpreadsheet className="text-cyan-500" size={18} />
-              Contagem de Produção para a Fábrica / Confeção
+              Contagem de Produção para a Fábrica
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Totais consolidados de sweats pagas e prontas a encomendar ao fornecedor.
@@ -263,7 +257,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-md transition-all self-start sm:self-auto cursor-pointer"
           >
             <Download size={16} />
-            <span>Exportar para Fábrica (CSV)</span>
+            <span>Exportar para CSV</span>
           </button>
         </div>
 

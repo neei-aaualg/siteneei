@@ -14,6 +14,7 @@ import {
 export async function fetchShopCampaign(): Promise<{
   campaign: ShopCampaign;
   isSandbox: boolean;
+  sweatsAvailable?: boolean;
 }> {
   const res = await fetch('/api/shop/campaign');
   const contentType = res.headers.get('content-type') || '';

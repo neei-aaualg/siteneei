@@ -19,10 +19,28 @@ export interface ShopCampaign {
   image_url: string;
   deadline_date: string; // YYYY-MM-DD
   is_active: boolean;
+  is_available?: boolean;
   allow_pickup: boolean;
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+}
+
+export interface MerchProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  features: string[];
+  imageUrl: string;
+  badge?: string;
+  isPreorder?: boolean;
+  available: boolean;
+  sizes?: SweatSize[];
+  allowShipping?: boolean;
+  shippingFee?: number;
+  pickupLocation?: string;
 }
 
 export interface ShopOrder {

@@ -185,4 +185,23 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(emailRes.success).toBe(true);
     expect(emailRes.messageId).toBeTruthy();
   });
+
+  it('respeita SWEATS_AVAILABLE=false tornando as sweats indisponíveis e bloqueando encomendas', () => {
+    process.env.SWEATS_AVAILABLE = 'false';
+
+    const campaign = db.getActiveShopCampaign();
+    expect(campaign.is_available).toBe(false);
+
+    expect(() => {
+      db.createShopOrder({
+        student_name: 'David Rodrigues',
+        student_email: 'teste@ualg.pt',
+        phone_number: '912345678',
+        size: 'M',
+        delivery_type: 'pickup',
+      });
+    }).toThrow(/não se encontra disponível para compra/);
+
+    delete process.env.SWEATS_AVAILABLE;
+  });
 });

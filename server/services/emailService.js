@@ -53,7 +53,7 @@ export async function sendOrderConfirmationEmail(order) {
   const isShipping = order.delivery_type === 'shipping';
   const deliveryText = isShipping
     ? `Envio por Correio (CTT) para: ${order.shipping_address}, ${order.shipping_postal_code} ${order.shipping_city}`
-    : 'Levantamento no Gabinete do NEEI (Campus da Penha)';
+    : 'Levantamento no Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
 
   const formattedAmount = Number(order.total_amount).toFixed(2);
   const formattedItemPrice = Number(order.item_price).toFixed(2);
@@ -290,7 +290,7 @@ export async function sendOrderConfirmationEmail(order) {
       <div class="instructions">
         <h3>Próximos Passos & Entrega</h3>
         <p><strong>Modalidade escolhida:</strong> ${deliveryText}</p>
-        <p style="margin-top: 10px;">Esta é uma campanha oficial de pré-encomenda. Assim que o lote consolidado estiver concluído na fábrica, receberás nova notificação por email com as datas para recolha presencial no Gabinete do NEEI ou o código de rastreio dos CTT.</p>
+        <p style="margin-top: 10px;">Esta é uma campanha oficial de pré-encomenda. Assim que o lote estiver concluído na fábrica, receberás nova notificação via instagram e/ou email com as datas para recolha presencial no Gabinete do NEEI ou o código de rastreio dos CTT.</p>
       </div>
 
       <p class="support-note">
@@ -300,7 +300,7 @@ export async function sendOrderConfirmationEmail(order) {
 
     <div class="footer">
       <p style="margin: 0 0 4px 0; font-weight: 600; color: #64748b;">NEEI - Núcleo de Estudantes de Engenharia Informática da AAUAlg</p>
-      <p style="margin: 0 0 8px 0;">Campus da Penha & Campus de Gambelas · Faro, Portugal</p>
+      <p style="margin: 0 0 8px 0;">Sala 0.18, Edifício 1, Campus de Gambelas · Faro, Portugal</p>
       <p style="margin: 0;">
         <a href="https://instagram.com/neeiualg" target="_blank" rel="noopener">Instagram</a> · 
         <a href="https://discord.gg/HzBuRFCAb5" target="_blank" rel="noopener">Discord</a> · 

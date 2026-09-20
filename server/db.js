@@ -208,7 +208,7 @@ try {
       1,
       1,
       1,
-      'Gabinete do NEEI (Campus da Penha)',
+      'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
       JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']),
       new Date().toISOString()
     );
@@ -1006,6 +1006,9 @@ export function getActiveShopCampaign() {
     // fallback
   }
 
+  const isSweatsAvailable =
+    process.env.SWEATS_AVAILABLE !== 'false' && process.env.SWEATS_AVAILABLE !== '0';
+
   return {
     id: row.id,
     title: row.title,
@@ -1016,6 +1019,7 @@ export function getActiveShopCampaign() {
     image_url: row.image_url,
     deadline_date: row.deadline_date,
     is_active: Boolean(row.is_active),
+    is_available: Boolean(row.is_active) && isSweatsAvailable,
     allow_pickup: Boolean(row.allow_pickup),
     allow_shipping: Boolean(row.allow_shipping),
     pickup_location: row.pickup_location,
@@ -1081,6 +1085,16 @@ export function updateShopCampaign(id, data) {
  * Cria uma nova encomenda em estado pending_payment
  */
 export function createShopOrder(orderData) {
+  const isSweatsAvailable =
+    process.env.SWEATS_AVAILABLE !== 'false' && process.env.SWEATS_AVAILABLE !== '0';
+  if (!isSweatsAvailable) {
+    const err = new Error(
+      'A pré-encomenda das sweats não se encontra disponível para compra de momento.'
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
   const campaign = getActiveShopCampaign();
   if (!campaign || !campaign.is_active) {
     const err = new Error('A campanha de pré-encomenda das sweats encontra-se encerrada.');
