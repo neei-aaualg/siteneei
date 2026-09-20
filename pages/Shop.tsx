@@ -420,8 +420,7 @@ export const Shop: React.FC = () => {
                 <strong className="font-bold text-slate-900 dark:text-white block sm:inline mr-1">
                   Disponível Brevemente:
                 </strong>
-                As sweats oficiais ficarão disponíveis brevemente! Para mais informações e data de
-                abertura de encomendas, acompanha o nosso Instagram oficial.
+                As sweats oficiais ficarão disponíveis brevemente! Para mais informações e datas acompanha o nosso Instagram oficial.
               </div>
             </div>
             <a
@@ -452,17 +451,19 @@ export const Shop: React.FC = () => {
                     alt={prod.name}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-                    <span className="text-xs font-bold px-3 py-1 rounded-full shadow-md backdrop-blur-md border bg-emerald-500/90 text-white border-emerald-400">
-                      {prod.badge}
+                  <div className="absolute top-3.5 left-3.5 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md bg-emerald-600/90 text-white border border-emerald-400/40">
+                      <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
+                      <span>{prod.badge}</span>
                     </span>
                     {daysLeft !== null && daysLeft > 0 && (
-                      <span className="text-[11px] font-semibold bg-slate-950/80 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
-                        {daysLeft} dias restantes
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md bg-slate-950/80 text-cyan-300 border border-cyan-500/40">
+                        <Clock size={13} className="text-cyan-400 shrink-0" />
+                        <span>{daysLeft} dias restantes</span>
                       </span>
                     )}
                   </div>
-                  <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl">
+                  <div className="absolute bottom-3.5 right-3.5 bg-slate-950/85 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl shadow-lg">
                     {prod.price.toFixed(2)}€
                   </div>
                 </div>
@@ -473,10 +474,10 @@ export const Shop: React.FC = () => {
                     <Sparkles size={32} className="text-cyan-400" />
                   </div>
                   <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 border border-cyan-500/40 px-3.5 py-1 rounded-full mb-2">
-                    Disponível Brevemente
+                    Brevemente
                   </span>
                   <p className="text-xs text-slate-400 max-w-[220px] leading-relaxed">
-                    O modelo oficial e fotografias serão revelados com a abertura das encomendas.
+                    O modelo oficial e fotografias ficaram disponíveis com a abertura das encomendas.
                   </p>
                 </div>
               )}
@@ -620,7 +621,7 @@ export const Shop: React.FC = () => {
                         className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
                       >
                         <Ruler size={13} />
-                        Guia de Medidas
+                        Guia de Tamanhos
                       </button>
                     </div>
 
@@ -771,7 +772,7 @@ export const Shop: React.FC = () => {
                           required
                           value={studentEmail}
                           onChange={(e) => setStudentEmail(e.target.value)}
-                          placeholder="aluno@ualg.pt"
+                          placeholder="aXXXXX@ualg.pt"
                           className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                         />
                       </div>
@@ -791,7 +792,7 @@ export const Shop: React.FC = () => {
                           className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
                         />
                         <span className="text-[10px] text-slate-500 block mt-1">
-                          Enviaremos o pedido direto para este número.
+                          Enviaremos o pedido de pagamento para este número.
                         </span>
                       </div>
                       <div>
@@ -802,7 +803,7 @@ export const Shop: React.FC = () => {
                           type="text"
                           value={nif}
                           onChange={(e) => setNif(e.target.value)}
-                          placeholder="Consumidor Final se vazio"
+                          placeholder=""
                           className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
                         />
                       </div>
