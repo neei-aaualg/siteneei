@@ -79,7 +79,19 @@ beforeEach(async () => {
 
 afterEach(async () => {
   server.close();
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  try {
+    const dbModule = await import('../../server/db.js');
+    if (dbModule && dbModule.db && typeof dbModule.db.close === 'function') {
+      dbModule.db.close();
+    }
+  } catch (e) {
+    void e;
+  }
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch (e) {
+    void e;
+  }
   if (originalDbPath === undefined) delete process.env.DATABASE_PATH;
   else process.env.DATABASE_PATH = originalDbPath;
   if (originalAdminPassword === undefined) delete process.env.ADMIN_PASSWORD;

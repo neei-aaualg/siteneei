@@ -130,7 +130,92 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_collab_created ON collaborator_applications(created_at);
   CREATE INDEX IF NOT EXISTS idx_jobs_status ON job_offers(status);
   CREATE INDEX IF NOT EXISTS idx_jobs_created ON job_offers(created_at);
+
+  CREATE TABLE IF NOT EXISTS shop_campaigns (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    item_name TEXT NOT NULL,
+    item_price REAL NOT NULL,
+    shipping_fee REAL NOT NULL,
+    image_url TEXT NOT NULL,
+    deadline_date TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    allow_pickup INTEGER NOT NULL DEFAULT 1,
+    allow_shipping INTEGER NOT NULL DEFAULT 1,
+    pickup_location TEXT NOT NULL,
+    sizes_available TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS shop_orders (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    student_email TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    nif TEXT NOT NULL DEFAULT '999999990',
+    size TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT 'Preto',
+    delivery_type TEXT NOT NULL CHECK(delivery_type IN ('pickup', 'shipping')),
+    shipping_address TEXT,
+    shipping_postal_code TEXT,
+    shipping_city TEXT,
+    item_price REAL NOT NULL,
+    shipping_fee REAL NOT NULL,
+    total_amount REAL NOT NULL,
+    payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'expired', 'failed')),
+    payment_provider TEXT NOT NULL DEFAULT 'ifthenpay',
+    payment_ref TEXT,
+    order_status TEXT NOT NULL DEFAULT 'pending_payment' CHECK(order_status IN ('pending_payment', 'confirmed', 'in_production', 'ready_for_pickup', 'shipped', 'delivered')),
+    email_sent INTEGER NOT NULL DEFAULT 0,
+    email_sent_at TEXT,
+    moloni_document_id TEXT,
+    moloni_status TEXT NOT NULL DEFAULT 'none' CHECK(moloni_status IN ('none', 'pending', 'issued', 'error')),
+    created_at TEXT NOT NULL,
+    paid_at TEXT,
+    FOREIGN KEY (campaign_id) REFERENCES shop_campaigns(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_campaign ON shop_orders(campaign_id);
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
+  CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
 `);
+
+// Seed da Campanha de Pré-encomenda das Sweats (se ainda não existir)
+try {
+  const defaultCampId = 'camp-sweat-ei-2026';
+  const existingCamp = db.prepare('SELECT id FROM shop_campaigns WHERE id = ?').get(defaultCampId);
+  if (!existingCamp) {
+    db.prepare(
+      `
+      INSERT INTO shop_campaigns (
+        id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
+        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, created_at
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      )
+    `
+    ).run(
+      defaultCampId,
+      'Sweats Oficiais Engenharia Informática 2026',
+      'Campanha oficial de pré-encomenda das sweats do curso de Engenharia Informática da UAlg. Produção em algodão de alta gramagem, corte confortável e bordado exclusivo NEEI.',
+      'Sweat Oficial Engenharia Informática',
+      25.0,
+      3.5,
+      '/assets/sweat_mockup.jpg',
+      '2026-10-31',
+      1,
+      1,
+      1,
+      'Gabinete do NEEI (Campus da Penha)',
+      JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']),
+      new Date().toISOString()
+    );
+  }
+} catch (e) {
+  console.error('[DB ERROR] Falha ao inicializar campanha de loja:', e);
+}
 
 // Lista de atividades iniciais oficiais do Calendário NEEI
 export const INITIAL_ACTIVITIES = [
@@ -896,4 +981,462 @@ export function deleteJobOffer(id) {
   const stmt = db.prepare('DELETE FROM job_offers WHERE id = ?');
   const res = stmt.run(id);
   return res.changes > 0;
+}
+
+/* =========================================================================
+   MÓDULO LOJA NEEI (SWEATS E PRÉ-ENCOMENDAS)
+   ========================================================================= */
+
+/**
+ * Obtém a campanha de loja ativa
+ */
+export function getActiveShopCampaign() {
+  const row = db
+    .prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
+    .get();
+
+  if (!row) {
+    return null;
+  }
+
+  let sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  try {
+    sizes = JSON.parse(row.sizes_available);
+  } catch (e) {
+    // fallback
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    item_name: row.item_name,
+    item_price: Number(row.item_price),
+    shipping_fee: Number(row.shipping_fee),
+    image_url: row.image_url,
+    deadline_date: row.deadline_date,
+    is_active: Boolean(row.is_active),
+    allow_pickup: Boolean(row.allow_pickup),
+    allow_shipping: Boolean(row.allow_shipping),
+    pickup_location: row.pickup_location,
+    sizes_available: sizes,
+  };
+}
+
+/**
+ * Atualiza configurações da campanha
+ */
+export function updateShopCampaign(id, data) {
+  const current = db.prepare('SELECT * FROM shop_campaigns WHERE id = ?').get(id);
+  if (!current) {
+    throw new Error('Campanha não encontrada');
+  }
+
+  const title = data.title !== undefined ? data.title : current.title;
+  const description = data.description !== undefined ? data.description : current.description;
+  const item_name = data.item_name !== undefined ? data.item_name : current.item_name;
+  const item_price = data.item_price !== undefined ? Number(data.item_price) : current.item_price;
+  const shipping_fee =
+    data.shipping_fee !== undefined ? Number(data.shipping_fee) : current.shipping_fee;
+  const deadline_date =
+    data.deadline_date !== undefined ? data.deadline_date : current.deadline_date;
+  const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active;
+  const allow_pickup =
+    data.allow_pickup !== undefined ? (data.allow_pickup ? 1 : 0) : current.allow_pickup;
+  const allow_shipping =
+    data.allow_shipping !== undefined ? (data.allow_shipping ? 1 : 0) : current.allow_shipping;
+  const pickup_location =
+    data.pickup_location !== undefined ? data.pickup_location : current.pickup_location;
+  const sizes_available = data.sizes_available
+    ? JSON.stringify(data.sizes_available)
+    : current.sizes_available;
+
+  const stmt = db.prepare(`
+    UPDATE shop_campaigns SET
+      title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
+      deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
+      pickup_location = ?, sizes_available = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(
+    title,
+    description,
+    item_name,
+    item_price,
+    shipping_fee,
+    deadline_date,
+    is_active,
+    allow_pickup,
+    allow_shipping,
+    pickup_location,
+    sizes_available,
+    id
+  );
+
+  return getActiveShopCampaign();
+}
+
+/**
+ * Cria uma nova encomenda em estado pending_payment
+ */
+export function createShopOrder(orderData) {
+  const campaign = getActiveShopCampaign();
+  if (!campaign || !campaign.is_active) {
+    const err = new Error('A campanha de pré-encomenda das sweats encontra-se encerrada.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Validação do tamanho
+  const size = (orderData.size || '').toUpperCase().trim();
+  if (!campaign.sizes_available.includes(size)) {
+    const err = new Error(
+      `Tamanho inválido. Opções disponíveis: ${campaign.sizes_available.join(', ')}`
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Validação dos dados do estudante
+  const studentName = (orderData.student_name || '').trim();
+  if (!studentName || studentName.length < 3) {
+    const err = new Error('Nome do aluno é obrigatório (mínimo 3 caracteres).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const studentEmail = (orderData.student_email || '').toLowerCase().trim();
+  if (!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)) {
+    const err = new Error('Email de contacto válido é obrigatório.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Validação do número de telemóvel para MB WAY (formato português: 9 dígitos a começar por 9)
+  const rawPhone = (orderData.phone_number || '').replace(/\s+/g, '').replace(/^\+351/, '');
+  if (!/^9\d{8}$/.test(rawPhone)) {
+    const err = new Error(
+      'Número de telemóvel inválido para MB WAY (deve ter 9 dígitos e começar por 9).'
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // NIF (se fornecido, valida formato 9 dígitos; caso contrário consumidor final 999999990)
+  let nif = (orderData.nif || '').replace(/\s+/g, '');
+  if (nif && !/^\d{9}$/.test(nif)) {
+    const err = new Error('NIF inválido (deve conter 9 dígitos numéricos).');
+    err.statusCode = 400;
+    throw err;
+  }
+  if (!nif) {
+    nif = '999999990';
+  }
+
+  // Tipo de entrega
+  const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+  let shippingAddress = null;
+  let shippingPostalCode = null;
+  let shippingCity = null;
+  let shippingFee = 0;
+
+  if (deliveryType === 'shipping') {
+    if (!campaign.allow_shipping) {
+      const err = new Error('Envio por morada não disponível nesta campanha.');
+      err.statusCode = 400;
+      throw err;
+    }
+    shippingAddress = (orderData.shipping_address || '').trim();
+    shippingPostalCode = (orderData.shipping_postal_code || '').trim();
+    shippingCity = (orderData.shipping_city || '').trim();
+
+    if (!shippingAddress || !shippingPostalCode || !shippingCity) {
+      const err = new Error(
+        'Morada, código postal e localidade são obrigatórios para envio por correio.'
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+    shippingFee = campaign.shipping_fee;
+  }
+
+  const itemPrice = campaign.item_price;
+  const totalAmount = Number((itemPrice + shippingFee).toFixed(2));
+
+  // Geração de ID human-readable
+  const randomSuffix = crypto.randomInt(1000, 9999);
+  const now = new Date();
+  const year = now.getFullYear();
+  const orderId = `SW-${year}-${randomSuffix}`;
+
+  const createdAt = now.toISOString();
+
+  const stmt = db.prepare(`
+    INSERT INTO shop_orders (
+      id, campaign_id, student_name, student_email, phone_number, nif,
+      size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
+      item_price, shipping_fee, total_amount, payment_status, payment_provider,
+      order_status, email_sent, moloni_status, created_at
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, 'pending', 'ifthenpay',
+      'pending_payment', 0, 'none', ?
+    )
+  `);
+
+  stmt.run(
+    orderId,
+    campaign.id,
+    studentName,
+    studentEmail,
+    rawPhone,
+    nif,
+    size,
+    'Preto',
+    deliveryType,
+    shippingAddress,
+    shippingPostalCode,
+    shippingCity,
+    itemPrice,
+    shippingFee,
+    totalAmount,
+    createdAt
+  );
+
+  return getShopOrderById(orderId);
+}
+
+/**
+ * Obtém uma encomenda pelo ID
+ */
+export function getShopOrderById(orderId) {
+  const row = db.prepare('SELECT * FROM shop_orders WHERE id = ?').get(orderId);
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    campaign_id: row.campaign_id,
+    student_name: row.student_name,
+    student_email: row.student_email,
+    phone_number: row.phone_number,
+    nif: row.nif,
+    size: row.size,
+    color: row.color,
+    delivery_type: row.delivery_type,
+    shipping_address: row.shipping_address,
+    shipping_postal_code: row.shipping_postal_code,
+    shipping_city: row.shipping_city,
+    item_price: Number(row.item_price),
+    shipping_fee: Number(row.shipping_fee),
+    total_amount: Number(row.total_amount),
+    payment_status: row.payment_status,
+    payment_provider: row.payment_provider,
+    payment_ref: row.payment_ref,
+    order_status: row.order_status,
+    email_sent: Boolean(row.email_sent),
+    email_sent_at: row.email_sent_at,
+    moloni_document_id: row.moloni_document_id,
+    moloni_status: row.moloni_status,
+    created_at: row.created_at,
+    paid_at: row.paid_at,
+  };
+}
+
+/**
+ * Atualiza o estado de pagamento de uma encomenda
+ */
+export function updateShopOrderPaymentStatus(orderId, paymentStatus, paymentRef, paidAt) {
+  const validStatuses = ['pending', 'paid', 'expired', 'failed'];
+  if (!validStatuses.includes(paymentStatus)) {
+    throw new Error('Estado de pagamento inválido');
+  }
+
+  const current = getShopOrderById(orderId);
+  if (!current) {
+    throw new Error('Encomenda não encontrada');
+  }
+
+  const orderStatus = paymentStatus === 'paid' ? 'confirmed' : current.order_status;
+  const actualPaidAt =
+    paymentStatus === 'paid' ? paidAt || new Date().toISOString() : current.paid_at;
+  const actualRef = paymentRef !== undefined ? paymentRef : current.payment_ref;
+
+  const stmt = db.prepare(`
+    UPDATE shop_orders SET
+      payment_status = ?,
+      order_status = ?,
+      payment_ref = ?,
+      paid_at = ?
+    WHERE id = ?
+  `);
+
+  stmt.run(paymentStatus, orderStatus, actualRef, actualPaidAt, orderId);
+  return getShopOrderById(orderId);
+}
+
+/**
+ * Marca o email como enviado
+ */
+export function updateShopOrderEmailSent(orderId) {
+  const now = new Date().toISOString();
+  const stmt = db.prepare('UPDATE shop_orders SET email_sent = 1, email_sent_at = ? WHERE id = ?');
+  stmt.run(now, orderId);
+}
+
+/**
+ * Atualiza o status do Moloni
+ */
+export function updateShopOrderMoloni(orderId, documentId, status) {
+  const stmt = db.prepare(`
+    UPDATE shop_orders SET
+      moloni_document_id = ?,
+      moloni_status = ?
+    WHERE id = ?
+  `);
+  stmt.run(documentId || null, status, orderId);
+}
+
+/**
+ * Atualiza o estado da encomenda pelo admin
+ */
+export function updateShopOrderStatus(orderId, orderStatus) {
+  const valid = [
+    'pending_payment',
+    'confirmed',
+    'in_production',
+    'ready_for_pickup',
+    'shipped',
+    'delivered',
+  ];
+  if (!valid.includes(orderStatus)) {
+    throw new Error('Estado de encomenda inválido');
+  }
+  const stmt = db.prepare('UPDATE shop_orders SET order_status = ? WHERE id = ?');
+  const res = stmt.run(orderStatus, orderId);
+  return res.changes > 0;
+}
+
+/**
+ * Lista todas as encomendas para o painel de administração
+ */
+export function getAllShopOrders(filters = {}) {
+  let query = 'SELECT * FROM shop_orders';
+  const conditions = [];
+  const params = [];
+
+  if (filters.payment_status) {
+    conditions.push('payment_status = ?');
+    params.push(filters.payment_status);
+  }
+
+  if (filters.order_status) {
+    conditions.push('order_status = ?');
+    params.push(filters.order_status);
+  }
+
+  if (filters.size) {
+    conditions.push('size = ?');
+    params.push(filters.size);
+  }
+
+  if (filters.delivery_type) {
+    conditions.push('delivery_type = ?');
+    params.push(filters.delivery_type);
+  }
+
+  if (filters.search) {
+    conditions.push(
+      '(student_name LIKE ? OR student_email LIKE ? OR phone_number LIKE ? OR id LIKE ? OR nif LIKE ?)'
+    );
+    const s = `%${filters.search.trim()}%`;
+    params.push(s, s, s, s, s);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  const rows = db.prepare(query).all(...params);
+  return rows.map((row) => ({
+    ...row,
+    item_price: Number(row.item_price),
+    shipping_fee: Number(row.shipping_fee),
+    total_amount: Number(row.total_amount),
+    email_sent: Boolean(row.email_sent),
+  }));
+}
+
+/**
+ * Obtém resumo estatístico da loja para o dashboard /admin
+ */
+export function getShopSummaryStats() {
+  const allOrders = db.prepare('SELECT * FROM shop_orders').all();
+  const paidOrders = allOrders.filter((o) => o.payment_status === 'paid');
+
+  const sizeCounts = {
+    XS: 0,
+    S: 0,
+    M: 0,
+    L: 0,
+    XL: 0,
+    XXL: 0,
+    '3XL': 0,
+  };
+
+  let pickupCount = 0;
+  let shippingCount = 0;
+  let totalRevenue = 0;
+
+  for (const order of paidOrders) {
+    totalRevenue += Number(order.total_amount);
+    if (sizeCounts[order.size] !== undefined) {
+      sizeCounts[order.size]++;
+    }
+    if (order.delivery_type === 'shipping') {
+      shippingCount++;
+    } else {
+      pickupCount++;
+    }
+  }
+
+  return {
+    totalOrders: allOrders.length,
+    totalPaidOrders: paidOrders.length,
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    sizeCounts,
+    pickupCount,
+    shippingCount,
+  };
+}
+
+/**
+ * Obtém dados para exportação CSV da fábrica de confeção
+ */
+export function getFactoryExportData() {
+  const paidOrders = db
+    .prepare(
+      "SELECT * FROM shop_orders WHERE payment_status = 'paid' ORDER BY size ASC, student_name ASC"
+    )
+    .all();
+
+  return paidOrders.map((o) => ({
+    id: o.id,
+    aluno: o.student_name,
+    email: o.student_email,
+    telemovel: o.phone_number,
+    tamanho: o.size,
+    cor: o.color,
+    entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
+    morada_completa:
+      o.delivery_type === 'shipping'
+        ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
+        : 'Gabinete NEEI',
+    nif: o.nif,
+    total_pago: `${Number(o.total_amount).toFixed(2)}€`,
+    data_pagamento: o.paid_at || o.created_at,
+  }));
 }

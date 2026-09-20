@@ -14,6 +14,7 @@ import {
   QrCode,
   Sun,
   Moon,
+  ShoppingBag,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -252,6 +253,22 @@ const Header: React.FC = () => {
               </div>
 
               <Link
+                to="/loja"
+                onClick={() => jumpToPageTop('/loja')}
+                className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/loja')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <ShoppingBag size={14} className="text-cyan-500" />
+                <span>Loja</span>
+                <span className="text-[9px] uppercase font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
+                  Sweats
+                </span>
+              </Link>
+
+              <Link
                 to="/atividades"
                 onClick={() => jumpToPageTop('/atividades')}
                 className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -432,6 +449,27 @@ const Header: React.FC = () => {
                 </div>
               )}
             </div>
+
+            <Link
+              to="/loja"
+              onClick={() => {
+                setIsMenuOpen(false);
+                jumpToPageTop('/loja');
+              }}
+              className={`flex items-center justify-between px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/loja')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBag size={18} className="text-cyan-500" />
+                <span>Loja (Sweats)</span>
+              </div>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
+                Pré-Venda
+              </span>
+            </Link>
 
             <Link
               to="/atividades"

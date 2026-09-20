@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { handleActivitiesApi } from './server/api.js';
+import { handleShopApi } from './server/shopApi.js';
 import { createRateLimiter, setSecurityHeaders, clientIp } from './server/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -303,9 +304,21 @@ const server = http.createServer(async (req, res) => {
       if (isRateLimited(req, res, loginLimiter)) return;
     } else if (pathname.startsWith('/api/admin/')) {
       if (isRateLimited(req, res, adminLimiter)) return;
+    } else if (pathname === '/api/webhooks/ifthenpay' || pathname === '/api/shop/webhook') {
+      // Sem rate-limit estrito para webhook de pagamentos do gateway
     } else if (pathname.startsWith('/api/')) {
       if (isRateLimited(req, res, apiLimiter)) return;
     }
+  }
+
+  // API Loja, Sweats, Pré-encomendas e Webhooks MB WAY (Ifthenpay)
+  if (
+    pathname.startsWith('/api/shop/') ||
+    pathname.startsWith('/api/admin/shop/') ||
+    pathname === '/api/webhooks/ifthenpay'
+  ) {
+    const handled = await handleShopApi(req, res, pathname, url.searchParams);
+    if (handled !== false) return;
   }
 
   // API Atividades, Colaboradores, Vagas e Administração NEEI
