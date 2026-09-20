@@ -139,15 +139,17 @@ export async function createStripeMbWayPaymentIntent({
 }
 
 /**
- * Cria um PaymentIntent com todos os métodos de pagamento ativos automaticamente
- * (Cards, Apple Pay, Google Pay, MB WAY, Klarna, Pix, etc. conforme configurado no Stripe Dashboard)
+ * Cria uma Checkout Session com ui_mode: 'elements' para o Stripe Payment Element moderno (EWCS)
+ * Suporta todos os métodos ativos no Dashboard (Cards, MB WAY, Apple/Google Pay, Klarna, Pix, etc.)
+ * Evita o aviso de 'older API' e tira partido da API moderna recomendada pela Stripe.
  */
-export async function createStripePaymentIntentAutomatic({
+export async function createStripeEmbeddedCheckoutSession({
   orderId,
   amount,
   studentEmail,
   studentName,
   description,
+  baseUrl,
 }) {
   const amountInCents = Math.round(Number(amount) * 100);
 
@@ -156,20 +158,32 @@ export async function createStripePaymentIntentAutomatic({
     return {
       success: true,
       provider: 'stripe_sandbox',
-      paymentIntentId: `pi_sandbox_${Date.now()}_${orderId}`,
-      clientSecret: `pi_sandbox_secret_${Date.now()}`,
+      sessionId: `cs_sandbox_${Date.now()}_${orderId}`,
+      clientSecret: `cs_sandbox_secret_${Date.now()}`,
       publishableKey: STRIPE_PUBLISHABLE_KEY || 'pk_test_sandbox',
     };
   }
 
   try {
     const stripe = getStripeClient();
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency: 'eur',
-      automatic_payment_methods: { enabled: true },
-      description: description || `NEEI Merch - Encomenda ${orderId}`,
-      receipt_email: studentEmail,
+    const appBase = baseUrl || process.env.APP_URL || 'http://localhost:3000';
+    const session = await stripe.checkout.sessions.create({
+      ui_mode: 'elements',
+      mode: 'payment',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: description || `NEEI Merch - Encomenda ${orderId}`,
+            },
+            unit_amount: amountInCents,
+          },
+          quantity: 1,
+        },
+      ],
+      return_url: `${appBase}/merch?payment_intent_done=1&orderId=${encodeURIComponent(orderId)}&session_id={CHECKOUT_SESSION_ID}`,
+      customer_email: studentEmail,
       metadata: {
         order_id: orderId,
         student_email: studentEmail,
@@ -178,24 +192,32 @@ export async function createStripePaymentIntentAutomatic({
     });
 
     console.log(
-      `[STRIPE] PaymentIntent automático criado: ${paymentIntent.id} (${amountInCents} cêntimos)`
+      `[STRIPE] Checkout Session (elements) criada: ${session.id} (${amountInCents} cêntimos)`
     );
 
     return {
       success: true,
       provider: 'stripe',
-      paymentIntentId: paymentIntent.id,
-      clientSecret: paymentIntent.client_secret,
+      sessionId: session.id,
+      paymentIntentId: session.id,
+      clientSecret: session.client_secret,
       publishableKey: STRIPE_PUBLISHABLE_KEY,
     };
   } catch (error) {
-    console.error('[STRIPE ERROR] Falha ao criar PaymentIntent automático:', error);
+    console.error('[STRIPE ERROR] Falha ao criar Checkout Session (elements):', error);
     return {
       success: false,
       provider: 'stripe',
-      message: error.message || 'Erro ao criar pedido de pagamento.',
+      message: error.message || 'Erro ao criar sessão de pagamento Stripe.',
     };
   }
+}
+
+/**
+ * Cria um PaymentIntent com todos os métodos de pagamento ativos automaticamente (retrocompatibilidade)
+ */
+export async function createStripePaymentIntentAutomatic(params) {
+  return createStripeEmbeddedCheckoutSession(params);
 }
 
 /**

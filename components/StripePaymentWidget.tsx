@@ -188,7 +188,11 @@ export function StripePaymentWidget({
   }
 
   // Sandbox sem clientSecret real — mostra widget simulado
-  if (isSandbox && clientSecret.startsWith('pi_sandbox_secret_')) {
+  if (
+    isSandbox &&
+    (clientSecret.startsWith('pi_sandbox_secret_') ||
+      clientSecret.startsWith('cs_sandbox_secret_'))
+  ) {
     return (
       <div className="space-y-4">
         <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-600/30 text-center">

@@ -1,6 +1,7 @@
 import {
   createStripeMbWayPaymentIntent,
   createStripePaymentIntentAutomatic,
+  createStripeEmbeddedCheckoutSession,
   createStripeCheckoutSession,
   constructStripeWebhookEvent,
   isStripeSandbox,
@@ -34,7 +35,7 @@ export async function initiateMbWayPayment({
 }
 
 /**
- * Cria um PaymentIntent com todos os métodos ativos (Payment Element)
+ * Cria uma sessão para o Payment Element moderno com todos os métodos ativos (EWCS)
  */
 export async function createAutomaticPaymentIntent({
   orderId,
@@ -42,13 +43,15 @@ export async function createAutomaticPaymentIntent({
   studentEmail,
   studentName,
   description,
+  baseUrl,
 }) {
-  return createStripePaymentIntentAutomatic({
+  return createStripeEmbeddedCheckoutSession({
     orderId,
     amount,
     studentEmail,
     studentName,
     description,
+    baseUrl,
   });
 }
 
