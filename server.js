@@ -312,17 +312,22 @@ const server = http.createServer(async (req, res) => {
       if (isRateLimited(req, res, loginLimiter)) return;
     } else if (pathname.startsWith('/api/admin/')) {
       if (isRateLimited(req, res, adminLimiter)) return;
-    } else if (pathname === '/api/webhooks/ifthenpay' || pathname === '/api/shop/webhook') {
+    } else if (
+      pathname === '/api/webhooks/stripe' ||
+      pathname === '/api/webhooks/ifthenpay' ||
+      pathname === '/api/shop/webhook'
+    ) {
       // Sem rate-limit estrito para webhook de pagamentos do gateway
     } else if (pathname.startsWith('/api/')) {
       if (isRateLimited(req, res, apiLimiter)) return;
     }
   }
 
-  // API Loja, Sweats, Pré-encomendas e Webhooks MB WAY (Ifthenpay)
+  // API Loja, Sweats, Pré-encomendas e Webhooks MB WAY / Stripe
   if (
     pathname.startsWith('/api/shop/') ||
     pathname.startsWith('/api/admin/shop/') ||
+    pathname === '/api/webhooks/stripe' ||
     pathname === '/api/webhooks/ifthenpay'
   ) {
     const handled = await handleShopApi(req, res, pathname, url.searchParams);

@@ -205,4 +205,47 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
 
     delete process.env.SWEATS_AVAILABLE;
   });
+
+  it('inicia pedido de pagamento MB WAY Stripe em modo sandbox e processa webhook de sucesso', async () => {
+    const paymentService = await import('../../server/services/paymentService.js');
+    expect(paymentService.isPaymentSandbox()).toBe(true);
+
+    const order = db.createShopOrder({
+      student_name: 'David Rodrigues',
+      student_email: 'david@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+
+    const paymentRes = await paymentService.initiateMbWayPayment({
+      orderId: order.id,
+      amount: order.total_amount,
+      mobileNumber: order.phone_number,
+      studentEmail: order.student_email,
+      studentName: order.student_name,
+    });
+
+    expect(paymentRes.success).toBe(true);
+    expect(paymentRes.provider).toBe('stripe_sandbox');
+    expect(paymentRes.paymentIntentId).toContain(order.id);
+
+    // Simula evento de webhook da Stripe (payment_intent.succeeded)
+    const webhookPayload = JSON.stringify({
+      id: 'evt_test_123',
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: paymentRes.paymentIntentId,
+          metadata: {
+            order_id: order.id,
+          },
+        },
+      },
+    });
+
+    const verifiedEvent = paymentService.verifyStripeWebhook(webhookPayload);
+    expect(verifiedEvent.type).toBe('payment_intent.succeeded');
+    expect(verifiedEvent.data.object.metadata.order_id).toBe(order.id);
+  });
 });

@@ -1,4 +1,4 @@
-import { readJsonBody, sendJson } from './api.js';
+import { readJsonBody, readRawBody, sendJson } from './api.js';
 import { verifyAdminToken } from './auth.js';
 import {
   getActiveShopCampaign,
@@ -16,7 +16,8 @@ import {
 import { sendOrderConfirmationEmail } from './services/emailService.js';
 import {
   initiateMbWayPayment,
-  verifyIfthenpayWebhook,
+  createCheckoutSession,
+  verifyStripeWebhook,
   isPaymentSandbox,
 } from './services/paymentService.js';
 
@@ -49,12 +50,13 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const order = createShopOrder(body);
 
-      // Inicia pagamento por MB WAY
+      // Inicia pagamento por MB WAY via Stripe
       const paymentResult = await initiateMbWayPayment({
         orderId: order.id,
         amount: order.total_amount,
         mobileNumber: order.phone_number,
         studentEmail: order.student_email,
+        studentName: order.student_name,
         description: `NEEI - Sweat ${order.size}`,
       });
 
@@ -65,7 +67,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       }
 
       // Guarda ref do pagamento
-      updateShopOrderPaymentStatus(order.id, 'pending', paymentResult.requestId);
+      const paymentRef = paymentResult.paymentIntentId || paymentResult.requestId;
+      updateShopOrderPaymentStatus(order.id, 'pending', paymentRef);
 
       return sendJson(res, 201, {
         success: true,
@@ -74,11 +77,41 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         phoneNumber: order.phone_number,
         expiresInSeconds: paymentResult.expiresInSeconds || 300,
         message: paymentResult.message,
+        clientSecret: paymentResult.clientSecret,
+        provider: paymentResult.provider,
         isSandbox: isPaymentSandbox(),
       });
     }
 
-    // 3. GET /api/shop/order-status/:id - Consultar estado da encomenda (polling no checkout)
+    // 3. POST /api/shop/checkout-session - Criar sessão Stripe Checkout (Cartão / Apple Pay)
+    if (pathname === '/api/shop/checkout-session' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const order = createShopOrder(body);
+
+      const baseUrl = `http://${req.headers.host || 'localhost:3000'}`;
+      const sessionResult = await createCheckoutSession({
+        order,
+        successUrl: `${baseUrl}/merch?success=true&orderId=${order.id}`,
+        cancelUrl: `${baseUrl}/merch?canceled=true&orderId=${order.id}`,
+      });
+
+      if (!sessionResult.success) {
+        return sendJson(res, 400, {
+          error: sessionResult.message || 'Erro ao gerar sessão de pagamento Stripe.',
+        });
+      }
+
+      updateShopOrderPaymentStatus(order.id, 'pending', sessionResult.sessionId);
+
+      return sendJson(res, 201, {
+        success: true,
+        orderId: order.id,
+        checkoutUrl: sessionResult.url,
+        sessionId: sessionResult.sessionId,
+      });
+    }
+
+    // 4. GET /api/shop/order-status/:id - Consultar estado da encomenda (polling no checkout)
     if (pathname.startsWith('/api/shop/order-status/') && req.method === 'GET') {
       const orderId = pathname.replace('/api/shop/order-status/', '').trim();
       const order = getShopOrderById(orderId);
@@ -99,7 +132,88 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 4. POST ou GET /api/webhooks/ifthenpay - Callback de notificação de pagamento da Ifthenpay
+    // 5. POST /api/webhooks/stripe - Callback oficial da Stripe (PaymentIntent & Checkout Sessions)
+    if (pathname === '/api/webhooks/stripe' && req.method === 'POST') {
+      const signature = req.headers['stripe-signature'];
+      const rawBody = await readRawBody(req);
+      let event;
+
+      try {
+        event = verifyStripeWebhook(rawBody, signature);
+      } catch (err) {
+        console.error('[STRIPE WEBHOOK SIGNATURE ERROR]', err.message);
+        return sendJson(res, 400, { error: `Webhook Error: ${err.message}` });
+      }
+
+      console.log(`[STRIPE WEBHOOK] Evento recebido: ${event.type}`);
+
+      // Pagamento bem sucedido via PaymentIntent (MB WAY ou direto)
+      if (event.type === 'payment_intent.succeeded') {
+        const paymentIntent = event.data?.object || {};
+        const orderId = paymentIntent.metadata?.order_id;
+
+        if (orderId) {
+          const order = getShopOrderById(orderId);
+          if (order && order.payment_status !== 'paid') {
+            const updatedOrder = updateShopOrderPaymentStatus(
+              order.id,
+              'paid',
+              paymentIntent.id,
+              new Date().toISOString()
+            );
+
+            try {
+              const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+              if (emailResult && emailResult.success) {
+                updateShopOrderEmailSent(updatedOrder.id);
+              }
+            } catch (mailErr) {
+              console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
+            }
+          }
+        }
+      }
+
+      // Pagamento bem sucedido via Stripe Checkout Session
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data?.object || {};
+        const orderId = session.client_reference_id || session.metadata?.order_id;
+
+        if (orderId) {
+          const order = getShopOrderById(orderId);
+          if (order && order.payment_status !== 'paid') {
+            const updatedOrder = updateShopOrderPaymentStatus(
+              order.id,
+              'paid',
+              session.payment_intent || session.id,
+              new Date().toISOString()
+            );
+
+            try {
+              const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+              if (emailResult && emailResult.success) {
+                updateShopOrderEmailSent(updatedOrder.id);
+              }
+            } catch (mailErr) {
+              console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
+            }
+          }
+        }
+      }
+
+      // Falha no pagamento
+      if (event.type === 'payment_intent.payment_failed') {
+        const paymentIntent = event.data?.object || {};
+        const orderId = paymentIntent.metadata?.order_id;
+        if (orderId) {
+          updateShopOrderPaymentStatus(orderId, 'failed');
+        }
+      }
+
+      return sendJson(res, 200, { received: true });
+    }
+
+    // 6. POST ou GET /api/webhooks/ifthenpay - Fallback para webhook legado
     if (pathname === '/api/webhooks/ifthenpay' || pathname === '/api/shop/webhook') {
       let params = {};
       let body = {};
@@ -108,11 +222,6 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         params = Object.fromEntries(searchParams || []);
       } else if (req.method === 'POST') {
         body = await readJsonBody(req);
-      }
-
-      const isValid = verifyIfthenpayWebhook(params, body);
-      if (!isValid) {
-        return sendJson(res, 403, { error: 'Assinatura/Chave de webhook inválida' });
       }
 
       const orderId =
@@ -137,7 +246,6 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             new Date().toISOString()
           );
 
-          // 1. Enviar email de confirmação imediato
           try {
             const emailResult = await sendOrderConfirmationEmail(updatedOrder);
             if (emailResult && emailResult.success) {
