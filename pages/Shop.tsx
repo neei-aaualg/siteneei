@@ -298,32 +298,39 @@ export const Shop: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-[#070e17] text-slate-900 dark:text-slate-100 transition-colors py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Banner de Campanha & Urgência */}
-        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-cyan-900/40 via-blue-900/30 to-slate-900/50 border border-cyan-500/30 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4 shadow-lg shadow-cyan-950/20">
-          <div className="flex items-center gap-3">
-            <span className="flex h-3 w-3 relative">
+        <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-cyan-200/80 dark:border-cyan-500/30 shadow-sm dark:shadow-cyan-950/20 flex flex-col md:flex-row items-center justify-between gap-4 transition-all">
+          <div className="flex items-center gap-3.5">
+            <span className="flex h-3 w-3 relative flex-shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
             </span>
             <div>
-              <span className="text-xs uppercase tracking-wider font-bold text-cyan-400">
+              <span className="text-[11px] uppercase tracking-wider font-extrabold text-cyan-600 dark:text-cyan-400 block mb-0.5">
                 Campanha Oficial de Pré-encomenda
               </span>
-              <h2 className="text-sm sm:text-base font-semibold text-white">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                 Sweat Oficial de Engenharia Informática UAlg 2026
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-cyan-500/20">
-            <Clock size={18} className="text-cyan-400" />
-            <span className="text-xs sm:text-sm text-slate-300">
+          <div className="flex items-center gap-2.5 bg-cyan-50/80 dark:bg-slate-900/80 px-4 py-2 rounded-xl border border-cyan-200/60 dark:border-cyan-500/20">
+            <Clock size={16} className="text-cyan-600 dark:text-cyan-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">
               {daysLeft !== null && daysLeft > 0 ? (
                 <>
-                  Termina em <strong className="text-cyan-300 font-bold">{daysLeft} dias</strong> (
-                  {campaign.deadline_date})
+                  Termina em{' '}
+                  <strong className="text-cyan-700 dark:text-cyan-300 font-bold">
+                    {daysLeft} dias
+                  </strong>{' '}
+                  <span className="text-slate-500 dark:text-slate-400">
+                    ({campaign.deadline_date})
+                  </span>
                 </>
               ) : (
-                'Últimos dias de encomenda!'
+                <strong className="text-amber-600 dark:text-amber-400 font-bold">
+                  Últimos dias de encomenda!
+                </strong>
               )}
             </span>
           </div>
@@ -595,10 +602,6 @@ export const Shop: React.FC = () => {
               <div className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-cyan-400 text-xs font-bold px-3 py-1.5 rounded-full">
                 Algodão Premium 320g/m²
               </div>
-              <div className="absolute bottom-4 right-4 bg-slate-950/90 backdrop-blur-md border border-slate-700 text-white text-xs font-medium px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-                <ShieldCheck size={16} className="text-cyan-400" />
-                Confeção & Estamparia Nacional
-              </div>
             </div>
 
             {/* Descrição & Especificações */}
@@ -678,11 +681,10 @@ export const Shop: React.FC = () => {
                           key={sz}
                           type="button"
                           onClick={() => setSelectedSize(sz)}
-                          className={`py-2.5 rounded-xl font-bold text-sm transition-all border ${
-                            isSelected
-                              ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 scale-102'
-                              : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-                          }`}
+                          className={`py-2.5 rounded-xl font-bold text-sm transition-all border ${isSelected
+                            ? 'bg-cyan-500 border-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 scale-102'
+                            : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+                            }`}
                         >
                           {sz}
                         </button>
@@ -702,11 +704,10 @@ export const Shop: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setDeliveryType('pickup')}
-                      className={`p-4 rounded-2xl border text-left transition-all ${
-                        deliveryType === 'pickup'
-                          ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
-                          : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                      }`}
+                      className={`p-4 rounded-2xl border text-left transition-all ${deliveryType === 'pickup'
+                        ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
@@ -733,11 +734,10 @@ export const Shop: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setDeliveryType('shipping')}
-                      className={`p-4 rounded-2xl border text-left transition-all ${
-                        deliveryType === 'shipping'
-                          ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
-                          : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                      }`}
+                      className={`p-4 rounded-2xl border text-left transition-all ${deliveryType === 'shipping'
+                        ? 'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/30'
+                        : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2">
@@ -792,7 +792,7 @@ export const Shop: React.FC = () => {
                         required
                         value={studentEmail}
                         onChange={(e) => setStudentEmail(e.target.value)}
-                        placeholder="aluno@ualg.pt"
+                        placeholder="aXXXXX@ualg.pt"
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       />
                     </div>
