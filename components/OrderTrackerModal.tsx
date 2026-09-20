@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ShieldCheck,
   RefreshCw,
+  Factory,
 } from 'lucide-react';
 import { OrderStatusResponse, OrderStatus, DeliveryType } from '../types/shop';
 import { fetchOrderStatus } from '../services/shopService';
@@ -79,7 +80,7 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
       setOrder(null);
       setError(
         err.message ||
-          'Não encontramos nenhuma encomenda com este código. Confirma o email de confirmação ou tenta novamente.'
+        'Não encontramos nenhuma encomenda com este código. Confirma o email de confirmação ou tenta novamente.'
       );
     } finally {
       setLoading(false);
@@ -148,9 +149,9 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
       },
       {
         index: 2,
-        title: 'Em Confeção na Fábrica',
-        desc: 'Sweat a ser confecionada e bordada com os acabamentos oficiais.',
-        icon: Sparkles,
+        title: 'Em Produção',
+        desc: 'Produção da encomenda em curso.',
+        icon: Factory,
       },
       {
         index: 3,
@@ -167,7 +168,7 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
       {
         index: 4,
         title: 'Entregue',
-        desc: 'Processo concluído com sucesso. Aproveita a tua sweat!',
+        desc: 'Processo concluído com sucesso. Aproveita!',
         icon: Package,
       },
     ];
@@ -265,7 +266,7 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
               Seguir Encomenda
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Acompanha em tempo real o estado de fabrico e entrega da tua sweat oficial.
+              Acompanha em tempo real o estado da tua encomenda.
             </p>
           </div>
         </div>
@@ -372,7 +373,7 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                   </strong>
                 </div>
                 <div>
-                  <span className="text-slate-400 block mb-0.5">Modalidade</span>
+                  <span className="text-slate-400 block mb-0.5">Entrega em</span>
                   <strong className="text-slate-800 dark:text-slate-200 block">
                     {order.deliveryType === 'shipping' ? 'Envio CTT' : 'Gabinete NEEI'}
                   </strong>
@@ -410,26 +411,24 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                       {/* Linha de Conexão Vertical */}
                       {!isLast && (
                         <span
-                          className={`absolute left-4 top-9 w-0.5 -ml-px h-[calc(100%-12px)] transition-colors ${
-                            isDone
-                              ? 'bg-emerald-500'
-                              : isActive
+                          className={`absolute left-4 top-9 w-0.5 -ml-px h-[calc(100%-12px)] transition-colors ${isDone
+                            ? 'bg-emerald-500'
+                            : isActive
                               ? 'bg-gradient-to-b from-cyan-500 to-slate-200 dark:to-slate-800'
                               : 'bg-slate-200 dark:bg-slate-800'
-                          }`}
+                            }`}
                           aria-hidden="true"
                         />
                       )}
 
                       {/* Ícone de Estado */}
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs transition-all z-10 ${
-                          isDone
-                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
-                            : isActive
+                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 font-bold text-xs transition-all z-10 ${isDone
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                          : isActive
                             ? 'bg-cyan-600 text-white ring-4 ring-cyan-500/20 shadow-md shadow-cyan-600/30'
                             : 'bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-400'
-                        }`}
+                          }`}
                       >
                         {isDone ? (
                           <Check size={15} className="stroke-[3]" />
@@ -442,11 +441,10 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                       <div className="flex-1 pt-0.5">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-sm font-bold ${
-                              isDone || isActive
-                                ? 'text-slate-900 dark:text-white'
-                                : 'text-slate-400 dark:text-slate-500'
-                            }`}
+                            className={`text-sm font-bold ${isDone || isActive
+                              ? 'text-slate-900 dark:text-white'
+                              : 'text-slate-400 dark:text-slate-500'
+                              }`}
                           >
                             {step.title}
                           </span>
@@ -493,7 +491,7 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                 className="py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 bg-white dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2 transition-colors cursor-pointer text-center"
               >
                 <Mail size={14} className="text-cyan-500" />
-                <span>Contactar Apoio NEEI</span>
+                <span>Contactar NEEI via e-mail</span>
               </a>
             </div>
           </div>
