@@ -8,6 +8,7 @@ import {
   updateShopOrderPaymentStatus,
   updateShopOrderEmailSent,
   updateShopOrderStatus,
+  updateMultipleShopOrderStatus,
   getAllShopOrders,
   getShopSummaryStats,
   getFactoryExportData,
@@ -395,6 +396,33 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
         const orders = getAllShopOrders(filters);
         return sendJson(res, 200, { orders });
+      }
+
+      // PATCH /api/admin/shop/orders/bulk-status - Atualizar estado de múltiplas encomendas de uma só vez
+      if (
+        (pathname === '/api/admin/shop/orders/bulk-status' ||
+          pathname === '/api/admin/shop/orders/bulk-status/') &&
+        (req.method === 'PATCH' || req.method === 'POST')
+      ) {
+        const body = await readJsonBody(req);
+        const { order_ids, order_status } = body;
+
+        if (!Array.isArray(order_ids) || order_ids.length === 0) {
+          return sendJson(res, 400, {
+            error: 'order_ids deve ser uma lista não vazia de identificadores de encomenda',
+          });
+        }
+
+        if (!order_status) {
+          return sendJson(res, 400, { error: 'order_status é obrigatório' });
+        }
+
+        try {
+          const updatedCount = updateMultipleShopOrderStatus(order_ids, order_status);
+          return sendJson(res, 200, { success: true, updatedCount });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao atualizar encomendas' });
+        }
       }
 
       // PATCH /api/admin/shop/orders/:id - Atualizar estado da encomenda (produção, envio, etc.)

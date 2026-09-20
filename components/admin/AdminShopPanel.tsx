@@ -27,6 +27,7 @@ import {
   fetchAdminShopOrders,
   fetchAdminShopStats,
   updateAdminOrderStatus,
+  updateMultipleAdminOrderStatus,
   resendOrderEmail,
   fetchShopCampaign,
 } from '../../services/shopService';
@@ -45,6 +46,11 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const [copiedLink, setCopiedLink] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Seleção Múltipla / Bulk Actions
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<OrderStatus>('confirmed');
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // Filtros
   const [search, setSearch] = useState('');
@@ -175,6 +181,53 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       });
   };
 
+  // Seleção e Alteração em Lote
+  const allFilteredSelected =
+    filteredOrders.length > 0 &&
+    filteredOrders.every((o) => selectedOrderIds.includes(o.id));
+
+  const someFilteredSelected =
+    filteredOrders.some((o) => selectedOrderIds.includes(o.id)) && !allFilteredSelected;
+
+  const handleToggleSelectOrder = (orderId: string) => {
+    setSelectedOrderIds((prev) =>
+      prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      const filteredSet = new Set(filteredOrders.map((o) => o.id));
+      setSelectedOrderIds((prev) => prev.filter((id) => !filteredSet.has(id)));
+    } else {
+      const newSelected = new Set(selectedOrderIds);
+      filteredOrders.forEach((o) => newSelected.add(o.id));
+      setSelectedOrderIds(Array.from(newSelected));
+    }
+  };
+
+  const handleBulkStatusChange = async () => {
+    if (selectedOrderIds.length === 0) return;
+    try {
+      setIsBulkUpdating(true);
+      await updateMultipleAdminOrderStatus(token, selectedOrderIds, bulkStatus);
+      setOrders((prev) =>
+        prev.map((o) =>
+          selectedOrderIds.includes(o.id) ? { ...o, order_status: bulkStatus } : o
+        )
+      );
+      showFeedback(
+        'bulk-update-success',
+        `${selectedOrderIds.length} encomenda(s) atualizada(s) para "${getOrderStatusLabel(bulkStatus)}"!`
+      );
+      setSelectedOrderIds([]);
+    } catch (err: any) {
+      alert(err.message || 'Falha ao atualizar encomendas em lote.');
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   // Status helper
   const getOrderStatusLabel = (st: OrderStatus) => {
     switch (st) {
@@ -190,6 +243,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         return 'Enviada via CTT';
       case 'delivered':
         return 'Entregue / Concluída';
+      case 'test':
+        return 'Teste';
       default:
         return st;
     }
@@ -454,6 +509,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
               <option value="ready_for_pickup">Pronta p/ Levantamento</option>
               <option value="shipped">Enviada via CTT</option>
               <option value="delivered">Entregue</option>
+              <option value="test">Teste</option>
+              <option value="pending_payment">Pendente Pagamento</option>
             </select>
           </div>
 
@@ -489,6 +546,68 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           </div>
         </div>
 
+        {/* Barra de Ações em Lote (Bulk Actions) */}
+        {selectedOrderIds.length > 0 && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-slate-900 border border-cyan-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 font-black flex items-center justify-center text-xs border border-cyan-500/30">
+                {selectedOrderIds.length}
+              </span>
+              <div>
+                <span className="text-xs font-bold text-white block">
+                  {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'encomenda selecionada' : 'encomendas selecionadas'}
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  Altera o estado operacional dos pedidos marcados em simultâneo
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[11px] font-semibold text-slate-300 whitespace-nowrap">
+                  Novo Estado:
+                </label>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value as OrderStatus)}
+                  className="px-3 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900 text-xs text-white font-medium focus:ring-1 focus:ring-cyan-500"
+                >
+                  <option value="confirmed">Confirmada</option>
+                  <option value="in_production">Em Produção</option>
+                  <option value="ready_for_pickup">Pronta p/ Levantamento</option>
+                  <option value="shipped">Enviada via CTT</option>
+                  <option value="delivered">Entregue</option>
+                  <option value="test">Teste</option>
+                  <option value="pending_payment">Pendente Pagamento</option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBulkStatusChange}
+                disabled={isBulkUpdating}
+                className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isBulkUpdating ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Check size={13} />
+                )}
+                <span>{isBulkUpdating ? 'A aplicar...' : 'Aplicar a Todos'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrderIds([])}
+                className="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tabela de Encomendas */}
         {filteredOrders.length === 0 ? (
           <div className="py-12 text-center text-slate-400">
@@ -500,13 +619,25 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
+                  <th className="py-3 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={allFilteredSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = someFilteredSelected;
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 cursor-pointer accent-cyan-500"
+                      title="Selecionar / Desmarcar todos os visíveis"
+                    />
+                  </th>
                   <th className="py-3 px-3">Encomenda</th>
                   <th className="py-3 px-3">Aluno</th>
-                  <th className="py-3 px-3">Contacto / NIF</th>
+                  <th className="py-3 px-3">Contacto</th>
                   <th className="py-3 px-3">Tamanho</th>
                   <th className="py-3 px-3">Entrega</th>
                   <th className="py-3 px-3">Valor</th>
-                  <th className="py-3 px-3">Estado</th>
+                  <th className="py-3 px-3">Pagamento</th>
                   <th className="py-3 px-3">Estado Operacional</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
@@ -515,8 +646,22 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                 {filteredOrders.map((o) => (
                   <tr
                     key={o.id}
-                    className="hover:bg-gray-50/60 dark:hover:bg-slate-900/40 transition-colors"
+                    className={`transition-colors ${
+                      selectedOrderIds.includes(o.id)
+                        ? 'bg-cyan-500/10 dark:bg-cyan-950/40'
+                        : 'hover:bg-gray-50/60 dark:hover:bg-slate-900/40'
+                    }`}
                   >
+                    {/* Checkbox de Seleção */}
+                    <td className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(o.id)}
+                        onChange={() => handleToggleSelectOrder(o.id)}
+                        className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 cursor-pointer accent-cyan-500"
+                      />
+                    </td>
+
                     {/* ID & Data */}
                     <td className="py-3 px-3">
                       <span className="font-mono font-bold text-slate-900 dark:text-white block">
@@ -535,12 +680,11 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                       <span className="text-[11px] text-slate-500">{o.student_email}</span>
                     </td>
 
-                    {/* Contacto & NIF */}
+                    {/* Contacto */}
                     <td className="py-3 px-3">
                       <span className="font-mono text-slate-700 dark:text-slate-300 block">
                         {o.phone_number}
                       </span>
-                      <span className="text-[10px] text-slate-400">NIF: {o.nif}</span>
                     </td>
 
                     {/* Tamanho */}
@@ -601,7 +745,11 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                         value={o.order_status}
                         disabled={updatingOrderId === o.id}
                         onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                        className="px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] text-slate-800 dark:text-slate-200 font-medium"
+                        className={`px-2 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+                          o.order_status === 'test'
+                            ? 'border-purple-500/50 bg-purple-950/30 text-purple-300 font-bold'
+                            : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200'
+                        }`}
                       >
                         <option value="pending_payment">Pendente Pagamento</option>
                         <option value="confirmed">Confirmada</option>
@@ -609,6 +757,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                         <option value="ready_for_pickup">Pronta p/ Levantamento</option>
                         <option value="shipped">Enviada via CTT</option>
                         <option value="delivered">Entregue</option>
+                        <option value="test">Teste</option>
                       </select>
                     </td>
 

@@ -199,6 +199,30 @@ export async function updateAdminOrderStatus(
 }
 
 /**
+ * Atualiza o estado operacional de múltiplas encomendas de uma só vez
+ */
+export async function updateMultipleAdminOrderStatus(
+  token: string,
+  orderIds: string[],
+  orderStatus: OrderStatus
+): Promise<{ success: boolean; updatedCount: number }> {
+  const res = await fetch(`/api/admin/shop/orders/bulk-status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ order_ids: orderIds, order_status: orderStatus }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Falha ao atualizar encomendas em lote');
+  }
+  return res.json();
+}
+
+/**
  * Reenvia o email de confirmação de encomenda
  */
 export async function resendOrderEmail(

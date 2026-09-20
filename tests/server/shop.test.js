@@ -258,6 +258,40 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     delete process.env.SWEATS_AVAILABLE;
   });
 
+  it('suporta o estado operacional test e permite atualização em lote de múltiplas encomendas', () => {
+    const o1 = db.createShopOrder({
+      student_name: 'Teste Um',
+      student_email: 'um@ualg.pt',
+      phone_number: '912345671',
+      size: 'S',
+      delivery_type: 'pickup',
+    });
+    const o2 = db.createShopOrder({
+      student_name: 'Teste Dois',
+      student_email: 'dois@ualg.pt',
+      phone_number: '912345672',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+
+    // Teste de atualização individual para 'test'
+    const success1 = db.updateShopOrderStatus(o1.id, 'test');
+    expect(success1).toBe(true);
+    expect(db.getShopOrderById(o1.id).order_status).toBe('test');
+
+    // Teste de atualização em lote para 'in_production'
+    const changes = db.updateMultipleShopOrderStatus([o1.id, o2.id], 'in_production');
+    expect(changes).toBe(2);
+    expect(db.getShopOrderById(o1.id).order_status).toBe('in_production');
+    expect(db.getShopOrderById(o2.id).order_status).toBe('in_production');
+
+    // Teste de atualização em lote para 'test'
+    const changesTest = db.updateMultipleShopOrderStatus([o1.id, o2.id], 'test');
+    expect(changesTest).toBe(2);
+    expect(db.getShopOrderById(o1.id).order_status).toBe('test');
+    expect(db.getShopOrderById(o2.id).order_status).toBe('test');
+  });
+
   it('inicia pedido de pagamento Stripe em modo sandbox e processa webhook de sucesso', async () => {
     const paymentService = await import('../../server/services/paymentService.js');
     expect(paymentService.isPaymentSandbox()).toBe(true);

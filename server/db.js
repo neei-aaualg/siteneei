@@ -167,7 +167,7 @@ db.exec(`
     payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'expired', 'failed')),
     payment_provider TEXT NOT NULL DEFAULT 'ifthenpay',
     payment_ref TEXT,
-    order_status TEXT NOT NULL DEFAULT 'pending_payment' CHECK(order_status IN ('pending_payment', 'confirmed', 'in_production', 'ready_for_pickup', 'shipped', 'delivered')),
+    order_status TEXT NOT NULL DEFAULT 'pending_payment' CHECK(order_status IN ('pending_payment', 'confirmed', 'in_production', 'ready_for_pickup', 'shipped', 'delivered', 'test')),
     email_sent INTEGER NOT NULL DEFAULT 0,
     email_sent_at TEXT,
     moloni_document_id TEXT,
@@ -181,6 +181,55 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
 `);
+
+// Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
+try {
+  const shopOrderTable = db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='shop_orders'")
+    .get();
+  if (shopOrderTable && shopOrderTable.sql && !shopOrderTable.sql.includes("'test'")) {
+    db.exec(`
+      PRAGMA foreign_keys = OFF;
+      CREATE TABLE IF NOT EXISTS shop_orders_migrated (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL,
+        student_name TEXT NOT NULL,
+        student_email TEXT NOT NULL,
+        phone_number TEXT NOT NULL,
+        nif TEXT NOT NULL DEFAULT '999999990',
+        size TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT 'Preto',
+        delivery_type TEXT NOT NULL CHECK(delivery_type IN ('pickup', 'shipping')),
+        shipping_address TEXT,
+        shipping_postal_code TEXT,
+        shipping_city TEXT,
+        item_price REAL NOT NULL,
+        shipping_fee REAL NOT NULL,
+        total_amount REAL NOT NULL,
+        payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'expired', 'failed')),
+        payment_provider TEXT NOT NULL DEFAULT 'ifthenpay',
+        payment_ref TEXT,
+        order_status TEXT NOT NULL DEFAULT 'pending_payment' CHECK(order_status IN ('pending_payment', 'confirmed', 'in_production', 'ready_for_pickup', 'shipped', 'delivered', 'test')),
+        email_sent INTEGER NOT NULL DEFAULT 0,
+        email_sent_at TEXT,
+        moloni_document_id TEXT,
+        moloni_status TEXT NOT NULL DEFAULT 'none' CHECK(moloni_status IN ('none', 'pending', 'issued', 'error')),
+        created_at TEXT NOT NULL,
+        paid_at TEXT,
+        FOREIGN KEY (campaign_id) REFERENCES shop_campaigns(id)
+      );
+      INSERT INTO shop_orders_migrated SELECT * FROM shop_orders;
+      DROP TABLE shop_orders;
+      ALTER TABLE shop_orders_migrated RENAME TO shop_orders;
+      CREATE INDEX IF NOT EXISTS idx_shop_orders_campaign ON shop_orders(campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
+      CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
+      PRAGMA foreign_keys = ON;
+    `);
+  }
+} catch (e) {
+  // Ignora se não existir
+}
 
 // Seed da Campanha de Pré-encomenda das Sweats (se ainda não existir)
 try {
@@ -1168,9 +1217,6 @@ export function createShopOrder(orderData, isAdminPreview = false) {
     throw err;
   }
 
-  // NIF (opcional, por omissão Consumidor Final)
-  const nif = (orderData.nif || '').replace(/\s+/g, '') || 'Consumidor Final';
-
   // Tipo de entrega
   const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';
   let shippingAddress = null;
@@ -1200,6 +1246,9 @@ export function createShopOrder(orderData, isAdminPreview = false) {
 
   const itemPrice = campaign.item_price;
   const totalAmount = Number((itemPrice + shippingFee).toFixed(2));
+
+  // NIF (opcional, por omissão Consumidor Final)
+  const nif = (orderData.nif || '').replace(/\s+/g, '') || 'Consumidor Final';
 
   // Geração de ID human-readable
   const randomSuffix = crypto.randomInt(1000, 9999);
@@ -1346,6 +1395,7 @@ export function updateShopOrderStatus(orderId, orderStatus) {
     'ready_for_pickup',
     'shipped',
     'delivered',
+    'test',
   ];
   if (!valid.includes(orderStatus)) {
     throw new Error('Estado de encomenda inválido');
@@ -1353,6 +1403,32 @@ export function updateShopOrderStatus(orderId, orderStatus) {
   const stmt = db.prepare('UPDATE shop_orders SET order_status = ? WHERE id = ?');
   const res = stmt.run(orderStatus, orderId);
   return res.changes > 0;
+}
+
+/**
+ * Atualiza o estado de múltiplas encomendas pelo admin
+ */
+export function updateMultipleShopOrderStatus(orderIds, orderStatus) {
+  const valid = [
+    'pending_payment',
+    'confirmed',
+    'in_production',
+    'ready_for_pickup',
+    'shipped',
+    'delivered',
+    'test',
+  ];
+  if (!valid.includes(orderStatus)) {
+    throw new Error('Estado de encomenda inválido');
+  }
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return 0;
+  }
+
+  const placeholders = orderIds.map(() => '?').join(',');
+  const stmt = db.prepare(`UPDATE shop_orders SET order_status = ? WHERE id IN (${placeholders})`);
+  const res = stmt.run(orderStatus, ...orderIds);
+  return res.changes;
 }
 
 /**
@@ -1412,7 +1488,8 @@ export function getAllShopOrders(filters = {}) {
  */
 export function getShopSummaryStats() {
   const allOrders = db.prepare('SELECT * FROM shop_orders').all();
-  const paidOrders = allOrders.filter((o) => o.payment_status === 'paid');
+  // Não contabiliza encomendas em estado 'test' na produção de fábrica
+  const paidOrders = allOrders.filter((o) => o.payment_status === 'paid' && o.order_status !== 'test');
 
   const sizeCounts = {
     XS: 0,
@@ -1447,16 +1524,17 @@ export function getShopSummaryStats() {
     sizeCounts,
     pickupCount,
     shippingCount,
+    testOrdersCount: allOrders.filter((o) => o.order_status === 'test').length,
   };
 }
 
 /**
- * Obtém dados para exportação CSV da fábrica de confeção
+ * Obtém dados para exportação CSV da fábrica de confeção (exclui encomendas marcadas como teste)
  */
 export function getFactoryExportData() {
   const paidOrders = db
     .prepare(
-      "SELECT * FROM shop_orders WHERE payment_status = 'paid' ORDER BY size ASC, student_name ASC"
+      "SELECT * FROM shop_orders WHERE payment_status = 'paid' AND order_status != 'test' ORDER BY size ASC, student_name ASC"
     )
     .all();
 

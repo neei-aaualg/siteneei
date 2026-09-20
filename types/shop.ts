@@ -5,7 +5,13 @@ export type DeliveryType = 'pickup' | 'shipping';
 export type PaymentStatus = 'pending' | 'paid' | 'expired' | 'failed';
 
 export type OrderStatus =
-  'pending_payment' | 'confirmed' | 'in_production' | 'ready_for_pickup' | 'shipped' | 'delivered';
+  | 'pending_payment'
+  | 'confirmed'
+  | 'in_production'
+  | 'ready_for_pickup'
+  | 'shipped'
+  | 'delivered'
+  | 'test';
 
 export interface ShopCampaign {
   id: string;
