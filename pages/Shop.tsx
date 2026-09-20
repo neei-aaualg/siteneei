@@ -857,7 +857,7 @@ export const Shop: React.FC = () => {
 
                     <div>
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Telemóvel (+351) *
+                        Telemóvel *
                       </label>
                       <input
                         type="tel"
