@@ -1,6 +1,15 @@
+import fs from 'node:fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+try {
+  if (fs.existsSync('.env')) {
+    process.loadEnvFile('.env');
+  }
+} catch (e) {
+  // Ignora se não for suportado ou não existir
+}
 
 function activitiesApiPlugin() {
   return {
@@ -9,6 +18,16 @@ function activitiesApiPlugin() {
       server.middlewares.use(async (req: any, res: any, next: any) => {
         try {
           const url = new URL(req.url, 'http://localhost');
+          if (
+            url.pathname.startsWith('/api/shop/') ||
+            url.pathname.startsWith('/api/admin/shop/') ||
+            url.pathname === '/api/webhooks/ifthenpay'
+          ) {
+            const { handleShopApi } = await import('./server/shopApi.js');
+            const handled = await handleShopApi(req, res, url.pathname, url.searchParams);
+            if (handled !== false) return;
+          }
+
           if (
             url.pathname.startsWith('/api/activities') ||
             url.pathname.startsWith('/api/admin/') ||

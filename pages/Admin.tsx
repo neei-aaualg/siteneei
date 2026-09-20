@@ -32,7 +32,9 @@ import {
   Award,
   ExternalLink,
   MapPin,
+  ShoppingBag,
 } from 'lucide-react';
+import { AdminShopPanel } from '../components/admin/AdminShopPanel';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
 import { CollaboratorApplication, CollaboratorStatus } from '../types/collaborators';
 import { JobOffer, JobStatus } from '../types/jobs';
@@ -102,7 +104,9 @@ export const Admin: React.FC = () => {
   const [formRegistrationOpensAt, setFormRegistrationOpensAt] = useState('');
 
   // Separador Ativo
-  const [activeTab, setActiveTab] = useState<'activities' | 'collaborators' | 'jobs'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'collaborators' | 'jobs' | 'shop'>(
+    'activities'
+  );
 
   // Dados de Colaboradores
   const [collaborators, setCollaborators] = useState<CollaboratorApplication[]>([]);
@@ -789,6 +793,21 @@ export const Admin: React.FC = () => {
               </span>
             )}
           </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('shop');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'shop'
+                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+            }`}
+          >
+            <ShoppingBag size={18} />
+            <span>Sweats & Loja</span>
+          </button>
         </div>
 
         {activeTab === 'activities' ? (
@@ -1415,7 +1434,7 @@ export const Admin: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'jobs' ? (
           /* Separador: Gestão de Vagas & Oportunidades */
           <div className="space-y-6 animate-fadeIn">
             {/* Resumo Métricas Vagas */}
@@ -1698,7 +1717,10 @@ export const Admin: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        ) : activeTab === 'shop' && token ? (
+          /* SEPARADOR 4: SWEATS & LOJA */
+          <AdminShopPanel token={token} showFeedback={showFeedback} />
+        ) : null}
       </div>
 
       {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO DE INSCRIÇÃO */}

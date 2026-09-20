@@ -24,7 +24,7 @@ describe('Header', () => {
   it('apresenta a navegação principal', () => {
     renderHeader();
     expect(screen.getByText('Início')).toBeInTheDocument();
-    expect(screen.getByText('Sobre')).toBeInTheDocument();
+    expect(screen.getByText('Merch')).toBeInTheDocument();
     expect(screen.getByText('Atividades')).toBeInTheDocument();
     expect(screen.getByText('Colaborar')).toBeInTheDocument();
   });
@@ -48,13 +48,16 @@ describe('Header', () => {
     const user = userEvent.setup();
     renderHeader();
 
+    expect(screen.queryByText('Sobre')).not.toBeInTheDocument();
     expect(screen.queryByText('Vagas')).not.toBeInTheDocument();
 
     await user.click(screen.getAllByText('Explorar')[0]);
+    expect(screen.getByText('Sobre')).toBeInTheDocument();
     expect(screen.getByText('Vagas')).toBeInTheDocument();
     expect(screen.getByText('Links')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
+    expect(screen.queryByText('Sobre')).not.toBeInTheDocument();
     expect(screen.queryByText('Vagas')).not.toBeInTheDocument();
   });
 

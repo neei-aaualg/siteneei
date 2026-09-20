@@ -4,10 +4,19 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { handleActivitiesApi } from './server/api.js';
+import { handleShopApi } from './server/shopApi.js';
 import { createRateLimiter, setSecurityHeaders, clientIp } from './server/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+try {
+  if (fs.existsSync('.env')) {
+    process.loadEnvFile('.env');
+  }
+} catch (e) {
+  // Ignora se não existir ou não suportado
+}
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -303,9 +312,26 @@ const server = http.createServer(async (req, res) => {
       if (isRateLimited(req, res, loginLimiter)) return;
     } else if (pathname.startsWith('/api/admin/')) {
       if (isRateLimited(req, res, adminLimiter)) return;
+    } else if (
+      pathname === '/api/webhooks/stripe' ||
+      pathname === '/api/webhooks/ifthenpay' ||
+      pathname === '/api/shop/webhook'
+    ) {
+      // Sem rate-limit estrito para webhook de pagamentos do gateway
     } else if (pathname.startsWith('/api/')) {
       if (isRateLimited(req, res, apiLimiter)) return;
     }
+  }
+
+  // API Loja, Sweats, Pré-encomendas e Webhooks Stripe
+  if (
+    pathname.startsWith('/api/shop/') ||
+    pathname.startsWith('/api/admin/shop/') ||
+    pathname === '/api/webhooks/stripe' ||
+    pathname === '/api/webhooks/ifthenpay'
+  ) {
+    const handled = await handleShopApi(req, res, pathname, url.searchParams);
+    if (handled !== false) return;
   }
 
   // API Atividades, Colaboradores, Vagas e Administração NEEI

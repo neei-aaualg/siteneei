@@ -20,7 +20,18 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  fs.rmSync(tmpDir, { recursive: true, force: true });
+  try {
+    if (db && db.db && typeof db.db.close === 'function') {
+      db.db.close();
+    }
+  } catch (e) {
+    void e;
+  }
+  try {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  } catch (e) {
+    void e;
+  }
   if (originalDbPath === undefined) {
     delete process.env.DATABASE_PATH;
   } else {

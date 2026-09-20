@@ -18,6 +18,25 @@ import {
 } from './db.js';
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
+export function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = '';
+    req.on('data', (chunk) => {
+      raw += chunk;
+      if (raw.length > 2e6) {
+        const err = new Error('Payload too large');
+        err.statusCode = 413;
+        req.destroy();
+        reject(err);
+      }
+    });
+    req.on('end', () => {
+      resolve(raw);
+    });
+    req.on('error', reject);
+  });
+}
+
 export function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -61,7 +80,10 @@ export async function handleActivitiesApi(req, res, pathname) {
     if (pathname === '/api/config' && req.method === 'GET') {
       const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
       const showCalendar = rawShow === undefined ? true : rawShow !== 'false' && rawShow !== '0';
-      return sendJson(res, 200, { showCalendar });
+      return sendJson(res, 200, {
+        showCalendar,
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
+      });
     }
 
     // GET /api/activities - Lista pública de atividades a decorrer e futuras
