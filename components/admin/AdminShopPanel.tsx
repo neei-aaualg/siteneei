@@ -250,6 +250,28 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     }
   };
 
+  // Classes visuais harmoniosas para o selector de estado operacional (suporta light e dark mode sem bugs de contraste)
+  const getOrderStatusSelectClasses = (status: OrderStatus) => {
+    switch (status) {
+      case 'test':
+        return 'border-purple-300 dark:border-purple-600/60 bg-purple-100/90 dark:bg-purple-950/60 text-purple-900 dark:text-purple-200 font-bold focus:ring-purple-500';
+      case 'confirmed':
+        return 'border-cyan-300 dark:border-cyan-800/60 bg-cyan-50 dark:bg-cyan-950/50 text-cyan-900 dark:text-cyan-200 font-semibold focus:ring-cyan-500';
+      case 'in_production':
+        return 'border-indigo-300 dark:border-indigo-800/60 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-900 dark:text-indigo-200 font-semibold focus:ring-indigo-500';
+      case 'ready_for_pickup':
+        return 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-900 dark:text-emerald-200 font-semibold focus:ring-emerald-500';
+      case 'shipped':
+        return 'border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 font-semibold focus:ring-amber-500';
+      case 'delivered':
+        return 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/70 text-slate-800 dark:text-slate-200 font-semibold focus:ring-slate-500';
+      case 'pending_payment':
+        return 'border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 font-medium focus:ring-amber-500';
+      default:
+        return 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200';
+    }
+  };
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Secção de Modo de Teste da Loja (Checkout Real a 0.50€) - Dependente de SHOW_TEST_SHOP */}
@@ -509,7 +531,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
               <option value="ready_for_pickup">Pronta p/ Levantamento</option>
               <option value="shipped">Enviada via CTT</option>
               <option value="delivered">Entregue</option>
-              <option value="test">Teste</option>
+              <option value="test">🧪 Teste</option>
               <option value="pending_payment">Pendente Pagamento</option>
             </select>
           </div>
@@ -573,13 +595,13 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                   onChange={(e) => setBulkStatus(e.target.value as OrderStatus)}
                   className="px-3 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900 text-xs text-white font-medium focus:ring-1 focus:ring-cyan-500"
                 >
-                  <option value="confirmed">Confirmada</option>
-                  <option value="in_production">Em Produção</option>
-                  <option value="ready_for_pickup">Pronta p/ Levantamento</option>
-                  <option value="shipped">Enviada via CTT</option>
-                  <option value="delivered">Entregue</option>
-                  <option value="test">Teste</option>
-                  <option value="pending_payment">Pendente Pagamento</option>
+                  <option className="bg-slate-900 text-white" value="confirmed">Confirmada</option>
+                  <option className="bg-slate-900 text-white" value="in_production">Em Produção</option>
+                  <option className="bg-slate-900 text-white" value="ready_for_pickup">Pronta p/ Levantamento</option>
+                  <option className="bg-slate-900 text-white" value="shipped">Enviada via CTT</option>
+                  <option className="bg-slate-900 text-white" value="delivered">Entregue</option>
+                  <option className="bg-slate-900 text-purple-300 font-bold" value="test">🧪 Teste</option>
+                  <option className="bg-slate-900 text-white" value="pending_payment">Pendente Pagamento</option>
                 </select>
               </div>
 
@@ -649,6 +671,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                     className={`transition-colors ${
                       selectedOrderIds.includes(o.id)
                         ? 'bg-cyan-500/10 dark:bg-cyan-950/40'
+                        : o.order_status === 'test'
+                        ? 'bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50/70 dark:hover:bg-purple-950/30'
                         : 'hover:bg-gray-50/60 dark:hover:bg-slate-900/40'
                     }`}
                   >
@@ -664,9 +688,16 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
                     {/* ID & Data */}
                     <td className="py-3 px-3">
-                      <span className="font-mono font-bold text-slate-900 dark:text-white block">
-                        {o.id}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono font-bold text-slate-900 dark:text-white block">
+                          {o.id}
+                        </span>
+                        {o.order_status === 'test' && (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60">
+                            <FlaskConical size={10} /> Teste
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] text-slate-400">
                         {formatDateTimeDDMMAAAA(o.created_at)}
                       </span>
@@ -745,19 +776,17 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                         value={o.order_status}
                         disabled={updatingOrderId === o.id}
                         onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                        className={`px-2 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
-                          o.order_status === 'test'
-                            ? 'border-purple-500/50 bg-purple-950/30 text-purple-300 font-bold'
-                            : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200'
-                        }`}
+                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer outline-none focus:ring-2 ${getOrderStatusSelectClasses(
+                          o.order_status
+                        )}`}
                       >
-                        <option value="pending_payment">Pendente Pagamento</option>
-                        <option value="confirmed">Confirmada</option>
-                        <option value="in_production">Em Produção</option>
-                        <option value="ready_for_pickup">Pronta p/ Levantamento</option>
-                        <option value="shipped">Enviada via CTT</option>
-                        <option value="delivered">Entregue</option>
-                        <option value="test">Teste</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="confirmed">Confirmada</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="in_production">Em Produção</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="ready_for_pickup">Pronta p/ Levantamento</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="shipped">Enviada via CTT</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="delivered">Entregue</option>
+                        <option className="bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 font-bold" value="test">🧪 Teste</option>
+                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="pending_payment">Pendente Pagamento</option>
                       </select>
                     </td>
 
