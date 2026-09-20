@@ -97,13 +97,14 @@ export async function createPaymentIntent(
 }
 
 /**
- * Consulta o estado do pagamento / encomenda para o ecrã de espera do MB WAY
+ * Consulta e rastreia o estado do pagamento / encomenda
  */
 export async function fetchOrderStatus(orderId: string): Promise<OrderStatusResponse> {
-  const res = await fetch(`/api/shop/order-status/${encodeURIComponent(orderId)}`);
+  const cleanId = String(orderId || '').trim().replace(/^#/, '');
+  const res = await fetch(`/api/shop/order-status/${encodeURIComponent(cleanId)}`);
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || 'Erro ao consultar estado da encomenda.');
+    throw new Error(data.error || 'Encomenda não encontrada. Verifica o código inserido.');
   }
   return res.json();
 }

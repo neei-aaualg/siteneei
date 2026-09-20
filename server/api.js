@@ -69,6 +69,7 @@ export function sendJson(res, statusCode, data) {
     'Cache-Control': 'no-store',
   });
   res.end(JSON.stringify(data));
+  return true;
 }
 
 /**

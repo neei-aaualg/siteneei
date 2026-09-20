@@ -20,6 +20,7 @@ import {
   Check,
   Lock,
   Package,
+  PackageSearch,
   Layers,
   Tag,
   Filter,
@@ -39,6 +40,7 @@ import {
 } from '../services/shopService';
 import { getStoredAdminToken, setStoredAdminToken } from '../services/activitiesService';
 import { StripePaymentWidget } from '../components/StripePaymentWidget';
+import { OrderTrackerModal } from '../components/OrderTrackerModal';
 
 // Tabela do Guia de Medidas (em centímetros)
 const SIZE_GUIDE: Record<
@@ -67,6 +69,10 @@ export const Shop: React.FC = () => {
 
   // Modal de Checkout / Encomenda
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Modal de Rastreio de Encomenda
+  const [isTrackerOpen, setIsTrackerOpen] = useState(false);
+  const [trackerInitialId, setTrackerInitialId] = useState('');
 
   // Seleções do comprador
   const [selectedSize, setSelectedSize] = useState<SweatSize>('M');
@@ -115,6 +121,13 @@ export const Shop: React.FC = () => {
     const isPreviewParam =
       urlParams.get('admin_preview') === '1' || urlParams.get('admin_preview') === 'true';
     const urlToken = urlParams.get('token');
+
+    // Deteção de link direto de rastreio de encomenda (?track=SW-... ou ?order=SW-...)
+    const trackParam = urlParams.get('track') || urlParams.get('rastreio') || urlParams.get('order');
+    if (trackParam) {
+      setTrackerInitialId(trackParam);
+      setIsTrackerOpen(true);
+    }
 
     if (urlToken) {
       setStoredAdminToken(urlToken);
@@ -498,6 +511,24 @@ export const Shop: React.FC = () => {
                 }`}
             >
               Acessórios (Brevemente)
+            </button>
+
+            {/* Divisor subtil */}
+            <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
+
+            {/* Botão de Ferramenta para Seguir Encomenda */}
+            <button
+              type="button"
+              id="btn-open-order-tracker"
+              onClick={() => {
+                setTrackerInitialId(activeOrderId || '');
+                setIsTrackerOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-indigo-500/10 hover:from-cyan-500/20 hover:to-indigo-500/20 border border-cyan-500/40 text-cyan-700 dark:text-cyan-300 flex items-center gap-2 shadow-sm hover:shadow-md hover:border-cyan-500"
+              title="Acompanhar o estado de uma encomenda específica"
+            >
+              <PackageSearch size={16} className="text-cyan-500" />
+              <span>Seguir Encomenda</span>
             </button>
           </div>
         </div>
@@ -1222,6 +1253,20 @@ export const Shop: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      setTrackerInitialId(activeOrderId || '');
+                      setIsTrackerOpen(true);
+                      setPaymentStatus('idle');
+                      setIsCheckoutOpen(false);
+                    }}
+                    className="w-full py-2.5 px-4 mb-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <PackageSearch size={16} />
+                    <span>Acompanhar Estado Desta Encomenda</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
                       setPaymentStatus('idle');
                       setIsCheckoutOpen(false);
                       setActiveOrderId(null);
@@ -1274,6 +1319,13 @@ export const Shop: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Ferramenta Modal de Rastreio de Encomenda */}
+        <OrderTrackerModal
+          isOpen={isTrackerOpen}
+          onClose={() => setIsTrackerOpen(false)}
+          initialOrderId={trackerInitialId}
+        />
       </div>
     </div>
   );

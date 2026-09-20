@@ -196,9 +196,18 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 5. GET /api/shop/order-status/:id - Consultar estado da encomenda (polling no checkout)
-    if (pathname.startsWith('/api/shop/order-status/') && req.method === 'GET') {
-      const orderId = pathname.replace('/api/shop/order-status/', '').trim();
+    // 5. GET /api/shop/order-status/:id ou /api/shop/track/:id - Consultar e rastrear estado da encomenda
+    if (
+      (pathname.startsWith('/api/shop/order-status/') || pathname.startsWith('/api/shop/track/')) &&
+      req.method === 'GET'
+    ) {
+      const rawId = decodeURIComponent(
+        pathname.startsWith('/api/shop/order-status/')
+          ? pathname.replace('/api/shop/order-status/', '')
+          : pathname.replace('/api/shop/track/', '')
+      ).trim();
+      const orderId = rawId.replace(/^#/, '');
+
       let order = getShopOrderById(orderId);
       if (!order) {
         order = getPendingShopOrder(orderId);
@@ -208,15 +217,23 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 404, { error: 'Encomenda não encontrada.' });
       }
 
+      const campaign = getActiveShopCampaign();
+      const pickupLocation =
+        campaign?.pickup_location || 'Gabinete NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
+
       return sendJson(res, 200, {
         orderId: order.id,
         paymentStatus: order.payment_status,
         orderStatus: order.order_status,
         paidAt: order.paid_at || null,
+        createdAt: order.created_at || null,
         studentName: order.student_name,
         size: order.size,
+        color: order.color || 'Preto',
         totalAmount: order.total_amount,
         deliveryType: order.delivery_type,
+        shippingCity: order.shipping_city || null,
+        pickupLocation,
       });
     }
 

@@ -1313,7 +1313,14 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
  */
 export function getPendingShopOrder(orderId) {
   if (!orderId) return null;
-  return pendingOrdersCache.get(orderId) || null;
+  const cleanId = String(orderId).trim().replace(/^#/, '').toUpperCase();
+  if (pendingOrdersCache.has(cleanId)) {
+    return pendingOrdersCache.get(cleanId);
+  }
+  for (const [k, v] of pendingOrdersCache.entries()) {
+    if (k.toUpperCase() === cleanId) return v;
+  }
+  return null;
 }
 
 /**
@@ -1400,7 +1407,9 @@ export function createShopOrder(orderData, isAdminPreview = false, options = {})
  * Obtém uma encomenda pelo ID
  */
 export function getShopOrderById(orderId) {
-  const row = db.prepare('SELECT * FROM shop_orders WHERE id = ?').get(orderId);
+  if (!orderId) return null;
+  const cleanId = String(orderId).trim().replace(/^#/, '');
+  const row = db.prepare('SELECT * FROM shop_orders WHERE UPPER(id) = UPPER(?)').get(cleanId);
   if (!row) return null;
 
   return {

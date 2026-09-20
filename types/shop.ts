@@ -99,10 +99,14 @@ export interface OrderStatusResponse {
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
   paidAt?: string | null;
+  createdAt?: string | null;
   studentName: string;
   size: SweatSize;
+  color?: string;
   totalAmount: number;
   deliveryType: DeliveryType;
+  shippingCity?: string | null;
+  pickupLocation?: string;
 }
 
 export interface ShopSummaryStats {
