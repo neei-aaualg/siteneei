@@ -105,13 +105,14 @@ describe('server/api - /api/config', () => {
   it('devolve showCalendar a true por omissão', async () => {
     const { status, body } = await getJson('/api/config');
     expect(status).toBe(200);
-    expect(body).toEqual({ showCalendar: true });
+    expect(body).toMatchObject({ showCalendar: true });
+    expect(body).toHaveProperty('stripePublishableKey');
   });
 
   it('respeita SHOW_CALENDAR=false', async () => {
     process.env.SHOW_CALENDAR = 'false';
     const { body } = await getJson('/api/config');
-    expect(body).toEqual({ showCalendar: false });
+    expect(body).toMatchObject({ showCalendar: false });
   });
 });
 

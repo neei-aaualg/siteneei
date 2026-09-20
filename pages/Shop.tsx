@@ -25,14 +25,18 @@ import {
   Filter,
   Instagram,
   ExternalLink,
+  CreditCard,
+  ChevronLeft,
 } from 'lucide-react';
 import { ShopCampaign, SweatSize, DeliveryType, MerchProduct } from '../types/shop';
 import {
   fetchShopCampaign,
   submitCheckout,
+  createPaymentIntent,
   fetchOrderStatus,
   simulatePayment,
 } from '../services/shopService';
+import { StripePaymentWidget } from '../components/StripePaymentWidget';
 
 // Tabela do Guia de Medidas (em centímetros)
 const SIZE_GUIDE: Record<
@@ -87,6 +91,15 @@ export const Shop: React.FC = () => {
   const [simulating, setSimulating] = useState(false);
   const [copiedOrderId, setCopiedOrderId] = useState(false);
 
+  // Passo do checkout: 1 = formulário de dados, 2 = widget de pagamento
+  const [checkoutStep, setCheckoutStep] = useState<1 | 2>(1);
+
+  // Estado do Payment Element
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+  const [stripePublishableKey, setStripePublishableKey] = useState<string | null>(null);
+  const [stripeTotalAmount, setStripeTotalAmount] = useState(0);
+  const [stripeIsSandbox, setStripeIsSandbox] = useState(false);
+
   // Atualiza o título da página
   useEffect(() => {
     document.title = 'Merch Oficial · NEEI AAUAlg';
@@ -99,15 +112,11 @@ export const Shop: React.FC = () => {
       .then((data) => {
         if (mounted) {
           setCampaign(data.campaign);
-          setIsSandbox(data.isSandbox);
-          // Determina disponibilidade pelas variáveis de ambiente / status
-          const isAvail = data.sweatsAvailable !== false && data.campaign?.is_available !== false;
-          setSweatsAvailable(isAvail);
+          setIsSandbox(data.isSandbox ?? false);
+          setSweatsAvailable(data.sweatsAvailable ?? true);
 
-          if (data.campaign?.sizes_available?.length > 0) {
-            if (data.campaign.sizes_available.includes('M')) {
-              setSelectedSize('M');
-            } else {
+          if (data.campaign?.sizes_available?.length) {
+            if (!data.campaign.sizes_available.includes('M')) {
               setSelectedSize(data.campaign.sizes_available[0]);
             }
           }
@@ -124,6 +133,31 @@ export const Shop: React.FC = () => {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  // Detecta redirecionamento após pagamento Stripe (return_url com ?payment_intent_done=1)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const done = params.get('payment_intent_done');
+    const orderId = params.get('orderId');
+    if (done === '1' && orderId) {
+      setActiveOrderId(orderId);
+      setPaymentStatus('paid');
+      // Limpa os parâmetros da URL sem recarregar
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+      // Lança confettis
+      try {
+        confetti({
+          particleCount: 140,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b'],
+        });
+      } catch (_) {
+        // ignore
+      }
+    }
   }, []);
 
   // Lista de produtos suportados no catálogo de Merch
@@ -230,7 +264,7 @@ export const Shop: React.FC = () => {
     };
   }, [activeOrderId, paymentStatus]);
 
-  // Submissão do Checkout
+  // Passo 1 — Submissão do formulário de dados e criação do PaymentIntent
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -252,7 +286,7 @@ export const Shop: React.FC = () => {
     const cleanPhone = phoneNumber.replace(/\s+/g, '').replace(/^\+351/, '');
     if (!/^9\d{8}$/.test(cleanPhone)) {
       setFormError(
-        'Número de telemóvel inválido para MB WAY. Deve ter 9 dígitos portugueses a começar por 9.'
+        'Número de telemóvel inválido. Deve ter 9 dígitos portugueses a começar por 9.'
       );
       return;
     }
@@ -267,7 +301,8 @@ export const Shop: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const res = await submitCheckout({
+      // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
+      const res = await createPaymentIntent({
         student_name: studentName.trim(),
         student_email: studentEmail.trim(),
         phone_number: cleanPhone,
@@ -279,13 +314,46 @@ export const Shop: React.FC = () => {
       });
 
       setActiveOrderId(res.orderId);
-      setPaymentTimeRemaining(res.expiresInSeconds || 300);
-      setPaymentStatus('waiting_payment');
+      setStripeClientSecret(res.clientSecret);
+      setStripePublishableKey(res.publishableKey);
+      setStripeTotalAmount(res.totalAmount);
+      setStripeIsSandbox(res.isSandbox ?? false);
+      // Avança para o passo 2 — widget de pagamento
+      setCheckoutStep(2);
     } catch (err: any) {
       setFormError(err.message || 'Ocorreu um erro ao processar a tua encomenda. Tenta novamente.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Callback de sucesso do widget Stripe (sandbox ou após redirecionamento)
+  const handlePaymentSuccess = async () => {
+    if (!activeOrderId) return;
+    // Em sandbox: simular o pagamento no backend
+    if (stripeIsSandbox) {
+      try {
+        await simulatePayment(activeOrderId);
+      } catch (_) {
+        // ignora erro de simulação — o polling vai apanhar
+      }
+    }
+    setPaymentStatus('paid');
+    try {
+      confetti({
+        particleCount: 140,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#06b6d4', '#3b82f6', '#10b981', '#f59e0b'],
+      });
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  // Callback de erro do widget Stripe
+  const handlePaymentError = (_msg: string) => {
+    // Erro já é mostrado inline no widget
   };
 
   // Simular pagamento (modo sandbox / testes)
@@ -578,7 +646,12 @@ export const Shop: React.FC = () => {
               {/* Botão Fechar */}
               <button
                 type="button"
-                onClick={() => setIsCheckoutOpen(false)}
+                onClick={() => {
+                  setIsCheckoutOpen(false);
+                  setCheckoutStep(1);
+                  setStripeClientSecret(null);
+                  setFormError(null);
+                }}
                 className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X size={20} />
@@ -586,15 +659,21 @@ export const Shop: React.FC = () => {
 
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
-                  <ShoppingBag size={20} />
+                  {checkoutStep === 1 ? <ShoppingBag size={20} /> : <CreditCard size={20} />}
                 </div>
-                <div>
+                <div className="flex-1">
                   <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                    Pré-encomenda da Sweat Oficial
+                    {checkoutStep === 1 ? 'Pré-encomenda da Sweat' : 'Escolhe o método de pagamento'}
                   </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Preenche os teus dados para concluir o pedido via MB WAY.
-                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
+                      1. Dados
+                    </span>
+                    <ChevronRight size={12} className="text-slate-500" />
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 2 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-500'}`}>
+                      2. Pagamento
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -814,7 +893,7 @@ export const Shop: React.FC = () => {
                       </span>
                     </div>
                     <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
-                      <span>Total a pagar via MB WAY</span>
+                      <span>Total</span>
                       <span className="text-xl font-black text-cyan-600 dark:text-cyan-400">
                         {totalPrice.toFixed(2)}€
                       </span>
@@ -828,7 +907,7 @@ export const Shop: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Botão de Submissão */}
+                  {/* Botão de Submissão — Passo 1 */}
                   <button
                     type="submit"
                     disabled={submitting}
@@ -837,16 +916,49 @@ export const Shop: React.FC = () => {
                     {submitting ? (
                       <>
                         <Loader2 size={18} className="animate-spin" />
-                        <span>A processar encomenda...</span>
+                        <span>A criar pedido de pagamento...</span>
                       </>
                     ) : (
                       <>
-                        <Smartphone size={18} />
-                        <span>Pagar {totalPrice.toFixed(2)}€ com MB WAY</span>
+                        <ArrowRight size={18} />
+                        <span>Continuar para Pagamento · {totalPrice.toFixed(2)}€</span>
                       </>
                     )}
                   </button>
                 </form>
+              )}
+
+              {/* Passo 2 — Widget de Pagamento Stripe */}
+              {checkoutStep === 2 && stripeClientSecret && stripePublishableKey && (
+                <div className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutStep(1)}
+                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer mb-2"
+                  >
+                    <ChevronLeft size={14} /> Voltar aos dados
+                  </button>
+
+                  {/* Resumo compacto do pedido */}
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-sm">
+                    <div className="text-slate-300">
+                      <span className="font-semibold">Sweat {selectedSize}</span>
+                      <span className="text-slate-500 mx-2">·</span>
+                      <span className="text-slate-400">{deliveryType === 'shipping' ? 'Envio CTT' : 'Levantamento Gambelas'}</span>
+                    </div>
+                    <span className="font-black text-cyan-400 text-base">{stripeTotalAmount.toFixed(2)}€</span>
+                  </div>
+
+                  <StripePaymentWidget
+                    clientSecret={stripeClientSecret}
+                    publishableKey={stripePublishableKey}
+                    orderId={activeOrderId!}
+                    totalAmount={stripeTotalAmount}
+                    isSandbox={stripeIsSandbox}
+                    onSuccess={handlePaymentSuccess}
+                    onError={handlePaymentError}
+                  />
+                </div>
               )}
             </div>
           </div>

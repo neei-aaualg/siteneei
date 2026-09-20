@@ -1,5 +1,6 @@
 import {
   createStripeMbWayPaymentIntent,
+  createStripePaymentIntentAutomatic,
   createStripeCheckoutSession,
   constructStripeWebhookEvent,
   isStripeSandbox,
@@ -26,6 +27,25 @@ export async function initiateMbWayPayment({
     orderId,
     amount,
     mobileNumber,
+    studentEmail,
+    studentName,
+    description,
+  });
+}
+
+/**
+ * Cria um PaymentIntent com todos os métodos ativos (Payment Element)
+ */
+export async function createAutomaticPaymentIntent({
+  orderId,
+  amount,
+  studentEmail,
+  studentName,
+  description,
+}) {
+  return createStripePaymentIntentAutomatic({
+    orderId,
+    amount,
     studentEmail,
     studentName,
     description,

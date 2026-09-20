@@ -18,6 +18,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.30.0",
+    "@stripe/react-stripe-js": "^6.10.0",
+    "@stripe/stripe-js": "^9.16.0",
     "canvas-confetti": "^1.9.4",
     "jszip": "^3.10.2",
     "lucide-react": "^0.554.0",

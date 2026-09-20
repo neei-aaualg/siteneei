@@ -80,7 +80,10 @@ export async function handleActivitiesApi(req, res, pathname) {
     if (pathname === '/api/config' && req.method === 'GET') {
       const rawShow = process.env.SHOW_CALENDAR ?? process.env.VITE_SHOW_CALENDAR;
       const showCalendar = rawShow === undefined ? true : rawShow !== 'false' && rawShow !== '0';
-      return sendJson(res, 200, { showCalendar });
+      return sendJson(res, 200, {
+        showCalendar,
+        stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
+      });
     }
 
     // GET /api/activities - Lista pública de atividades a decorrer e futuras

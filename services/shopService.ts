@@ -48,6 +48,30 @@ export async function submitCheckout(payload: CheckoutPayload): Promise<Checkout
 }
 
 /**
+ * Cria uma encomenda e retorna o clientSecret do PaymentIntent Stripe (Payment Element)
+ */
+export async function createPaymentIntent(payload: CheckoutPayload): Promise<{
+  orderId: string;
+  totalAmount: number;
+  clientSecret: string;
+  publishableKey: string;
+  provider: string;
+  isSandbox: boolean;
+}> {
+  const res = await fetch('/api/shop/create-payment-intent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao criar pedido de pagamento.');
+  }
+  return data;
+}
+
+/**
  * Consulta o estado do pagamento / encomenda para o ecrã de espera do MB WAY
  */
 export async function fetchOrderStatus(orderId: string): Promise<OrderStatusResponse> {

@@ -139,6 +139,66 @@ export async function createStripeMbWayPaymentIntent({
 }
 
 /**
+ * Cria um PaymentIntent com todos os métodos de pagamento ativos automaticamente
+ * (Cards, Apple Pay, Google Pay, MB WAY, Klarna, Pix, etc. conforme configurado no Stripe Dashboard)
+ */
+export async function createStripePaymentIntentAutomatic({
+  orderId,
+  amount,
+  studentEmail,
+  studentName,
+  description,
+}) {
+  const amountInCents = Math.round(Number(amount) * 100);
+
+  // Modo Sandbox — devolve um clientSecret fictício para teste local
+  if (isStripeSandbox()) {
+    return {
+      success: true,
+      provider: 'stripe_sandbox',
+      paymentIntentId: `pi_sandbox_${Date.now()}_${orderId}`,
+      clientSecret: `pi_sandbox_secret_${Date.now()}`,
+      publishableKey: STRIPE_PUBLISHABLE_KEY || 'pk_test_sandbox',
+    };
+  }
+
+  try {
+    const stripe = getStripeClient();
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amountInCents,
+      currency: 'eur',
+      automatic_payment_methods: { enabled: true },
+      description: description || `NEEI Merch - Encomenda ${orderId}`,
+      receipt_email: studentEmail,
+      metadata: {
+        order_id: orderId,
+        student_email: studentEmail,
+        student_name: studentName || '',
+      },
+    });
+
+    console.log(
+      `[STRIPE] PaymentIntent automático criado: ${paymentIntent.id} (${amountInCents} cêntimos)`
+    );
+
+    return {
+      success: true,
+      provider: 'stripe',
+      paymentIntentId: paymentIntent.id,
+      clientSecret: paymentIntent.client_secret,
+      publishableKey: STRIPE_PUBLISHABLE_KEY,
+    };
+  } catch (error) {
+    console.error('[STRIPE ERROR] Falha ao criar PaymentIntent automático:', error);
+    return {
+      success: false,
+      provider: 'stripe',
+      message: error.message || 'Erro ao criar pedido de pagamento.',
+    };
+  }
+}
+
+/**
  * Cria uma Checkout Session hospedada da Stripe para cartões de crédito/débito, Apple Pay e Google Pay
  */
 export async function createStripeCheckoutSession({ order, successUrl, cancelUrl }) {

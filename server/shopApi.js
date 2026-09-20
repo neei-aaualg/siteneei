@@ -16,6 +16,7 @@ import {
 import { sendOrderConfirmationEmail } from './services/emailService.js';
 import {
   initiateMbWayPayment,
+  createAutomaticPaymentIntent,
   createCheckoutSession,
   verifyStripeWebhook,
   isPaymentSandbox,
@@ -45,7 +46,39 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 2. POST /api/shop/checkout - Criar encomenda e disparar MB WAY
+    // 2. POST /api/shop/create-payment-intent - Criar encomenda + PaymentIntent (Payment Element)
+    if (pathname === '/api/shop/create-payment-intent' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const order = createShopOrder(body);
+
+      const paymentResult = await createAutomaticPaymentIntent({
+        orderId: order.id,
+        amount: order.total_amount,
+        studentEmail: order.student_email,
+        studentName: order.student_name,
+        description: `NEEI - Sweat ${order.size}`,
+      });
+
+      if (!paymentResult.success) {
+        return sendJson(res, 400, {
+          error: paymentResult.message || 'Falha ao criar pedido de pagamento.',
+        });
+      }
+
+      updateShopOrderPaymentStatus(order.id, 'pending', paymentResult.paymentIntentId);
+
+      return sendJson(res, 201, {
+        success: true,
+        orderId: order.id,
+        totalAmount: order.total_amount,
+        clientSecret: paymentResult.clientSecret,
+        publishableKey: paymentResult.publishableKey,
+        provider: paymentResult.provider,
+        isSandbox: isPaymentSandbox(),
+      });
+    }
+
+    // 3. POST /api/shop/checkout - Criar encomenda e disparar MB WAY (legacy / sandbox)
     if (pathname === '/api/shop/checkout' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const order = createShopOrder(body);
