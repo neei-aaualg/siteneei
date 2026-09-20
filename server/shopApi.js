@@ -51,17 +51,12 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const order = createShopOrder(body);
 
-      const proto = req.headers['x-forwarded-proto'] || 'http';
-      const host = req.headers.host || 'localhost:3000';
-      const baseUrl = `${proto}://${host}`;
-
       const paymentResult = await createAutomaticPaymentIntent({
         orderId: order.id,
         amount: order.total_amount,
         studentEmail: order.student_email,
         studentName: order.student_name,
         description: `NEEI - Sweat ${order.size}`,
-        baseUrl,
       });
 
       if (!paymentResult.success) {
@@ -70,8 +65,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         });
       }
 
-      const paymentRef = paymentResult.sessionId || paymentResult.paymentIntentId;
-      updateShopOrderPaymentStatus(order.id, 'pending', paymentRef);
+      updateShopOrderPaymentStatus(order.id, 'pending', paymentResult.paymentIntentId);
 
       return sendJson(res, 201, {
         success: true,
