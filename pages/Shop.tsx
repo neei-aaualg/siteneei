@@ -494,7 +494,7 @@ export const Shop: React.FC = () => {
           </div>
         </div>
 
-        {/* Banner de Modo de Teste Admin (SWEATS_AVAILABLE=false mas visualizado por admin) */}
+        {/* Banner de Modo de Teste Admin (ativado via SHOW_TEST_SHOP e acedido por admin) */}
         {isAdminPreview && (
           <div className="mb-8 p-5 rounded-2xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-200 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shadow-cyan-950/50 animate-in fade-in duration-200">
             <div className="flex items-start sm:items-center gap-3.5">
@@ -503,9 +503,9 @@ export const Shop: React.FC = () => {
               </div>
               <div className="leading-relaxed">
                 <strong className="text-white block sm:inline mr-1">
-                  Modo de Teste Admin Ativo:
+                  Modo de Teste Admin Ativo (SHOW_TEST_SHOP):
                 </strong>
-                A testar compras reais com <strong>SWEATS_AVAILABLE=false</strong>. O valor da sweat foi ajustado para <strong className="text-white text-base underline decoration-cyan-400">0.50€</strong> (mínimo Stripe) para poderes testar com MB WAY, Cartão ou Apple Pay no telemóvel.
+                A testar compras reais da equipa. O valor da sweat foi ajustado para <strong className="text-white text-base underline decoration-cyan-400">0.50€</strong> (mínimo Stripe) para poderes testar com MB WAY, Cartão ou Apple Pay no telemóvel sem limitações de sandbox.
               </div>
             </div>
             <a

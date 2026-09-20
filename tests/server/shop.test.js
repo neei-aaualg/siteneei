@@ -206,6 +206,58 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     delete process.env.SWEATS_AVAILABLE;
   });
 
+  it('permite modo de teste com preço a 0.50€ quando SHOW_TEST_SHOP está ativo e isAdminPreview é true', () => {
+    process.env.SHOW_TEST_SHOP = 'true';
+    process.env.SWEATS_AVAILABLE = 'false';
+
+    const campaign = db.getActiveShopCampaign(true);
+    expect(campaign.is_available).toBe(true);
+    expect(campaign.item_price).toBe(0.50);
+    expect(campaign.isAdminPreview).toBe(true);
+
+    const order = db.createShopOrder(
+      {
+        student_name: 'David Rodrigues',
+        student_email: 'teste@ualg.pt',
+        phone_number: '912345678',
+        size: 'M',
+        delivery_type: 'pickup',
+      },
+      true
+    );
+    expect(order.item_price).toBe(0.50);
+    expect(order.total_amount).toBe(0.50);
+
+    delete process.env.SHOW_TEST_SHOP;
+    delete process.env.SWEATS_AVAILABLE;
+  });
+
+  it('bloqueia modo de teste quando SHOW_TEST_SHOP=false mesmo com isAdminPreview=true', () => {
+    process.env.SHOW_TEST_SHOP = 'false';
+    process.env.SWEATS_AVAILABLE = 'false';
+
+    const campaign = db.getActiveShopCampaign(true);
+    expect(campaign.is_available).toBe(false);
+    expect(campaign.isAdminPreview).toBe(false);
+    expect(campaign.item_price).toBe(25);
+
+    expect(() => {
+      db.createShopOrder(
+        {
+          student_name: 'David Rodrigues',
+          student_email: 'teste@ualg.pt',
+          phone_number: '912345678',
+          size: 'M',
+          delivery_type: 'pickup',
+        },
+        true
+      );
+    }).toThrow(/disponíveis brevemente.*instagram/i);
+
+    delete process.env.SHOW_TEST_SHOP;
+    delete process.env.SWEATS_AVAILABLE;
+  });
+
   it('inicia pedido de pagamento Stripe em modo sandbox e processa webhook de sucesso', async () => {
     const paymentService = await import('../../server/services/paymentService.js');
     expect(paymentService.isPaymentSandbox()).toBe(true);

@@ -12,6 +12,7 @@ import {
   getShopSummaryStats,
   getFactoryExportData,
   isSweatsAvailableEnv,
+  isShowTestShopEnv,
 } from './db.js';
 import { sendOrderConfirmationEmail } from './services/emailService.js';
 import {
@@ -38,7 +39,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const wantsPreview =
         searchParams?.get('admin_preview') === '1' || searchParams?.get('admin_preview') === 'true';
       const isSweatsAvailable = isSweatsAvailableEnv();
-      const isAdminPreview = Boolean(isAdmin && wantsPreview && !isSweatsAvailable);
+      const isTestShopAllowed = isShowTestShopEnv();
+      const isAdminPreview = Boolean(isAdmin && wantsPreview && isTestShopAllowed);
 
       const campaign = getActiveShopCampaign(isAdminPreview);
       if (!campaign) {
@@ -50,17 +52,18 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         sweatsAvailable: isAdminPreview ? true : Boolean(campaign.is_available) && isSweatsAvailable,
         isSandbox: isPaymentSandbox(),
         isAdminPreview,
+        showTestShop: isTestShopAllowed,
       });
     }
 
     // 2. POST /api/shop/create-payment-intent - Criar encomenda + PaymentIntent (Payment Element)
     if (pathname === '/api/shop/create-payment-intent' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const isSweatsAvailable = isSweatsAvailableEnv();
+      const isTestShopAllowed = isShowTestShopEnv();
       const isAdmin =
         verifyAdminToken(req) ||
         (body.adminToken && verifyAdminTokenString(body.adminToken));
-      const isAdminPreview = Boolean(isAdmin && body.adminPreview && !isSweatsAvailable);
+      const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
       const order = createShopOrder(body, isAdminPreview);
 
@@ -97,11 +100,11 @@ export async function handleShopApi(req, res, pathname, searchParams) {
     // 3. POST /api/shop/checkout - Criar encomenda e disparar Stripe
     if (pathname === '/api/shop/checkout' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const isSweatsAvailable = isSweatsAvailableEnv();
+      const isTestShopAllowed = isShowTestShopEnv();
       const isAdmin =
         verifyAdminToken(req) ||
         (body.adminToken && verifyAdminTokenString(body.adminToken));
-      const isAdminPreview = Boolean(isAdmin && body.adminPreview && !isSweatsAvailable);
+      const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
       const order = createShopOrder(body, isAdminPreview);
 

@@ -999,8 +999,19 @@ export function isSweatsAvailableEnv() {
 }
 
 /**
+ * Avalia se a loja de teste para administradores está ativa com base na variável SHOW_TEST_SHOP
+ * Aceita 'false', '0', 'f', 'no', 'off', 'disabled' como valor falso.
+ */
+export function isShowTestShopEnv() {
+  const val = process.env.SHOW_TEST_SHOP ?? process.env.VITE_SHOW_TEST_SHOP;
+  if (val === undefined || val === null || val === '') return true;
+  const s = String(val).trim().toLowerCase();
+  return !['false', '0', 'f', 'no', 'off', 'disabled'].includes(s);
+}
+
+/**
  * Obtém a campanha de loja ativa
- * Se isAdminPreview for verdadeiro e as sweats estiverem desativadas publicamente (SWEATS_AVAILABLE=false),
+ * Se isAdminPreview for verdadeiro e SHOW_TEST_SHOP estiver ativo,
  * ativa a loja com preço de teste de 0.50€ (mínimo Stripe) para testes da equipa.
  */
 export function getActiveShopCampaign(isAdminPreview = false) {
@@ -1020,7 +1031,8 @@ export function getActiveShopCampaign(isAdminPreview = false) {
   }
 
   const isSweatsAvailable = isSweatsAvailableEnv();
-  const isTestingMode = !isSweatsAvailable && Boolean(isAdminPreview);
+  const isTestShopAllowed = isShowTestShopEnv();
+  const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
   const effectivePrice = isTestingMode ? 0.50 : Number(row.item_price);
   const effectiveAvailable = Boolean(row.is_active) && (isSweatsAvailable || isTestingMode);
   const effectiveImage = (isSweatsAvailable || isTestingMode) ? row.image_url : null;
@@ -1103,7 +1115,10 @@ export function updateShopCampaign(id, data) {
  */
 export function createShopOrder(orderData, isAdminPreview = false) {
   const isSweatsAvailable = isSweatsAvailableEnv();
-  if (!isSweatsAvailable && !isAdminPreview) {
+  const isTestShopAllowed = isShowTestShopEnv();
+  const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
+
+  if (!isSweatsAvailable && !isTestingMode) {
     const err = new Error(
       'As sweats não se encontram disponíveis de momento. Ficarão disponíveis brevemente! Acompanha o Instagram @neeiualg para mais informações.'
     );
@@ -1111,7 +1126,7 @@ export function createShopOrder(orderData, isAdminPreview = false) {
     throw err;
   }
 
-  const campaign = getActiveShopCampaign(isAdminPreview);
+  const campaign = getActiveShopCampaign(isTestingMode);
   if (!campaign || !campaign.is_active) {
     const err = new Error('A campanha de pré-encomenda das sweats encontra-se encerrada.');
     err.statusCode = 400;

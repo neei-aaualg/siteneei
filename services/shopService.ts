@@ -19,6 +19,7 @@ export async function fetchShopCampaign(options?: {
   isSandbox: boolean;
   sweatsAvailable?: boolean;
   isAdminPreview?: boolean;
+  showTestShop?: boolean;
 }> {
   const params = new URLSearchParams();
   if (options?.adminPreview) {

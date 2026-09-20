@@ -27,11 +27,16 @@
   2. Adicionar novo armazenamento persistente com destino (**Destination path**): `/app/data`.
   3. Desta forma, o ficheiro `activities.db` permanece intacto entre builds e redeploys.
 
-## Variáveis de Ambiente & Controlo do Calendário
+## Variáveis de Ambiente & Controlo do Calendário e Loja
 
 - **`SHOW_CALENDAR`:** Controla a visibilidade pública do calendário de atividades no portal (`true` por defeito).
   - Se configurada como `false` (ou `0`) nas Environment Variables do Coolify ou `.env`, o calendário e as atividades públicas são ocultados e a página `/eventos` apresenta apenas _"Calendário será anunciado brevemente..."_.
   - O painel de administração (`/admin`) continua 100% funcional para a equipa poder preparar e gerir atividades antes do anúncio oficial.
+- **`SWEATS_AVAILABLE`:** Controla a visibilidade pública das sweats/merchandise (`true` por defeito).
+  - Se configurada como `false`, o público geral vê a mensagem de anúncio breve e as encomendas públicas ficam bloqueadas.
+- **`SHOW_TEST_SHOP`:** Controla a disponibilização da loja de teste para administradores (`true` por defeito).
+  - Quando ativa, os administradores autenticados podem aceder à loja em modo preview com preço especial de **0.50€** (mínimo Stripe) para validar pagamentos reais no telemóvel sem limitações de sandbox.
+  - Se configurada como `false` (ou `0`), a loja de teste e o preço de 0.50€ ficam totalmente desativados mesmo para administradores.
 - **`ADMIN_PASSWORD` (obrigatória):** Senha da equipa NEEI para o painel `/admin`. Sem esta variável o login devolve erro 500 — **não existe senha em branco por omissão**.
 - **`GEMINI_API_KEY` (obrigatória):** Chave da Google Gemini usada pelo backend em `/api/analyze` (Tutor Inteligente). Fica apenas no servidor (Coolify) — **nunca** é incluída no bundle do cliente.
 - Limites de taxa (`server.js`): `/api/admin/login` >5 pedidos/min, `/api/analyze` >30, `/api/admin/*` >60, restantes `/api/*` >120 (por IP).
