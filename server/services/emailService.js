@@ -67,44 +67,195 @@ export async function sendOrderConfirmationEmail(order) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Confirmação da tua Encomenda - NEEI</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 24px 12px; }
-    .container { max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; overflow: hidden; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 24px; text-align: center; border-bottom: 2px solid #06b6d4; }
-    .logo-text { font-size: 24px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; margin: 0; }
-    .sub-title { font-size: 14px; color: #94a3b8; margin-top: 6px; text-transform: uppercase; letter-spacing: 1.5px; }
-    .content { padding: 32px 24px; }
-    .status-badge { display: inline-block; background-color: #064e3b; color: #34d399; font-weight: 600; font-size: 13px; padding: 6px 14px; border-radius: 9999px; border: 1px solid #059669; margin-bottom: 20px; }
-    h1 { font-size: 20px; font-weight: 700; margin: 0 0 16px 0; color: #ffffff; }
-    p { font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 16px 0; }
-    .order-box { background-color: #0f172a; border-radius: 8px; border: 1px solid #334155; padding: 20px; margin: 24px 0; }
-    .order-item { display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding: 10px 0; font-size: 14px; }
-    .order-item:last-child { border-bottom: none; }
-    .item-label { color: #94a3b8; }
-    .item-value { color: #f8fafc; font-weight: 600; text-align: right; }
-    .total-row { display: flex; justify-content: space-between; padding-top: 14px; border-top: 2px solid #334155; font-size: 16px; font-weight: 700; color: #38bdf8; }
-    .instructions { background-color: #172554; border-left: 4px solid #3b82f6; padding: 16px; border-radius: 4px; margin-top: 24px; }
-    .instructions h3 { margin: 0 0 8px 0; font-size: 15px; color: #93c5fd; }
-    .instructions p { margin: 0; font-size: 13px; color: #bfdbfe; }
-    .footer { background-color: #0f172a; padding: 20px; text-align: center; border-top: 1px solid #334155; font-size: 12px; color: #64748b; }
-    .footer a { color: #38bdf8; text-decoration: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f1f5f9;
+      color: #334155;
+      margin: 0;
+      padding: 32px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      max-width: 580px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    }
+    .header {
+      background: linear-gradient(135deg, #0b1329 0%, #111e38 100%);
+      padding: 32px 24px;
+      text-align: center;
+      border-top: 4px solid #06b6d4;
+    }
+    .logo-text {
+      font-size: 24px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 1.5px;
+      margin: 0;
+    }
+    .sub-title {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+    }
+    .content {
+      padding: 32px 28px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      background-color: #ecfdf5;
+      color: #065f46;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      border: 1px solid #a7f3d0;
+      margin-bottom: 22px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0 0 14px 0;
+      color: #0f172a;
+      letter-spacing: -0.3px;
+    }
+    p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #475569;
+      margin: 0 0 16px 0;
+    }
+    .order-box {
+      background-color: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+      padding: 12px 18px;
+      font-size: 14px;
+    }
+    .item-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .item-value {
+      color: #0f172a;
+      font-weight: 600;
+      text-align: right;
+    }
+    .size-pill {
+      display: inline-block;
+      background-color: #e0f2fe;
+      color: #0369a1;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 2px 10px;
+      border-radius: 6px;
+      border: 1px solid #bae6fd;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      background-color: #f1f5f9;
+      border-top: 2px solid #e2e8f0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .total-amount {
+      color: #0284c7;
+      font-size: 18px;
+    }
+    .instructions {
+      background-color: #eff6ff;
+      border-left: 4px solid #0284c7;
+      border-top: 1px solid #dbeafe;
+      border-right: 1px solid #dbeafe;
+      border-bottom: 1px solid #dbeafe;
+      padding: 18px;
+      border-radius: 8px;
+      margin: 26px 0;
+    }
+    .instructions h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      color: #1e40af;
+      font-weight: 700;
+    }
+    .instructions p {
+      margin: 0;
+      font-size: 13.5px;
+      color: #1e3a8a;
+      line-height: 1.5;
+    }
+    .support-note {
+      font-size: 13px;
+      color: #64748b;
+      line-height: 1.5;
+      margin-top: 20px;
+    }
+    .support-note a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .support-note a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      background-color: #f8fafc;
+      padding: 24px;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .footer a {
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="wrapper">
     <div class="header">
       <div class="logo-text">NEEI · AAUAlg</div>
       <div class="sub-title">Núcleo de Estudantes de Engenharia Informática</div>
     </div>
     
     <div class="content">
-      <div class="status-badge">✓ Pagamento Confirmado via MB WAY</div>
+      <div class="status-badge">
+        <span>✓ Pagamento Confirmado via MB WAY</span>
+      </div>
+      
       <h1>Olá ${order.student_name},</h1>
-      <p>O teu pagamento foi processado com sucesso e a tua pré-encomenda da <strong>Sweat Oficial de Engenharia Informática 2026</strong> foi confirmada!</p>
+      <p>O teu pagamento foi processado com sucesso e a tua pré-encomenda da <strong>Sweat Oficial de Engenharia Informática 2026</strong> está confirmada!</p>
       
       <div class="order-box">
         <div class="order-item">
           <span class="item-label">Nº de Encomenda:</span>
-          <span class="item-value">${order.id}</span>
+          <span class="item-value" style="font-family: monospace; font-size: 13px;">${order.id}</span>
         </div>
         <div class="order-item">
           <span class="item-label">Artigo:</span>
@@ -112,7 +263,7 @@ export async function sendOrderConfirmationEmail(order) {
         </div>
         <div class="order-item">
           <span class="item-label">Tamanho:</span>
-          <span class="item-value" style="color: #38bdf8; font-size: 16px;">${order.size}</span>
+          <span class="item-value"><span class="size-pill">${order.size}</span></span>
         </div>
         <div class="order-item">
           <span class="item-label">Cor:</span>
@@ -128,29 +279,33 @@ export async function sendOrderConfirmationEmail(order) {
         </div>
         <div class="order-item">
           <span class="item-label">Portes de Envio:</span>
-          <span class="item-value">${formattedShipping > 0 ? `${formattedShipping}€` : 'Grátis (Gabinete)'}</span>
+          <span class="item-value">${Number(formattedShipping) > 0 ? `${formattedShipping}€` : 'Grátis (Gabinete)'}</span>
         </div>
         <div class="total-row">
           <span>Total Pago:</span>
-          <span>${formattedAmount}€</span>
+          <span class="total-amount">${formattedAmount}€</span>
         </div>
       </div>
 
       <div class="instructions">
         <h3>Próximos Passos & Entrega</h3>
         <p><strong>Modalidade escolhida:</strong> ${deliveryText}</p>
-        <p style="margin-top: 8px;">Esta é uma campanha de pré-encomenda. Assim que o lote de produção estiver pronto na fábrica, receberás novo email com os dias de recolha no Gabinete do NEEI ou o tracking de envio dos CTT.</p>
+        <p style="margin-top: 10px;">Esta é uma campanha oficial de pré-encomenda. Assim que o lote consolidado estiver concluído na fábrica, receberás nova notificação por email com as datas para recolha presencial no Gabinete do NEEI ou o código de rastreio dos CTT.</p>
       </div>
 
-      <p style="margin-top: 24px; font-size: 13px; color: #94a3b8;">
-        Se tiveres qualquer dúvida ou precisares de suporte com a tua encomenda, basta responder a este email ou contactar-nos através de <a href="mailto:neei@aaualg.pt" style="color: #38bdf8;">neei@aaualg.pt</a>.
+      <p class="support-note">
+        Tens dúvidas ou pretendes alterar algum dado da encomenda? Entra em contacto connosco respondendo a esta mensagem ou enviando um email para <a href="mailto:neei@aaualg.pt">neei@aaualg.pt</a>.
       </p>
     </div>
 
     <div class="footer">
-      <p>NEEI - Núcleo de Estudantes de Engenharia Informática da AAUAlg</p>
-      <p>Campus da Penha & Campus de Gambelas · Faro, Portugal</p>
-      <p><a href="https://instagram.com/neeiualg">Instagram</a> · <a href="https://discord.gg/HzBuRFCAb5">Discord</a> · <a href="https://github.com/neei-aaualg">GitHub</a></p>
+      <p style="margin: 0 0 4px 0; font-weight: 600; color: #64748b;">NEEI - Núcleo de Estudantes de Engenharia Informática da AAUAlg</p>
+      <p style="margin: 0 0 8px 0;">Campus da Penha & Campus de Gambelas · Faro, Portugal</p>
+      <p style="margin: 0;">
+        <a href="https://instagram.com/neeiualg" target="_blank" rel="noopener">Instagram</a> · 
+        <a href="https://discord.gg/HzBuRFCAb5" target="_blank" rel="noopener">Discord</a> · 
+        <a href="https://github.com/neei-aaualg" target="_blank" rel="noopener">GitHub</a>
+      </p>
     </div>
   </div>
 </body>

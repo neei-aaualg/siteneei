@@ -12,9 +12,9 @@ const originalDbPath = process.env.DATABASE_PATH;
 
 beforeEach(async () => {
   vi.resetModules();
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => { });
+  vi.spyOn(console, 'warn').mockImplementation(() => { });
+  vi.spyOn(console, 'error').mockImplementation(() => { });
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neei-shop-test-'));
   process.env.DATABASE_PATH = path.join(tmpDir, 'shop_test.db');
 
@@ -59,7 +59,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
   it('cria uma encomenda para recolha presencial no gabinete (0€ portes)', () => {
     const order = db.createShopOrder({
       student_name: 'David Rodrigues',
-      student_email: 'aluno@ualg.pt',
+      student_email: 'aXXXXX@ualg.pt',
       phone_number: '912345678',
       nif: '123456789',
       size: 'L',

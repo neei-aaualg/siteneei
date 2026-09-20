@@ -1434,7 +1434,7 @@ export const Admin: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'jobs' ? (
           /* Separador: Gestão de Vagas & Oportunidades */
           <div className="space-y-6 animate-fadeIn">
             {/* Resumo Métricas Vagas */}
@@ -1717,12 +1717,10 @@ export const Admin: React.FC = () => {
               </div>
             )}
           </div>
-        )}
-
-        {/* SEPARADOR 4: SWEATS & LOJA */}
-        {activeTab === 'shop' && token && (
+        ) : activeTab === 'shop' && token ? (
+          /* SEPARADOR 4: SWEATS & LOJA */
           <AdminShopPanel token={token} showFeedback={showFeedback} />
-        )}
+        ) : null}
       </div>
 
       {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO DE INSCRIÇÃO */}
