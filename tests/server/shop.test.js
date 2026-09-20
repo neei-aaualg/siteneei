@@ -371,4 +371,53 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     const updatedList = db.getAllShopOrders();
     expect(updatedList.find((o) => o.id === pending.id)).toBeTruthy();
   });
+
+  it('suporta rastreio e consulta de encomenda por ID ignorando maiúsculas/minúsculas e prefixo #', async () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Maria Rastreio',
+      student_email: 'maria@ualg.pt',
+      phone_number: '919876543',
+      size: 'S',
+      delivery_type: 'pickup',
+    });
+
+    const paid = db.recordPaidShopOrder(pending, 'pi_stripe_track_test');
+    expect(paid).toBeTruthy();
+
+    // 1. Consulta no db.js com minúsculas e com '#'
+    const byLower = db.getShopOrderById(paid.id.toLowerCase());
+    expect(byLower).toBeTruthy();
+    expect(byLower.student_name).toBe('Maria Rastreio');
+
+    const byHash = db.getShopOrderById(`#${paid.id}`);
+    expect(byHash).toBeTruthy();
+    expect(byHash.student_name).toBe('Maria Rastreio');
+
+    // 2. Consulta via handleShopApi (/api/shop/track e /api/shop/order-status)
+    let statusCode = 0;
+    let jsonBody = null;
+    const fakeRes = {
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = JSON.parse(data);
+      },
+    };
+
+    const handled = await shopApi.handleShopApi(
+      { method: 'GET', headers: {} },
+      fakeRes,
+      `/api/shop/track/${paid.id.toLowerCase()}`
+    );
+
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(jsonBody.orderId).toBe(paid.id);
+    expect(jsonBody.orderStatus).toBe('confirmed');
+    expect(jsonBody.paymentStatus).toBe('paid');
+    expect(jsonBody.studentName).toBe('Maria Rastreio');
+    expect(jsonBody.size).toBe('S');
+    expect(jsonBody.pickupLocation).toBeTruthy();
+  });
 });
