@@ -78,23 +78,23 @@ export async function sendOrderConfirmationEmail(order) {
     body {
       margin: 0 !important;
       padding: 0 !important;
-      background-color: #080d19 !important;
+      background-color: #030712 !important;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
   </style>
 </head>
-<body bgcolor="#080d19" style="margin: 0; padding: 0; background-color: #080d19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+<body bgcolor="#030712" style="margin: 0; padding: 0; background-color: #030712; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <!-- Tabela de Enquadramento Global -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#080d19" style="background-color: #080d19; width: 100%; margin: 0; padding: 32px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#030712" style="background-color: #030712; width: 100%; margin: 0; padding: 32px 12px;">
     <tr>
       <td align="center" style="padding: 0;">
         <!-- Cartão Principal -->
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0f172a" style="max-width: 580px; width: 100%; margin: 0 auto; background-color: #0f172a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.6);">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#090e1a" style="max-width: 580px; width: 100%; margin: 0 auto; background-color: #090e1a; border-radius: 16px; overflow: hidden; border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);">
           
           <!-- Cabeçalho Oficial NEEI -->
           <tr>
-            <td bgcolor="#0b1329" style="background: linear-gradient(135deg, #0b1329 0%, #111e38 100%); background-color: #0b1329; padding: 32px 24px; text-align: center; border-top: 4px solid #06b6d4; border-bottom: 1px solid #1e293b;">
+            <td bgcolor="#050a14" style="background: linear-gradient(135deg, #050a14 0%, #0c152a 100%); background-color: #050a14; padding: 32px 24px; text-align: center; border-top: 4px solid #06b6d4; border-bottom: 1px solid #1e293b;">
               <div style="font-size: 24px; font-weight: 800; color: #38bdf8; letter-spacing: 1.5px; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">NEEI · AAUAlg</div>
               <div style="font-size: 11px; color: #94a3b8; margin-top: 6px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600;">Núcleo de Estudantes de Engenharia Informática</div>
             </td>
@@ -102,12 +102,12 @@ export async function sendOrderConfirmationEmail(order) {
           
           <!-- Conteúdo Principal -->
           <tr>
-            <td bgcolor="#0f172a" style="padding: 32px 28px; background-color: #0f172a;">
+            <td bgcolor="#090e1a" style="padding: 32px 28px; background-color: #090e1a;">
               
               <!-- Badge de Pagamento Confirmado -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 22px;">
                 <tr>
-                  <td bgcolor="#064e3b" style="background-color: #064e3b; border: 1px solid #10b981; border-radius: 9999px; padding: 7px 16px; color: #34d399; font-size: 13px; font-weight: 700; letter-spacing: 0.2px;">
+                  <td bgcolor="#022c22" style="background-color: #022c22; border: 1px solid #059669; border-radius: 9999px; padding: 7px 18px; color: #34d399; font-size: 13px; font-weight: 700; letter-spacing: 0.2px;">
                     ✓ Pagamento Confirmado via MB WAY
                   </td>
                 </tr>
@@ -117,59 +117,59 @@ export async function sendOrderConfirmationEmail(order) {
                 Olá ${order.student_name},
               </h1>
               
-              <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1; margin: 0 0 24px 0;">
+              <p style="font-size: 15px; line-height: 1.6; color: #e2e8f0; margin: 0 0 24px 0;">
                 O teu pagamento foi processado com sucesso e a tua pré-encomenda da <strong style="color: #ffffff;">Sweat Oficial de Engenharia Informática 2026</strong> está confirmada!
               </p>
               
               <!-- Tabela de Detalhes da Encomenda -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#131f37" style="width: 100%; background-color: #131f37; border-radius: 12px; border: 1px solid #1e293b; overflow: hidden; margin-bottom: 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0f172a" style="width: 100%; background-color: #0f172a; border-radius: 12px; border: 1px solid #1e293b; overflow: hidden; margin-bottom: 24px;">
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Nº de Encomenda:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #38bdf8; font-size: 13.5px; font-weight: 700; font-family: 'Courier New', Courier, monospace; border-bottom: 1px solid #1e2c47;">${order.id}</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Nº de Encomenda:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #38bdf8; font-size: 13.5px; font-weight: 700; font-family: 'Courier New', Courier, monospace; border-bottom: 1px solid #1e293b;">${order.id}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Artigo:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e2c47;">Sweat Oficial Engenharia Informática</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Artigo:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">Sweat Oficial Engenharia Informática</td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Tamanho:</td>
-                  <td style="padding: 13px 18px; text-align: right; border-bottom: 1px solid #1e2c47;">
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Tamanho:</td>
+                  <td style="padding: 13px 18px; text-align: right; border-bottom: 1px solid #1e293b;">
                     <span style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 12.5px; padding: 2px 12px; border-radius: 6px; border: 1px solid #38bdf8;">${order.size}</span>
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Cor:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e2c47;">${order.color || 'Preto'}</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Cor:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${order.color || 'Preto'}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">NIF registado:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #cbd5e1; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e2c47;">${nifDisplay}</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">NIF registado:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #f1f5f9; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${nifDisplay}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Subtotal Sweat:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e2c47;">${formattedItemPrice}€</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Subtotal Sweat:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${formattedItemPrice}€</td>
                 </tr>
                 <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e2c47;">Portes de Envio:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #cbd5e1; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e2c47;">${Number(formattedShipping) > 0 ? `${formattedShipping}€` : 'Grátis (Gabinete)'}</td>
+                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Portes de Envio:</td>
+                  <td style="padding: 13px 18px; text-align: right; color: #f1f5f9; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${Number(formattedShipping) > 0 ? `${formattedShipping}€` : 'Grátis (Gabinete)'}</td>
                 </tr>
                 <tr>
-                  <td bgcolor="#0c1527" style="padding: 16px 18px; color: #ffffff; font-size: 15.5px; font-weight: 700; background-color: #0c1527; border-top: 2px solid #0284c7;">Total Pago:</td>
-                  <td bgcolor="#0c1527" style="padding: 16px 18px; text-align: right; color: #38bdf8; font-size: 20px; font-weight: 800; background-color: #0c1527; border-top: 2px solid #0284c7;">${formattedAmount}€</td>
+                  <td bgcolor="#050a14" style="padding: 16px 18px; color: #ffffff; font-size: 15.5px; font-weight: 700; background-color: #050a14; border-top: 2px solid #0284c7;">Total Pago:</td>
+                  <td bgcolor="#050a14" style="padding: 16px 18px; text-align: right; color: #38bdf8; font-size: 21px; font-weight: 800; background-color: #050a14; border-top: 2px solid #0284c7;">${formattedAmount}€</td>
                 </tr>
               </table>
 
               <!-- Caixa de Próximos Passos & Entrega -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0c2136" style="width: 100%; background-color: #0c2136; border-left: 4px solid #38bdf8; border-top: 1px solid #164e63; border-right: 1px solid #164e63; border-bottom: 1px solid #164e63; border-radius: 8px; margin-bottom: 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0a1526" style="width: 100%; background-color: #0a1526; border-left: 4px solid #38bdf8; border-top: 1px solid #172d4c; border-right: 1px solid #172d4c; border-bottom: 1px solid #172d4c; border-radius: 8px; margin-bottom: 24px;">
                 <tr>
                   <td style="padding: 18px;">
                     <div style="color: #38bdf8; font-size: 15px; font-weight: 700; margin-bottom: 8px;">
                       Próximos Passos & Entrega
                     </div>
-                    <div style="color: #e2e8f0; font-size: 13.5px; line-height: 1.5; margin-bottom: 10px;">
-                      <strong style="color: #ffffff;">Modalidade escolhida:</strong> ${deliveryText}
+                    <div style="color: #f1f5f9; font-size: 13.5px; line-height: 1.5; margin-bottom: 10px;">
+                      <strong style="color: #38bdf8;">Modalidade escolhida:</strong> ${deliveryText}
                     </div>
-                    <div style="color: #94a3b8; font-size: 13px; line-height: 1.6;">
+                    <div style="color: #cbd5e1; font-size: 13px; line-height: 1.6;">
                       Esta é uma campanha oficial de pré-encomenda. Assim que o lote estiver concluído na fábrica, receberás nova notificação via Instagram e/ou email com as datas para recolha presencial no Gabinete do NEEI ou o código de rastreio dos CTT.
                     </div>
                   </td>
@@ -177,7 +177,7 @@ export async function sendOrderConfirmationEmail(order) {
               </table>
 
               <!-- Nota de Apoio -->
-              <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0;">
+              <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6; margin: 0;">
                 Tens dúvidas ou pretendes alterar algum dado da encomenda? Entra em contacto connosco respondendo a esta mensagem ou enviando um email para <a href="mailto:neei@aaualg.pt" style="color: #38bdf8; text-decoration: underline; font-weight: 600;">neei@aaualg.pt</a>.
               </p>
             </td>
@@ -185,7 +185,7 @@ export async function sendOrderConfirmationEmail(order) {
 
           <!-- Rodapé -->
           <tr>
-            <td bgcolor="#0a1120" style="background-color: #0a1120; padding: 24px; text-align: center; border-top: 1px solid #1e293b;">
+            <td bgcolor="#04070e" style="background-color: #04070e; padding: 24px; text-align: center; border-top: 1px solid #1e293b;">
               <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 600; color: #94a3b8;">NEEI - Núcleo de Estudantes de Engenharia Informática da AAUAlg</p>
               <p style="margin: 0 0 10px 0; font-size: 11.5px; color: #64748b;">Sala 0.18, Edifício 1, Campus de Gambelas · Faro, Portugal</p>
               <p style="margin: 0; font-size: 12px;">
