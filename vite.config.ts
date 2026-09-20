@@ -1,6 +1,15 @@
+import fs from 'node:fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+
+try {
+  if (fs.existsSync('.env')) {
+    process.loadEnvFile('.env');
+  }
+} catch (e) {
+  // Ignora se não for suportado ou não existir
+}
 
 function activitiesApiPlugin() {
   return {

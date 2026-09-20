@@ -10,6 +10,14 @@ import { createRateLimiter, setSecurityHeaders, clientIp } from './server/securi
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+try {
+  if (fs.existsSync('.env')) {
+    process.loadEnvFile('.env');
+  }
+} catch (e) {
+  // Ignora se não existir ou não suportado
+}
+
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const BUILD_DIR = path.resolve(__dirname, 'build');
