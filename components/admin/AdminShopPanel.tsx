@@ -17,6 +17,10 @@ import {
   FileSpreadsheet,
   AlertCircle,
   ExternalLink,
+  FlaskConical,
+  Copy,
+  Check,
+  Eye,
 } from 'lucide-react';
 import { ShopOrder, ShopSummaryStats, OrderStatus, SweatSize } from '../../types/shop';
 import {
@@ -24,6 +28,7 @@ import {
   fetchAdminShopStats,
   updateAdminOrderStatus,
   resendOrderEmail,
+  fetchShopCampaign,
 } from '../../services/shopService';
 import { formatDateTimeDDMMAAAA } from '../../utils/dateHelpers';
 
@@ -35,6 +40,8 @@ interface AdminShopPanelProps {
 export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedback }) => {
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [stats, setStats] = useState<ShopSummaryStats | null>(null);
+  const [sweatsAvailable, setSweatsAvailable] = useState<boolean>(true);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,12 +60,16 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     try {
       setLoading(true);
       setError(null);
-      const [ordersData, statsData] = await Promise.all([
+      const [ordersData, statsData, campaignData] = await Promise.all([
         fetchAdminShopOrders(token),
         fetchAdminShopStats(token),
+        fetchShopCampaign({ adminPreview: false }).catch(() => null),
       ]);
       setOrders(ordersData.orders || []);
       setStats(statsData);
+      if (campaignData) {
+        setSweatsAvailable(Boolean(campaignData.sweatsAvailable));
+      }
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar dados da loja');
     } finally {
@@ -69,6 +80,19 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   useEffect(() => {
     loadData();
   }, [token]);
+
+  const previewUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/merch?admin_preview=1&token=${encodeURIComponent(token)}`
+    : `/merch?admin_preview=1`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(previewUrl);
+    setCopiedLink(true);
+    showFeedback('copy-preview-link', 'Link de teste copiado para a área de transferência!');
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const [showQrCode, setShowQrCode] = useState(false);
 
   // Encomendas filtradas
   const filteredOrders = useMemo(() => {
@@ -169,6 +193,93 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
   return (
     <div className="space-y-8 animate-fadeIn">
+      {/* Secção de Modo de Teste da Loja (Checkout Real a 0.50€) */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-slate-900/60 border border-cyan-500/30 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/30">
+              <FlaskConical size={13} />
+              Modo de Teste da Loja
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/20">
+              Preço Especial: 0.50€
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                sweatsAvailable
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+              }`}
+            >
+              {sweatsAvailable
+                ? '● Loja Pública: Aberta (SWEATS_AVAILABLE=true)'
+                : '○ Loja Pública: Oculta (SWEATS_AVAILABLE=false)'}
+            </span>
+          </div>
+          <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            Permite testar o fluxo de compra e pagamento real (MB WAY, Cartões, Apple Pay) mesmo quando as sweats estão desativadas para o público (<code>SWEATS_AVAILABLE=false</code>). O valor foi ajustado para apenas <strong>0.50€</strong> (mínimo Stripe) para poderes validar a compra no teu telemóvel.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer"
+          >
+            <Eye size={14} />
+            <span>Abrir Loja de Teste (0.50€)</span>
+            <ExternalLink size={13} />
+          </a>
+
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Copiar link com token para colar no telemóvel"
+          >
+            {copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+            <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link p/ Tele'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowQrCode(!showQrCode)}
+            className="px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Mostrar QR Code para ler com a câmara do telemóvel"
+          >
+            <Smartphone size={14} className="text-cyan-400" />
+            <span>{showQrCode ? 'Ocultar QR' : 'QR Telemóvel'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* QR Code Desdobrável para Testes Rápidos no Telemóvel */}
+      {showQrCode && (
+        <div className="p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 max-w-sm mx-auto text-center space-y-3 animate-in fade-in zoom-in-95 duration-150">
+          <h4 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+            <Smartphone size={16} className="text-cyan-400" />
+            Aponta a câmara do telemóvel
+          </h4>
+          <p className="text-xs text-slate-400">
+            Abre a loja no teu telemóvel com sessão admin ativa e preço de 0.50€:
+          </p>
+          <div className="p-3 bg-white rounded-2xl inline-block shadow-lg mx-auto">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
+                previewUrl
+              )}`}
+              alt="QR Code de Teste"
+              className="w-44 h-44 mx-auto"
+            />
+          </div>
+          <p className="text-[11px] text-slate-400 font-mono break-all px-2">
+            {previewUrl}
+          </p>
+        </div>
+      )}
+
       {/* 1. Cartões de Resumo e Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Faturado */}

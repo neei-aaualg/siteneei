@@ -59,9 +59,26 @@ export function authenticateAdmin(password) {
 }
 
 /**
- * Verifica se o request contém um token de sessão válido
+ * Valida uma string de token de sessão de administrador
  */
-export function verifyAdminToken(req) {
+export function verifyAdminTokenString(token) {
+  if (!token || typeof token !== 'string') return false;
+  const clean = token.trim();
+  const expiresAt = activeSessions.get(clean);
+  if (!expiresAt) return false;
+
+  if (Date.now() > expiresAt) {
+    activeSessions.delete(clean);
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Verifica se o request contém um token de sessão válido (headers ou query params)
+ */
+export function verifyAdminToken(req, searchParams = null) {
   const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
 
   let token = null;
@@ -71,19 +88,11 @@ export function verifyAdminToken(req) {
     } else {
       token = authHeader.trim();
     }
+  } else if (searchParams && typeof searchParams.get === 'function') {
+    token = searchParams.get('token') || searchParams.get('adminToken');
   }
 
-  if (!token) return false;
-
-  const expiresAt = activeSessions.get(token);
-  if (!expiresAt) return false;
-
-  if (Date.now() > expiresAt) {
-    activeSessions.delete(token);
-    return false;
-  }
-
-  return true;
+  return verifyAdminTokenString(token);
 }
 
 /**

@@ -1,5 +1,5 @@
 import { readJsonBody, readRawBody, sendJson } from './api.js';
-import { verifyAdminToken } from './auth.js';
+import { verifyAdminToken, verifyAdminTokenString } from './auth.js';
 import {
   getActiveShopCampaign,
   updateShopCampaign,
@@ -34,29 +34,44 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
     // 1. GET /api/shop/campaign - Obter dados da campanha ativa
     if (pathname === '/api/shop/campaign' && req.method === 'GET') {
-      const campaign = getActiveShopCampaign();
+      const isAdmin = verifyAdminToken(req, searchParams);
+      const wantsPreview =
+        searchParams?.get('admin_preview') === '1' || searchParams?.get('admin_preview') === 'true';
+      const isSweatsAvailable = isSweatsAvailableEnv();
+      const isAdminPreview = Boolean(isAdmin && wantsPreview && !isSweatsAvailable);
+
+      const campaign = getActiveShopCampaign(isAdminPreview);
       if (!campaign) {
         return sendJson(res, 404, { error: 'Nenhuma campanha ativa no momento.' });
       }
-      const sweatsAvailable = isSweatsAvailableEnv();
+
       return sendJson(res, 200, {
         campaign,
-        sweatsAvailable: Boolean(campaign.is_available) && sweatsAvailable,
+        sweatsAvailable: isAdminPreview ? true : Boolean(campaign.is_available) && isSweatsAvailable,
         isSandbox: isPaymentSandbox(),
+        isAdminPreview,
       });
     }
 
     // 2. POST /api/shop/create-payment-intent - Criar encomenda + PaymentIntent (Payment Element)
     if (pathname === '/api/shop/create-payment-intent' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const order = createShopOrder(body);
+      const isSweatsAvailable = isSweatsAvailableEnv();
+      const isAdmin =
+        verifyAdminToken(req) ||
+        (body.adminToken && verifyAdminTokenString(body.adminToken));
+      const isAdminPreview = Boolean(isAdmin && body.adminPreview && !isSweatsAvailable);
+
+      const order = createShopOrder(body, isAdminPreview);
 
       const paymentResult = await createAutomaticPaymentIntent({
         orderId: order.id,
         amount: order.total_amount,
         studentEmail: order.student_email,
         studentName: order.student_name,
-        description: `NEEI - Sweat ${order.size}`,
+        description: isAdminPreview
+          ? `NEEI - Sweat ${order.size} (Modo Teste 50c)`
+          : `NEEI - Sweat ${order.size}`,
       });
 
       if (!paymentResult.success) {
@@ -75,13 +90,20 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         publishableKey: paymentResult.publishableKey,
         provider: paymentResult.provider,
         isSandbox: isPaymentSandbox(),
+        isAdminPreview,
       });
     }
 
     // 3. POST /api/shop/checkout - Criar encomenda e disparar Stripe
     if (pathname === '/api/shop/checkout' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const order = createShopOrder(body);
+      const isSweatsAvailable = isSweatsAvailableEnv();
+      const isAdmin =
+        verifyAdminToken(req) ||
+        (body.adminToken && verifyAdminTokenString(body.adminToken));
+      const isAdminPreview = Boolean(isAdmin && body.adminPreview && !isSweatsAvailable);
+
+      const order = createShopOrder(body, isAdminPreview);
 
       // Inicia pagamento via Stripe
       const paymentResult = await initiateMbWayPayment({

@@ -1000,8 +1000,10 @@ export function isSweatsAvailableEnv() {
 
 /**
  * Obtém a campanha de loja ativa
+ * Se isAdminPreview for verdadeiro e as sweats estiverem desativadas publicamente (SWEATS_AVAILABLE=false),
+ * ativa a loja com preço de teste de 0.50€ (mínimo Stripe) para testes da equipa.
  */
-export function getActiveShopCampaign() {
+export function getActiveShopCampaign(isAdminPreview = false) {
   const row = db
     .prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
     .get();
@@ -1018,22 +1020,27 @@ export function getActiveShopCampaign() {
   }
 
   const isSweatsAvailable = isSweatsAvailableEnv();
+  const isTestingMode = !isSweatsAvailable && Boolean(isAdminPreview);
+  const effectivePrice = isTestingMode ? 0.50 : Number(row.item_price);
+  const effectiveAvailable = Boolean(row.is_active) && (isSweatsAvailable || isTestingMode);
+  const effectiveImage = (isSweatsAvailable || isTestingMode) ? row.image_url : null;
 
   return {
     id: row.id,
     title: row.title,
     description: row.description,
     item_name: row.item_name,
-    item_price: Number(row.item_price),
+    item_price: effectivePrice,
     shipping_fee: Number(row.shipping_fee),
-    image_url: isSweatsAvailable ? row.image_url : null,
+    image_url: effectiveImage,
     deadline_date: row.deadline_date,
     is_active: Boolean(row.is_active),
-    is_available: Boolean(row.is_active) && isSweatsAvailable,
+    is_available: effectiveAvailable,
     allow_pickup: Boolean(row.allow_pickup),
     allow_shipping: Boolean(row.allow_shipping),
     pickup_location: row.pickup_location,
     sizes_available: sizes,
+    isAdminPreview: isTestingMode,
   };
 }
 
@@ -1088,15 +1095,15 @@ export function updateShopCampaign(id, data) {
     id
   );
 
-  return getActiveShopCampaign();
+  return getActiveShopCampaign(data.isAdminPreview);
 }
 
 /**
  * Cria uma nova encomenda em estado pending_payment
  */
-export function createShopOrder(orderData) {
+export function createShopOrder(orderData, isAdminPreview = false) {
   const isSweatsAvailable = isSweatsAvailableEnv();
-  if (!isSweatsAvailable) {
+  if (!isSweatsAvailable && !isAdminPreview) {
     const err = new Error(
       'As sweats não se encontram disponíveis de momento. Ficarão disponíveis brevemente! Acompanha o Instagram @neeiualg para mais informações.'
     );
@@ -1104,7 +1111,7 @@ export function createShopOrder(orderData) {
     throw err;
   }
 
-  const campaign = getActiveShopCampaign();
+  const campaign = getActiveShopCampaign(isAdminPreview);
   if (!campaign || !campaign.is_active) {
     const err = new Error('A campanha de pré-encomenda das sweats encontra-se encerrada.');
     err.statusCode = 400;

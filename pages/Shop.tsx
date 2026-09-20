@@ -36,6 +36,7 @@ import {
   fetchOrderStatus,
   simulatePayment,
 } from '../services/shopService';
+import { getStoredAdminToken, setStoredAdminToken } from '../services/activitiesService';
 import { StripePaymentWidget } from '../components/StripePaymentWidget';
 
 // Tabela do Guia de Medidas (em centímetros)
@@ -56,6 +57,7 @@ export const Shop: React.FC = () => {
   const [campaign, setCampaign] = useState<ShopCampaign | null>(null);
   const [isSandbox, setIsSandbox] = useState(false);
   const [sweatsAvailable, setSweatsAvailable] = useState(true);
+  const [isAdminPreview, setIsAdminPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,15 +107,26 @@ export const Shop: React.FC = () => {
     document.title = 'Merch Oficial · NEEI AAUAlg';
   }, []);
 
-  // Carrega dados da campanha da loja
+  // Carrega dados da campanha da loja (com deteção de modo de teste admin)
   useEffect(() => {
     let mounted = true;
-    fetchShopCampaign()
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPreviewParam =
+      urlParams.get('admin_preview') === '1' || urlParams.get('admin_preview') === 'true';
+    const urlToken = urlParams.get('token');
+
+    if (urlToken) {
+      setStoredAdminToken(urlToken);
+    }
+    const adminToken = urlToken || getStoredAdminToken();
+
+    fetchShopCampaign({ adminPreview: isPreviewParam, token: adminToken })
       .then((data) => {
         if (mounted) {
           setCampaign(data.campaign);
           setIsSandbox(data.isSandbox ?? false);
           setSweatsAvailable(data.sweatsAvailable ?? true);
+          setIsAdminPreview(Boolean(data.isAdminPreview));
 
           if (data.campaign?.sizes_available?.length) {
             if (!data.campaign.sizes_available.includes('M')) {
@@ -164,14 +177,17 @@ export const Shop: React.FC = () => {
   const products: MerchProduct[] = useMemo(() => {
     if (!campaign) return [];
 
+    const isAvailableToBuy = sweatsAvailable || isAdminPreview;
     return [
       {
         id: 'sweat-ei-2026',
         name: campaign.item_name || 'Sweat Oficial Engenharia Informática 2026',
         category: 'clothing',
         price: campaign.item_price,
-        imageUrl: sweatsAvailable ? campaign.image_url || '/assets/sweat_mockup.jpg' : '',
-        badge: sweatsAvailable ? 'Já Disponível' : 'Brevemente',
+        imageUrl: isAvailableToBuy ? campaign.image_url || '/assets/sweat_mockup.jpg' : '',
+        badge: isAvailableToBuy
+          ? (isAdminPreview ? 'Modo Teste (0.50€)' : 'Já Disponível')
+          : 'Brevemente',
         description:
           'A sweat oficial dos cursos de Engenharia Informática da UAlg.',
         features: [
@@ -180,7 +196,7 @@ export const Shop: React.FC = () => {
           'Corte unissexo confortável com cordões reforçados',
           'Recolha no Campus de Gambelas ou Envio CTT',
         ],
-        available: sweatsAvailable,
+        available: isAvailableToBuy,
         isPreorder: true,
         sizes: campaign.sizes_available,
         allowShipping: campaign.allow_shipping,
@@ -188,7 +204,7 @@ export const Shop: React.FC = () => {
         pickupLocation: campaign.pickup_location,
       },
     ];
-  }, [campaign, sweatsAvailable]);
+  }, [campaign, sweatsAvailable, isAdminPreview]);
 
   // Produtos filtrados por categoria
   const filteredProducts = useMemo(() => {
@@ -269,7 +285,7 @@ export const Shop: React.FC = () => {
     e.preventDefault();
     setFormError(null);
 
-    if (!sweatsAvailable) {
+    if (!sweatsAvailable && !isAdminPreview) {
       setFormError('As encomendas das sweats encontram-se temporariamente encerradas.');
       return;
     }
@@ -301,6 +317,7 @@ export const Shop: React.FC = () => {
 
     setSubmitting(true);
     try {
+      const adminToken = getStoredAdminToken();
       // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
       const res = await createPaymentIntent({
         student_name: studentName.trim(),
@@ -311,6 +328,8 @@ export const Shop: React.FC = () => {
         shipping_address: deliveryType === 'shipping' ? shippingAddress.trim() : undefined,
         shipping_postal_code: deliveryType === 'shipping' ? shippingPostalCode.trim() : undefined,
         shipping_city: deliveryType === 'shipping' ? shippingCity.trim() : undefined,
+        adminPreview: isAdminPreview,
+        adminToken: isAdminPreview ? adminToken : undefined,
       });
 
       setActiveOrderId(res.orderId);
@@ -475,8 +494,31 @@ export const Shop: React.FC = () => {
           </div>
         </div>
 
-        {/* Alerta Informativo quando as Sweats estão Indisponíveis (SWEATS_AVAILABLE=false) */}
-        {!sweatsAvailable && (
+        {/* Banner de Modo de Teste Admin (SWEATS_AVAILABLE=false mas visualizado por admin) */}
+        {isAdminPreview && (
+          <div className="mb-8 p-5 rounded-2xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-200 text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl shadow-cyan-950/50 animate-in fade-in duration-200">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="p-2 rounded-xl bg-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider shrink-0">
+                🧪 Teste
+              </div>
+              <div className="leading-relaxed">
+                <strong className="text-white block sm:inline mr-1">
+                  Modo de Teste Admin Ativo:
+                </strong>
+                A testar compras reais com <strong>SWEATS_AVAILABLE=false</strong>. O valor da sweat foi ajustado para <strong className="text-white text-base underline decoration-cyan-400">0.50€</strong> (mínimo Stripe) para poderes testar com MB WAY, Cartão ou Apple Pay no telemóvel.
+              </div>
+            </div>
+            <a
+              href="/admin"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-colors shrink-0 self-start sm:self-auto"
+            >
+              ← Painel Admin
+            </a>
+          </div>
+        )}
+
+        {/* Alerta Informativo quando as Sweats estão Indisponíveis (SWEATS_AVAILABLE=false e não é admin) */}
+        {!sweatsAvailable && !isAdminPreview && (
           <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-cyan-500/30 text-slate-800 dark:text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-start sm:items-center gap-3.5">
               <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-500 flex-shrink-0">
@@ -677,7 +719,7 @@ export const Shop: React.FC = () => {
                 </div>
               </div>
 
-              {!sweatsAvailable ? (
+              {!sweatsAvailable && !isAdminPreview ? (
                 <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
                   As encomendas das sweats estão temporariamente suspensas de momento.
                 </div>
@@ -940,13 +982,13 @@ export const Shop: React.FC = () => {
                   </button>
 
                   {/* Resumo compacto do pedido */}
-                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-sm">
-                    <div className="text-slate-300">
-                      <span className="font-semibold">Sweat {selectedSize}</span>
-                      <span className="text-slate-500 mx-2">·</span>
-                      <span className="text-slate-400">{deliveryType === 'shipping' ? 'Envio CTT' : 'Levantamento Gambelas'}</span>
+                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
+                    <div className="text-slate-800 dark:text-slate-200">
+                      <span className="font-bold text-slate-900 dark:text-white">Sweat {selectedSize}</span>
+                      <span className="text-slate-400 dark:text-slate-600 mx-2">·</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400">{deliveryType === 'shipping' ? 'Envio CTT' : 'Levantamento Gambelas'}</span>
                     </div>
-                    <span className="font-black text-cyan-400 text-base">{stripeTotalAmount.toFixed(2)}€</span>
+                    <span className="font-black text-cyan-600 dark:text-cyan-400 text-base">{stripeTotalAmount.toFixed(2)}€</span>
                   </div>
 
                   <StripePaymentWidget

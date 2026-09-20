@@ -6,7 +6,8 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { Lock, Loader2, ShieldCheck } from 'lucide-react';
+import { Lock, Loader2, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 interface StripePaymentWidgetProps {
   clientSecret: string;
@@ -78,23 +79,27 @@ function PaymentForm({
       />
 
       {paymentError && (
-        <div className="p-3 rounded-xl bg-red-950/60 border border-red-700/50 text-red-300 text-xs flex items-start gap-2">
-          <span className="shrink-0 mt-0.5">⚠</span>
-          <span>{paymentError}</span>
+        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/40 text-red-700 dark:text-red-300 text-xs flex items-start gap-2.5">
+          <AlertTriangle size={16} className="flex-shrink-0 text-red-500 mt-0.5" />
+          <span className="leading-relaxed">{paymentError}</span>
         </div>
       )}
 
       {isSandbox && (
-        <div className="p-3 rounded-xl bg-amber-950/50 border border-amber-600/30 text-amber-300 text-xs">
-          <span className="font-bold block mb-0.5">Modo de Testes</span>
-          Cartão de teste: <span className="font-mono">4242 4242 4242 4242</span> · Data futura · CVC qualquer
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs">
+          <span className="font-bold block mb-1 flex items-center gap-1.5 text-amber-600 dark:text-amber-300">
+            ⚡ Modo de Testes Stripe
+          </span>
+          <p className="leading-relaxed text-[11px] text-amber-700 dark:text-amber-300/90">
+            Cartão de teste: <span className="font-mono font-bold bg-amber-500/20 px-1.5 py-0.5 rounded text-amber-900 dark:text-amber-200">4242 4242 4242 4242</span> · Data futura · CVC qualquer
+          </p>
         </div>
       )}
 
       <button
         type="submit"
         disabled={!stripe || !elements || confirming}
-        className="w-full py-3.5 px-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-900/40 transition-all cursor-pointer"
+        className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-600/30 hover:shadow-cyan-500/40 transition-all cursor-pointer transform active:scale-[0.99]"
       >
         {confirming ? (
           <>
@@ -109,9 +114,9 @@ function PaymentForm({
         )}
       </button>
 
-      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-500">
-        <ShieldCheck size={11} />
-        <span>Pagamento processado com segurança pela Stripe · Os teus dados nunca passam pelo nosso servidor</span>
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+        <ShieldCheck size={13} className="text-emerald-500" />
+        <span>Pagamento processado com segurança pela Stripe · Criptografia de ponta a ponta</span>
       </div>
     </form>
   );
@@ -129,54 +134,144 @@ export function StripePaymentWidget({
   onSuccess,
   onError,
 }: StripePaymentWidgetProps) {
+  const { isDark } = useTheme();
+
   const stripePromise = React.useMemo(
     () => (publishableKey ? loadStripe(publishableKey) : null),
     [publishableKey]
   );
 
-  const appearance = {
-    theme: 'night' as const,
-    variables: {
-      colorPrimary: '#06b6d4',
-      colorBackground: '#0f172a',
-      colorText: '#e2e8f0',
-      colorDanger: '#f87171',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      spacingUnit: '4px',
-      borderRadius: '12px',
-      colorTextPlaceholder: '#475569',
-    },
-    rules: {
-      '.Input': {
-        border: '1px solid #1e293b',
-        backgroundColor: '#020617',
-        boxShadow: 'none',
-      },
-      '.Input:focus': {
-        border: '1px solid #06b6d4',
-        boxShadow: '0 0 0 2px rgba(6,182,212,0.2)',
-      },
-      '.Tab': {
-        border: '1px solid #1e293b',
-        backgroundColor: '#0f172a',
-        color: '#94a3b8',
-      },
-      '.Tab:hover': {
-        backgroundColor: '#1e293b',
-        color: '#e2e8f0',
-      },
-      '.Tab--selected': {
-        border: '1px solid #06b6d4',
-        backgroundColor: '#083344',
-        color: '#e2e8f0',
-        boxShadow: '0 0 0 1px #06b6d4',
-      },
-      '.Label': {
-        color: '#94a3b8',
-        fontWeight: '500',
-      },
-    },
-  };
+  const appearance = React.useMemo(() => {
+    if (isDark) {
+      return {
+        theme: 'night' as const,
+        variables: {
+          colorPrimary: '#06b6d4',
+          colorBackground: '#0c1724',
+          colorText: '#f8fafc',
+          colorDanger: '#f87171',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          spacingUnit: '4.5px',
+          borderRadius: '12px',
+          colorTextPlaceholder: '#64748b',
+          colorIcon: '#38bdf8',
+        },
+        rules: {
+          '.Input': {
+            backgroundColor: '#020617',
+            border: '1px solid #1e293b',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
+            color: '#f8fafc',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          },
+          '.Input:focus': {
+            border: '1px solid #06b6d4',
+            boxShadow: '0 0 0 2px rgba(6, 182, 212, 0.3)',
+          },
+          '.Tab': {
+            backgroundColor: '#0f172a',
+            border: '1px solid #1e293b',
+            color: '#94a3b8',
+            transition: 'all 0.15s ease',
+          },
+          '.Tab:hover': {
+            backgroundColor: '#1e293b',
+            color: '#f8fafc',
+            border: '1px solid #334155',
+          },
+          '.Tab--selected': {
+            backgroundColor: '#082f49',
+            border: '1.5px solid #06b6d4',
+            color: '#38bdf8',
+            boxShadow: '0 0 0 1px #06b6d4',
+          },
+          '.Tab--selected:hover': {
+            backgroundColor: '#082f49',
+            border: '1.5px solid #06b6d4',
+            color: '#38bdf8',
+          },
+          '.TabLabel': {
+            fontWeight: '600',
+          },
+          '.Label': {
+            color: '#cbd5e1',
+            fontWeight: '600',
+            fontSize: '12px',
+            marginBottom: '6px',
+          },
+          '.Block': {
+            backgroundColor: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: '12px',
+          },
+        },
+      };
+    } else {
+      return {
+        theme: 'stripe' as const,
+        variables: {
+          colorPrimary: '#0891b2',
+          colorBackground: '#ffffff',
+          colorText: '#0f172a',
+          colorDanger: '#dc2626',
+          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          spacingUnit: '4.5px',
+          borderRadius: '12px',
+          colorTextPlaceholder: '#94a3b8',
+          colorIcon: '#0891b2',
+        },
+        rules: {
+          '.Input': {
+            backgroundColor: '#ffffff',
+            border: '1px solid #cbd5e1',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            color: '#0f172a',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          },
+          '.Input:focus': {
+            border: '1px solid #0891b2',
+            boxShadow: '0 0 0 2px rgba(8, 145, 178, 0.2)',
+          },
+          '.Tab': {
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            color: '#64748b',
+            transition: 'all 0.15s ease',
+          },
+          '.Tab:hover': {
+            backgroundColor: '#f1f5f9',
+            color: '#0f172a',
+            border: '1px solid #cbd5e1',
+          },
+          '.Tab--selected': {
+            backgroundColor: '#ecfeff',
+            border: '1.5px solid #0891b2',
+            color: '#0e7490',
+            boxShadow: '0 0 0 1px #0891b2',
+          },
+          '.Tab--selected:hover': {
+            backgroundColor: '#ecfeff',
+            border: '1.5px solid #0891b2',
+            color: '#0e7490',
+          },
+          '.TabLabel': {
+            fontWeight: '600',
+          },
+          '.Label': {
+            color: '#334155',
+            fontWeight: '600',
+            fontSize: '12px',
+            marginBottom: '6px',
+          },
+          '.Block': {
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '12px',
+          },
+        },
+      };
+    }
+  }, [isDark]);
 
   if (!stripePromise || !clientSecret) {
     return (
@@ -195,18 +290,18 @@ export function StripePaymentWidget({
   ) {
     return (
       <div className="space-y-4">
-        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-600/30 text-center">
-          <p className="text-amber-300 font-semibold text-sm mb-1">⚡ Modo Sandbox</p>
-          <p className="text-amber-200/70 text-xs">
-            Em modo sandbox, não há widget real. O pagamento será simulado automaticamente.
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <p className="text-amber-600 dark:text-amber-300 font-semibold text-sm mb-1">⚡ Modo Sandbox</p>
+          <p className="text-amber-700 dark:text-amber-200/80 text-xs">
+            Em modo sandbox local, o pagamento pode ser simulado diretamente.
           </p>
         </div>
         <button
           type="button"
           onClick={onSuccess}
-          className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm transition-all cursor-pointer"
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-bold text-sm sm:text-base transition-all cursor-pointer shadow-lg shadow-amber-500/20"
         >
-          ⚡ Simular Pagamento Aprovado
+          ⚡ Simular Pagamento Aprovado ({totalAmount.toFixed(2)}€)
         </button>
       </div>
     );

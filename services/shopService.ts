@@ -11,12 +11,29 @@ import {
 /**
  * Obtém os dados da campanha ativa de pré-encomenda
  */
-export async function fetchShopCampaign(): Promise<{
+export async function fetchShopCampaign(options?: {
+  adminPreview?: boolean;
+  token?: string | null;
+}): Promise<{
   campaign: ShopCampaign;
   isSandbox: boolean;
   sweatsAvailable?: boolean;
+  isAdminPreview?: boolean;
 }> {
-  const res = await fetch('/api/shop/campaign');
+  const params = new URLSearchParams();
+  if (options?.adminPreview) {
+    params.set('admin_preview', '1');
+  }
+  if (options?.token) {
+    params.set('token', options.token);
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const headers: Record<string, string> = {};
+  if (options?.token) {
+    headers['Authorization'] = `Bearer ${options.token}`;
+  }
+
+  const res = await fetch(`/api/shop/campaign${query}`, { headers });
   const contentType = res.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
     throw new Error(
@@ -50,17 +67,24 @@ export async function submitCheckout(payload: CheckoutPayload): Promise<Checkout
 /**
  * Cria uma encomenda e retorna o clientSecret do PaymentIntent Stripe (Payment Element)
  */
-export async function createPaymentIntent(payload: CheckoutPayload): Promise<{
+export async function createPaymentIntent(
+  payload: CheckoutPayload & { adminPreview?: boolean; adminToken?: string | null }
+): Promise<{
   orderId: string;
   totalAmount: number;
   clientSecret: string;
   publishableKey: string;
   provider: string;
   isSandbox: boolean;
+  isAdminPreview?: boolean;
 }> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (payload.adminToken) {
+    headers['Authorization'] = `Bearer ${payload.adminToken}`;
+  }
   const res = await fetch('/api/shop/create-payment-intent', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(payload),
   });
 
