@@ -35,6 +35,7 @@ import {
   createPaymentIntent,
   fetchOrderStatus,
   simulatePayment,
+  confirmPayment,
 } from '../services/shopService';
 import { getStoredAdminToken, setStoredAdminToken } from '../services/activitiesService';
 import { StripePaymentWidget } from '../components/StripePaymentWidget';
@@ -153,9 +154,15 @@ export const Shop: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     const done = params.get('payment_intent_done');
     const orderId = params.get('orderId');
+    const paymentIntentId = params.get('payment_intent');
     if (done === '1' && orderId) {
       setActiveOrderId(orderId);
       setPaymentStatus('paid');
+      // Confirma e regista a encomenda na BD caso o webhook ainda não tenha chegado
+      confirmPayment({
+        orderId,
+        paymentIntentId: paymentIntentId || undefined,
+      }).catch(() => {});
       // Limpa os parâmetros da URL sem recarregar
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
@@ -349,13 +356,14 @@ export const Shop: React.FC = () => {
   // Callback de sucesso do widget Stripe (sandbox ou após redirecionamento)
   const handlePaymentSuccess = async () => {
     if (!activeOrderId) return;
-    // Em sandbox: simular o pagamento no backend
-    if (stripeIsSandbox) {
-      try {
+    try {
+      if (stripeIsSandbox) {
         await simulatePayment(activeOrderId);
-      } catch (_) {
-        // ignora erro de simulação — o polling vai apanhar
+      } else {
+        await confirmPayment({ orderId: activeOrderId });
       }
+    } catch (_) {
+      // ignora erro — o polling ou webhook tratarão da confirmação
     }
     setPaymentStatus('paid');
     try {

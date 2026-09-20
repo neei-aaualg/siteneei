@@ -149,6 +149,7 @@ export async function createStripePaymentIntentAutomatic({
   studentEmail,
   studentName,
   description,
+  metadata = {},
 }) {
   const amountInCents = Math.round(Number(amount) * 100);
 
@@ -175,6 +176,7 @@ export async function createStripePaymentIntentAutomatic({
         order_id: orderId,
         student_email: studentEmail,
         student_name: studentName || '',
+        ...metadata,
       },
     });
 

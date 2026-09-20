@@ -42,6 +42,7 @@ export async function createAutomaticPaymentIntent({
   studentEmail,
   studentName,
   description,
+  metadata,
 }) {
   return createStripePaymentIntentAutomatic({
     orderId,
@@ -49,6 +50,7 @@ export async function createAutomaticPaymentIntent({
     studentEmail,
     studentName,
     description,
+    metadata,
   });
 }
 

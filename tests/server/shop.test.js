@@ -259,20 +259,26 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
   });
 
   it('suporta o estado operacional test e permite atualização em lote de múltiplas encomendas', () => {
-    const o1 = db.createShopOrder({
-      student_name: 'Teste Um',
-      student_email: 'um@ualg.pt',
-      phone_number: '912345671',
-      size: 'S',
-      delivery_type: 'pickup',
-    });
-    const o2 = db.createShopOrder({
-      student_name: 'Teste Dois',
-      student_email: 'dois@ualg.pt',
-      phone_number: '912345672',
-      size: 'L',
-      delivery_type: 'pickup',
-    });
+    const o1 = db.recordPaidShopOrder(
+      db.preparePendingShopOrder({
+        student_name: 'Teste Um',
+        student_email: 'um@ualg.pt',
+        phone_number: '912345671',
+        size: 'S',
+        delivery_type: 'pickup',
+      }),
+      'ref-teste-1'
+    );
+    const o2 = db.recordPaidShopOrder(
+      db.preparePendingShopOrder({
+        student_name: 'Teste Dois',
+        student_email: 'dois@ualg.pt',
+        phone_number: '912345672',
+        size: 'L',
+        delivery_type: 'pickup',
+      }),
+      'ref-teste-2'
+    );
 
     // Teste de atualização individual para 'test'
     const success1 = db.updateShopOrderStatus(o1.id, 'test');
@@ -333,5 +339,36 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     const verifiedEvent = paymentService.verifyStripeWebhook(webhookPayload);
     expect(verifiedEvent.type).toBe('payment_intent.succeeded');
     expect(verifiedEvent.data.object.metadata.order_id).toBe(order.id);
+  });
+
+  it('nunca regista a encomenda na base de dados a menos que o pagamento esteja confirmado', () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'David Desistente',
+      student_email: 'desistente@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+
+    // 1. A encomenda pendente NÃO existe na tabela shop_orders
+    expect(db.getShopOrderById(pending.id)).toBeNull();
+
+    // 2. Não aparece na listagem administrativa por omissão
+    const list = db.getAllShopOrders();
+    expect(list.find((o) => o.id === pending.id)).toBeUndefined();
+
+    // 3. Só passa a constar na tabela quando o pagamento for confirmado como pago
+    const paid = db.recordPaidShopOrder(pending, 'pi_stripe_confirmed');
+    expect(paid).toBeTruthy();
+    expect(paid.payment_status).toBe('paid');
+
+    const inDb = db.getShopOrderById(pending.id);
+    expect(inDb).toBeTruthy();
+    expect(inDb.payment_status).toBe('paid');
+    expect(inDb.student_name).toBe('David Desistente');
+
+    // 4. Agora sim consta na listagem da tabela
+    const updatedList = db.getAllShopOrders();
+    expect(updatedList.find((o) => o.id === pending.id)).toBeTruthy();
   });
 });

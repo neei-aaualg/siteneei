@@ -126,6 +126,25 @@ export async function simulatePayment(
   return data;
 }
 
+/**
+ * Valida e regista o pagamento no backend após conclusão no widget Stripe ou retorno
+ */
+export async function confirmPayment(payload: {
+  orderId: string;
+  paymentIntentId?: string;
+}): Promise<{ success: boolean; order?: ShopOrder }> {
+  const res = await fetch('/api/shop/confirm-payment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao confirmar pagamento.');
+  }
+  return data;
+}
+
 /* =========================================================================
    MÉTODOS ADMINISTRATIVOS
    ========================================================================= */

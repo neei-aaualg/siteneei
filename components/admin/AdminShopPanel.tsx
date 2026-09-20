@@ -364,7 +364,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             {stats ? stats.totalPaidOrders : 0}
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            De um total de {stats?.totalOrders || 0} pedidos iniciados
+            {stats?.totalPaidOrders || 0} encomendas pagas e confirmadas
           </span>
         </div>
 

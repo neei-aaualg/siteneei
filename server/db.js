@@ -231,6 +231,13 @@ try {
   // Ignora se não existir
 }
 
+// Limpeza de encomendas não confirmadas: apenas encomendas pagas devem permanecer na tabela shop_orders
+try {
+  db.exec("DELETE FROM shop_orders WHERE payment_status != 'paid';");
+} catch (e) {
+  // Ignora se tabela ainda não existir
+}
+
 // Seed da Campanha de Pré-encomenda das Sweats (se ainda não existir)
 try {
   const defaultCampId = 'camp-sweat-ei-2026';
@@ -1159,10 +1166,14 @@ export function updateShopCampaign(id, data) {
   return getActiveShopCampaign(data.isAdminPreview);
 }
 
+// Cache em memória de encomendas pendentes de pagamento (não inseridas na BD até confirmação)
+export const pendingOrdersCache = new Map();
+
 /**
- * Cria uma nova encomenda em estado pending_payment
+ * Valida e prepara uma encomenda pendente de pagamento em memória.
+ * NÃO insere na tabela shop_orders até o pagamento ser confirmado.
  */
-export function createShopOrder(orderData, isAdminPreview = false) {
+export function preparePendingShopOrder(orderData, isAdminPreview = false) {
   const isSweatsAvailable = isSweatsAvailableEnv();
   const isTestShopAllowed = isShowTestShopEnv();
   const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
@@ -1255,43 +1266,134 @@ export function createShopOrder(orderData, isAdminPreview = false) {
   const now = new Date();
   const year = now.getFullYear();
   const orderId = `SW-${year}-${randomSuffix}`;
-
   const createdAt = now.toISOString();
+
+  const pendingOrder = {
+    id: orderId,
+    campaign_id: campaign.id,
+    student_name: studentName,
+    student_email: studentEmail,
+    phone_number: rawPhone,
+    nif,
+    size,
+    color: 'Preto',
+    delivery_type: deliveryType,
+    shipping_address: shippingAddress,
+    shipping_postal_code: shippingPostalCode,
+    shipping_city: shippingCity,
+    item_price: itemPrice,
+    shipping_fee: shippingFee,
+    total_amount: totalAmount,
+    payment_status: 'pending',
+    payment_provider: 'stripe',
+    payment_ref: null,
+    order_status: 'pending_payment',
+    email_sent: false,
+    email_sent_at: null,
+    moloni_document_id: null,
+    moloni_status: 'none',
+    created_at: createdAt,
+    paid_at: null,
+    isAdminPreview: Boolean(isTestingMode),
+  };
+
+  pendingOrdersCache.set(orderId, pendingOrder);
+
+  // Limpeza de cache se exceder 500 pedidos em memória
+  if (pendingOrdersCache.size > 500) {
+    const oldestKey = pendingOrdersCache.keys().next().value;
+    pendingOrdersCache.delete(oldestKey);
+  }
+
+  return pendingOrder;
+}
+
+/**
+ * Obtém uma encomenda pendente em memória
+ */
+export function getPendingShopOrder(orderId) {
+  if (!orderId) return null;
+  return pendingOrdersCache.get(orderId) || null;
+}
+
+/**
+ * Regista definitivamente uma encomenda na tabela shop_orders apenas quando o pagamento é confirmado
+ */
+export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = null) {
+  let orderData = orderDataOrId;
+  if (typeof orderDataOrId === 'string') {
+    const existing = getShopOrderById(orderDataOrId);
+    if (existing) {
+      return updateShopOrderPaymentStatus(orderDataOrId, 'paid', paymentRef, paidAt);
+    }
+    orderData = getPendingShopOrder(orderDataOrId);
+    if (!orderData) {
+      throw new Error(`Encomenda pendente ${orderDataOrId} não encontrada para confirmação`);
+    }
+  }
+
+  const existingInDb = getShopOrderById(orderData.id);
+  if (existingInDb) {
+    return updateShopOrderPaymentStatus(orderData.id, 'paid', paymentRef, paidAt);
+  }
+
+  const now = new Date().toISOString();
+  const actualPaidAt = paidAt || now;
+  const actualPaymentRef = paymentRef || orderData.payment_ref || null;
+  const isTest = Boolean(orderData.isAdminPreview || orderData.is_admin_preview);
+  const orderStatus = isTest ? 'test' : 'confirmed';
 
   const stmt = db.prepare(`
     INSERT INTO shop_orders (
       id, campaign_id, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
       item_price, shipping_fee, total_amount, payment_status, payment_provider,
-      order_status, email_sent, moloni_status, created_at
+      payment_ref, order_status, email_sent, moloni_status, created_at, paid_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, 'pending', 'ifthenpay',
-      'pending_payment', 0, 'none', ?
+      ?, ?, ?, 'paid', ?,
+      ?, ?, 0, 'none', ?, ?
     )
   `);
 
   stmt.run(
-    orderId,
-    campaign.id,
-    studentName,
-    studentEmail,
-    rawPhone,
-    nif,
-    size,
-    'Preto',
-    deliveryType,
-    shippingAddress,
-    shippingPostalCode,
-    shippingCity,
-    itemPrice,
-    shippingFee,
-    totalAmount,
-    createdAt
+    orderData.id,
+    orderData.campaign_id || 'camp-sweat-ei-2026',
+    orderData.student_name,
+    orderData.student_email,
+    orderData.phone_number,
+    orderData.nif || 'Consumidor Final',
+    orderData.size,
+    orderData.color || 'Preto',
+    orderData.delivery_type || 'pickup',
+    orderData.shipping_address || null,
+    orderData.shipping_postal_code || null,
+    orderData.shipping_city || null,
+    Number(orderData.item_price),
+    Number(orderData.shipping_fee || 0),
+    Number(orderData.total_amount),
+    orderData.payment_provider || 'stripe',
+    actualPaymentRef,
+    orderStatus,
+    orderData.created_at || now,
+    actualPaidAt
   );
 
-  return getShopOrderById(orderId);
+  pendingOrdersCache.delete(orderData.id);
+
+  return getShopOrderById(orderData.id);
+}
+
+/**
+ * Cria uma nova encomenda em estado pending_payment (em memória, sem gravar na BD até pagamento)
+ */
+export function createShopOrder(orderData, isAdminPreview = false, options = {}) {
+  const pending = preparePendingShopOrder(orderData, isAdminPreview);
+  if (options.recordAsPaid || options.saveToDb || orderData.payment_status === 'paid') {
+    return recordPaidShopOrder(pending, orderData.payment_ref);
+  }
+  return pending;
 }
 
 /**
@@ -1339,8 +1441,17 @@ export function updateShopOrderPaymentStatus(orderId, paymentStatus, paymentRef,
     throw new Error('Estado de pagamento inválido');
   }
 
-  const current = getShopOrderById(orderId);
+  let current = getShopOrderById(orderId);
   if (!current) {
+    const pending = getPendingShopOrder(orderId);
+    if (pending) {
+      if (paymentStatus === 'paid') {
+        return recordPaidShopOrder(pending, paymentRef, paidAt);
+      }
+      pending.payment_status = paymentStatus;
+      if (paymentRef !== undefined) pending.payment_ref = paymentRef;
+      return pending;
+    }
     throw new Error('Encomenda não encontrada');
   }
 
@@ -1400,6 +1511,11 @@ export function updateShopOrderStatus(orderId, orderStatus) {
   if (!valid.includes(orderStatus)) {
     throw new Error('Estado de encomenda inválido');
   }
+  const pending = getPendingShopOrder(orderId);
+  if (pending && !getShopOrderById(orderId)) {
+    pending.order_status = orderStatus;
+    return true;
+  }
   const stmt = db.prepare('UPDATE shop_orders SET order_status = ? WHERE id = ?');
   const res = stmt.run(orderStatus, orderId);
   return res.changes > 0;
@@ -1425,23 +1541,40 @@ export function updateMultipleShopOrderStatus(orderIds, orderStatus) {
     return 0;
   }
 
-  const placeholders = orderIds.map(() => '?').join(',');
-  const stmt = db.prepare(`UPDATE shop_orders SET order_status = ? WHERE id IN (${placeholders})`);
-  const res = stmt.run(orderStatus, ...orderIds);
-  return res.changes;
+  let pendingCount = 0;
+  for (const id of orderIds) {
+    const p = getPendingShopOrder(id);
+    if (p && !getShopOrderById(id)) {
+      p.order_status = orderStatus;
+      pendingCount++;
+    }
+  }
+
+  const dbOrderIds = orderIds.filter((id) => Boolean(getShopOrderById(id)));
+  if (dbOrderIds.length > 0) {
+    const placeholders = dbOrderIds.map(() => '?').join(',');
+    const stmt = db.prepare(`UPDATE shop_orders SET order_status = ? WHERE id IN (${placeholders})`);
+    const res = stmt.run(orderStatus, ...dbOrderIds);
+    return res.changes + pendingCount;
+  }
+  return pendingCount;
 }
 
 /**
- * Lista todas as encomendas para o painel de administração
+ * Lista todas as encomendas para o painel de administração (por omissão apenas pagas)
  */
 export function getAllShopOrders(filters = {}) {
   let query = 'SELECT * FROM shop_orders';
   const conditions = [];
   const params = [];
 
-  if (filters.payment_status) {
+  // Apenas encomendas confirmadas de pago são listadas na tabela
+  if (filters.payment_status && filters.payment_status !== 'all') {
     conditions.push('payment_status = ?');
     params.push(filters.payment_status);
+  } else if (!filters.payment_status) {
+    // Por omissão, apenas exibe encomendas com pagamento confirmado
+    conditions.push("payment_status = 'paid'");
   }
 
   if (filters.order_status) {
@@ -1487,7 +1620,7 @@ export function getAllShopOrders(filters = {}) {
  * Obtém resumo estatístico da loja para o dashboard /admin
  */
 export function getShopSummaryStats() {
-  const allOrders = db.prepare('SELECT * FROM shop_orders').all();
+  const allOrders = db.prepare("SELECT * FROM shop_orders WHERE payment_status = 'paid'").all();
   // Não contabiliza encomendas em estado 'test' na produção de fábrica
   const paidOrders = allOrders.filter((o) => o.payment_status === 'paid' && o.order_status !== 'test');
 

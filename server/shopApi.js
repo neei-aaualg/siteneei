@@ -3,6 +3,9 @@ import { verifyAdminToken, verifyAdminTokenString } from './auth.js';
 import {
   getActiveShopCampaign,
   updateShopCampaign,
+  preparePendingShopOrder,
+  getPendingShopOrder,
+  recordPaidShopOrder,
   createShopOrder,
   getShopOrderById,
   updateShopOrderPaymentStatus,
@@ -14,6 +17,7 @@ import {
   getFactoryExportData,
   isSweatsAvailableEnv,
   isShowTestShopEnv,
+  pendingOrdersCache,
 } from './db.js';
 import { sendOrderConfirmationEmail } from './services/emailService.js';
 import {
@@ -23,6 +27,7 @@ import {
   verifyStripeWebhook,
   isPaymentSandbox,
 } from './services/paymentService.js';
+import { getStripeClient, isStripeSandbox } from './services/stripeService.js';
 
 /**
  * Roteador de endpoints da Loja e Encomendas de Sweats
@@ -57,7 +62,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 2. POST /api/shop/create-payment-intent - Criar encomenda + PaymentIntent (Payment Element)
+    // 2. POST /api/shop/create-payment-intent - Preparar encomenda em memória + criar PaymentIntent Stripe
+    // NUNCA grava na tabela da BD a menos que esteja já pago e confirmado
     if (pathname === '/api/shop/create-payment-intent' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const isTestShopAllowed = isShowTestShopEnv();
@@ -66,7 +72,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         (body.adminToken && verifyAdminTokenString(body.adminToken));
       const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
-      const order = createShopOrder(body, isAdminPreview);
+      // Apenas prepara em memória e valida dados (não grava na BD)
+      const order = preparePendingShopOrder(body, isAdminPreview);
 
       const paymentResult = await createAutomaticPaymentIntent({
         orderId: order.id,
@@ -76,6 +83,23 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         description: isAdminPreview
           ? `NEEI - Sweat ${order.size} (Modo Teste 50c)`
           : `NEEI - Sweat ${order.size}`,
+        metadata: {
+          order_id: order.id,
+          student_name: order.student_name,
+          student_email: order.student_email,
+          phone_number: order.phone_number,
+          nif: order.nif || '',
+          size: order.size,
+          color: order.color || 'Preto',
+          delivery_type: order.delivery_type,
+          shipping_address: order.shipping_address || '',
+          shipping_postal_code: order.shipping_postal_code || '',
+          shipping_city: order.shipping_city || '',
+          item_price: String(order.item_price),
+          shipping_fee: String(order.shipping_fee),
+          total_amount: String(order.total_amount),
+          is_admin_preview: isAdminPreview ? '1' : '0',
+        },
       });
 
       if (!paymentResult.success) {
@@ -84,7 +108,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         });
       }
 
-      updateShopOrderPaymentStatus(order.id, 'pending', paymentResult.paymentIntentId);
+      order.payment_ref = paymentResult.paymentIntentId;
+      pendingOrdersCache.set(order.id, order);
 
       return sendJson(res, 201, {
         success: true,
@@ -98,7 +123,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 3. POST /api/shop/checkout - Criar encomenda e disparar Stripe
+    // 3. POST /api/shop/checkout - Iniciar pagamento direto MB WAY
     if (pathname === '/api/shop/checkout' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const isTestShopAllowed = isShowTestShopEnv();
@@ -107,7 +132,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         (body.adminToken && verifyAdminTokenString(body.adminToken));
       const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
-      const order = createShopOrder(body, isAdminPreview);
+      const order = preparePendingShopOrder(body, isAdminPreview);
 
       // Inicia pagamento via Stripe
       const paymentResult = await initiateMbWayPayment({
@@ -125,9 +150,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         });
       }
 
-      // Guarda ref do pagamento
       const paymentRef = paymentResult.paymentIntentId || paymentResult.requestId;
-      updateShopOrderPaymentStatus(order.id, 'pending', paymentRef);
+      order.payment_ref = paymentRef;
+      pendingOrdersCache.set(order.id, order);
 
       return sendJson(res, 201, {
         success: true,
@@ -142,15 +167,15 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 3. POST /api/shop/checkout-session - Criar sessão Stripe Checkout (Cartão / Apple Pay)
+    // 4. POST /api/shop/checkout-session - Criar sessão Stripe Checkout
     if (pathname === '/api/shop/checkout-session' && req.method === 'POST') {
       const body = await readJsonBody(req);
-      const order = createShopOrder(body);
+      const order = preparePendingShopOrder(body);
 
       const baseUrl = `http://${req.headers.host || 'localhost:3000'}`;
       const sessionResult = await createCheckoutSession({
         order,
-        successUrl: `${baseUrl}/merch?success=true&orderId=${order.id}`,
+        successUrl: `${baseUrl}/merch?payment_intent_done=1&orderId=${order.id}`,
         cancelUrl: `${baseUrl}/merch?canceled=true&orderId=${order.id}`,
       });
 
@@ -160,7 +185,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         });
       }
 
-      updateShopOrderPaymentStatus(order.id, 'pending', sessionResult.sessionId);
+      order.payment_ref = sessionResult.sessionId;
+      pendingOrdersCache.set(order.id, order);
 
       return sendJson(res, 201, {
         success: true,
@@ -170,10 +196,13 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 4. GET /api/shop/order-status/:id - Consultar estado da encomenda (polling no checkout)
+    // 5. GET /api/shop/order-status/:id - Consultar estado da encomenda (polling no checkout)
     if (pathname.startsWith('/api/shop/order-status/') && req.method === 'GET') {
       const orderId = pathname.replace('/api/shop/order-status/', '').trim();
-      const order = getShopOrderById(orderId);
+      let order = getShopOrderById(orderId);
+      if (!order) {
+        order = getPendingShopOrder(orderId);
+      }
 
       if (!order) {
         return sendJson(res, 404, { error: 'Encomenda não encontrada.' });
@@ -183,7 +212,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         orderId: order.id,
         paymentStatus: order.payment_status,
         orderStatus: order.order_status,
-        paidAt: order.paid_at,
+        paidAt: order.paid_at || null,
         studentName: order.student_name,
         size: order.size,
         totalAmount: order.total_amount,
@@ -191,7 +220,63 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 5. POST /api/webhooks/stripe - Callback oficial da Stripe (PaymentIntent & Checkout Sessions)
+    // 6. POST /api/shop/confirm-payment - Validação e registo do pagamento após conclusão no widget/redirect
+    if (pathname === '/api/shop/confirm-payment' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const { orderId, paymentIntentId } = body;
+
+      if (!orderId) {
+        return sendJson(res, 400, { error: 'orderId é obrigatório' });
+      }
+
+      let order = getShopOrderById(orderId);
+      if (order && order.payment_status === 'paid') {
+        return sendJson(res, 200, { success: true, order });
+      }
+
+      const pending = getPendingShopOrder(orderId);
+      if (!pending && !order) {
+        return sendJson(res, 404, { error: 'Encomenda não encontrada ou já expirada.' });
+      }
+
+      let isPaid = isPaymentSandbox();
+      if (!isPaid && paymentIntentId && !isStripeSandbox()) {
+        try {
+          const stripe = getStripeClient();
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (pi && pi.status === 'succeeded') {
+            isPaid = true;
+          }
+        } catch (e) {
+          console.error('[CONFIRM PAYMENT ERROR]', e.message);
+        }
+      }
+
+      if (isPaid) {
+        if (!order) {
+          order = recordPaidShopOrder(pending, paymentIntentId || `client-confirmed-${Date.now()}`);
+        } else {
+          order = updateShopOrderPaymentStatus(order.id, 'paid', paymentIntentId);
+        }
+
+        if (order && !order.email_sent) {
+          try {
+            const emailResult = await sendOrderConfirmationEmail(order);
+            if (emailResult && emailResult.success) {
+              updateShopOrderEmailSent(order.id);
+            }
+          } catch (mailErr) {
+            console.error('[CONFIRM EMAIL ERROR]', mailErr.message);
+          }
+        }
+
+        return sendJson(res, 200, { success: true, order });
+      }
+
+      return sendJson(res, 400, { error: 'Pagamento ainda não confirmado pela rede.' });
+    }
+
+    // 7. POST /api/webhooks/stripe - Callback oficial da Stripe (PaymentIntent & Checkout Sessions)
     if (pathname === '/api/webhooks/stripe' && req.method === 'POST') {
       const signature = req.headers['stripe-signature'];
       const rawBody = await readRawBody(req);
@@ -212,19 +297,40 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const orderId = paymentIntent.metadata?.order_id;
 
         if (orderId) {
-          const order = getShopOrderById(orderId);
-          if (order && order.payment_status !== 'paid') {
-            const updatedOrder = updateShopOrderPaymentStatus(
+          let order = getShopOrderById(orderId);
+          if (!order) {
+            const pendingOrder = getPendingShopOrder(orderId) || {
+              id: orderId,
+              student_name: paymentIntent.metadata?.student_name,
+              student_email: paymentIntent.metadata?.student_email,
+              phone_number: paymentIntent.metadata?.phone_number,
+              nif: paymentIntent.metadata?.nif,
+              size: paymentIntent.metadata?.size,
+              color: paymentIntent.metadata?.color || 'Preto',
+              delivery_type: paymentIntent.metadata?.delivery_type,
+              shipping_address: paymentIntent.metadata?.shipping_address,
+              shipping_postal_code: paymentIntent.metadata?.shipping_postal_code,
+              shipping_city: paymentIntent.metadata?.shipping_city,
+              item_price: Number(paymentIntent.metadata?.item_price || 0),
+              shipping_fee: Number(paymentIntent.metadata?.shipping_fee || 0),
+              total_amount: Number(paymentIntent.metadata?.total_amount || (paymentIntent.amount ? paymentIntent.amount / 100 : 0)),
+              isAdminPreview: paymentIntent.metadata?.is_admin_preview === '1',
+            };
+            order = recordPaidShopOrder(pendingOrder, paymentIntent.id, new Date().toISOString());
+          } else if (order.payment_status !== 'paid') {
+            order = updateShopOrderPaymentStatus(
               order.id,
               'paid',
               paymentIntent.id,
               new Date().toISOString()
             );
+          }
 
+          if (order && !order.email_sent) {
             try {
-              const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+              const emailResult = await sendOrderConfirmationEmail(order);
               if (emailResult && emailResult.success) {
-                updateShopOrderEmailSent(updatedOrder.id);
+                updateShopOrderEmailSent(order.id);
               }
             } catch (mailErr) {
               console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
@@ -239,19 +345,35 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const orderId = session.client_reference_id || session.metadata?.order_id;
 
         if (orderId) {
-          const order = getShopOrderById(orderId);
-          if (order && order.payment_status !== 'paid') {
-            const updatedOrder = updateShopOrderPaymentStatus(
+          let order = getShopOrderById(orderId);
+          if (!order) {
+            const pendingOrder = getPendingShopOrder(orderId) || {
+              id: orderId,
+              student_name: session.customer_details?.name,
+              student_email: session.customer_details?.email || session.customer_email,
+              phone_number: session.customer_details?.phone || '',
+              size: session.metadata?.size || 'M',
+              color: 'Preto',
+              delivery_type: 'pickup',
+              item_price: Number(session.amount_total ? session.amount_total / 100 : 25),
+              shipping_fee: 0,
+              total_amount: Number(session.amount_total ? session.amount_total / 100 : 25),
+            };
+            order = recordPaidShopOrder(pendingOrder, session.payment_intent || session.id, new Date().toISOString());
+          } else if (order.payment_status !== 'paid') {
+            order = updateShopOrderPaymentStatus(
               order.id,
               'paid',
               session.payment_intent || session.id,
               new Date().toISOString()
             );
+          }
 
+          if (order && !order.email_sent) {
             try {
-              const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+              const emailResult = await sendOrderConfirmationEmail(order);
               if (emailResult && emailResult.success) {
-                updateShopOrderEmailSent(updatedOrder.id);
+                updateShopOrderEmailSent(order.id);
               }
             } catch (mailErr) {
               console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
@@ -265,14 +387,17 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const paymentIntent = event.data?.object || {};
         const orderId = paymentIntent.metadata?.order_id;
         if (orderId) {
-          updateShopOrderPaymentStatus(orderId, 'failed');
+          const order = getShopOrderById(orderId);
+          if (order) {
+            updateShopOrderPaymentStatus(orderId, 'failed');
+          }
         }
       }
 
       return sendJson(res, 200, { received: true });
     }
 
-    // 6. POST ou GET /api/webhooks/ifthenpay - Fallback para webhook legado
+    // 8. POST ou GET /api/webhooks/ifthenpay - Fallback para webhook legado
     if (pathname === '/api/webhooks/ifthenpay' || pathname === '/api/shop/webhook') {
       let params = {};
       let body = {};
@@ -291,9 +416,14 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 400, { error: 'ID de encomenda não especificado no webhook' });
       }
 
-      const order = getShopOrderById(orderId);
+      let order = getShopOrderById(orderId);
       if (!order) {
-        return sendJson(res, 404, { error: 'Encomenda não encontrada' });
+        const pending = getPendingShopOrder(orderId);
+        if (pending) {
+          order = recordPaidShopOrder(pending, body.requestId || params.requestId || 'webhook-ifthenpay');
+        } else {
+          return sendJson(res, 404, { error: 'Encomenda não encontrada' });
+        }
       }
 
       if (estado === 'PAGO' || estado === 'PAID' || estado === '000') {
@@ -322,7 +452,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       }
     }
 
-    // 5. POST /api/shop/simulate-payment - Simulação manual para testes em Sandbox
+    // 9. POST /api/shop/simulate-payment - Simulação manual para testes em Sandbox
     if (pathname === '/api/shop/simulate-payment' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const { orderId } = body;
@@ -331,28 +461,32 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 400, { error: 'orderId é obrigatório' });
       }
 
-      const order = getShopOrderById(orderId);
+      let order = getShopOrderById(orderId);
       if (!order) {
-        return sendJson(res, 404, { error: 'Encomenda não encontrada' });
+        const pending = getPendingShopOrder(orderId);
+        if (!pending) {
+          return sendJson(res, 404, { error: 'Encomenda não encontrada' });
+        }
+        order = recordPaidShopOrder(pending, `simulated-${Date.now()}`);
+      } else {
+        order = updateShopOrderPaymentStatus(
+          order.id,
+          'paid',
+          `simulated-${Date.now()}`,
+          new Date().toISOString()
+        );
       }
 
-      const updatedOrder = updateShopOrderPaymentStatus(
-        order.id,
-        'paid',
-        `simulated-${Date.now()}`,
-        new Date().toISOString()
-      );
-
       // Dispara email
-      const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+      const emailResult = await sendOrderConfirmationEmail(order);
       if (emailResult && emailResult.success) {
-        updateShopOrderEmailSent(updatedOrder.id);
+        updateShopOrderEmailSent(order.id);
       }
 
       return sendJson(res, 200, {
         success: true,
         message: 'Pagamento simulado com sucesso e email de confirmação despachado.',
-        order: updatedOrder,
+        order,
       });
     }
 
