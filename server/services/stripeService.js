@@ -19,6 +19,16 @@ export function isStripeSandbox() {
 }
 
 /**
+ * Verifica se as chaves da Stripe estão em modo de testes (sk_test_...) ou sandbox
+ */
+export function isStripeTestMode() {
+  return (
+    isStripeSandbox() ||
+    (typeof STRIPE_SECRET_KEY === 'string' && STRIPE_SECRET_KEY.startsWith('sk_test_'))
+  );
+}
+
+/**
  * Obtém a instância do SDK Stripe configurada
  */
 export function getStripeClient() {
@@ -26,7 +36,8 @@ export function getStripeClient() {
 
   if (!isStripeSandbox()) {
     stripeClient = new Stripe(STRIPE_SECRET_KEY);
-    console.log('[STRIPE] Cliente Stripe inicializado em modo de produção/live.');
+    const mode = isStripeTestMode() ? 'TEST (sk_test_)' : 'LIVE (sk_live_)';
+    console.log(`[STRIPE] Cliente Stripe inicializado em modo ${mode}.`);
   } else {
     // Cliente mock para desenvolvimento sem chaves
     stripeClient = null;
@@ -78,9 +89,9 @@ export async function createStripeMbWayPaymentIntent({
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: 'eur',
-      payment_method_types: ['mbway'],
+      payment_method_types: ['mb_way'],
       payment_method_data: {
-        type: 'mbway',
+        type: 'mb_way',
         billing_details: {
           phone: `+351${cleanMobile}`,
           email: studentEmail,
@@ -88,6 +99,7 @@ export async function createStripeMbWayPaymentIntent({
         },
       },
       confirm: true,
+      return_url: `${process.env.APP_URL || 'http://localhost:3000'}/merch?orderId=${orderId}`,
       description: description || `NEEI Merch - Encomenda ${orderId}`,
       metadata: {
         order_id: orderId,
@@ -100,12 +112,19 @@ export async function createStripeMbWayPaymentIntent({
       `[STRIPE] PaymentIntent MB WAY criado: ${paymentIntent.id} (Estado: ${paymentIntent.status})`
     );
 
+    // No modo de teste da Stripe, pode haver uma URL de autorização de teste em next_action
+    const nextActionUrl =
+      paymentIntent.next_action?.redirect_to_url?.url ||
+      paymentIntent.next_action?.verify_with_mb_way?.url ||
+      paymentIntent.next_action?.use_stripe_sdk?.stripe_js;
+
     return {
       success: true,
       provider: 'stripe',
       paymentIntentId: paymentIntent.id,
       clientSecret: paymentIntent.client_secret,
       status: paymentIntent.status,
+      nextActionUrl: nextActionUrl || null,
       expiresInSeconds: 300,
       message: 'Pedido enviado para a aplicação MB WAY do teu telemóvel.',
     };
@@ -136,7 +155,7 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
     const amountInCents = Math.round(Number(order.total_amount) * 100);
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card', 'mbway'],
+      payment_method_types: ['card', 'mb_way'],
       line_items: [
         {
           price_data: {

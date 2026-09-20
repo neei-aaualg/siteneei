@@ -967,10 +967,10 @@ export const Shop: React.FC = () => {
                   {isSandbox && (
                     <div className="mb-5 p-3.5 bg-amber-950/50 border border-amber-500/40 rounded-xl text-left">
                       <div className="flex items-center gap-2 text-amber-300 font-semibold text-xs mb-1">
-                        <Sparkles size={14} /> Modo Sandbox de Desenvolvimento
+                        <Sparkles size={14} /> Modo de Testes / Sandbox
                       </div>
                       <p className="text-xs text-amber-200/80 mb-2">
-                        Podes simular a aprovação instantânea da app MB WAY sem pagar nada:
+                        Em ambiente de testes (as notificações reais só ocorrem com chaves live), podes simular a aprovação instantânea:
                       </p>
                       <button
                         type="button"

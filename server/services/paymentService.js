@@ -3,11 +3,12 @@ import {
   createStripeCheckoutSession,
   constructStripeWebhookEvent,
   isStripeSandbox,
+  isStripeTestMode,
 } from './stripeService.js';
 
-// Verifica se está a correr em modo de produção com chaves ativas ou em modo Sandbox
+// Verifica se está a correr em modo de produção com chaves ativas ou em modo Sandbox/Testes
 export function isPaymentSandbox() {
-  return isStripeSandbox();
+  return isStripeTestMode();
 }
 
 /**
