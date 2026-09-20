@@ -72,7 +72,6 @@ export const Shop: React.FC = () => {
   const [studentName, setStudentName] = useState('');
   const [studentEmail, setStudentEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [nif, setNif] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [shippingPostalCode, setShippingPostalCode] = useState('');
   const [shippingCity, setShippingCity] = useState('');
@@ -272,7 +271,6 @@ export const Shop: React.FC = () => {
         student_name: studentName.trim(),
         student_email: studentEmail.trim(),
         phone_number: cleanPhone,
-        nif: nif.trim() || undefined,
         size: selectedSize,
         delivery_type: deliveryType,
         shipping_address: deliveryType === 'shipping' ? shippingAddress.trim() : undefined,
@@ -778,35 +776,21 @@ export const Shop: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Telemóvel (MB WAY) *
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          value={phoneNumber}
-                          onChange={(e) => setPhoneNumber(e.target.value)}
-                          placeholder="912 345 678"
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                        />
-                        <span className="text-[10px] text-slate-500 block mt-1">
-                          Enviaremos o pedido de pagamento para este número.
-                        </span>
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          NIF (Opcional)
-                        </label>
-                        <input
-                          type="text"
-                          value={nif}
-                          onChange={(e) => setNif(e.target.value)}
-                          placeholder=""
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Telemóvel (MB WAY) *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        placeholder="912 345 678"
+                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                      <span className="text-[10px] text-slate-500 block mt-1">
+                        Enviaremos o pedido de pagamento para este número.
+                      </span>
                     </div>
                   </div>
 

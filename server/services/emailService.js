@@ -59,8 +59,6 @@ export async function sendOrderConfirmationEmail(order) {
   const formattedItemPrice = Number(order.item_price).toFixed(2);
   const formattedShipping = Number(order.shipping_fee).toFixed(2);
 
-  const nifDisplay = order.nif && order.nif.trim() ? order.nif : 'Consumidor Final (999999990)';
-
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="pt" xmlns="http://www.w3.org/1999/xhtml">
@@ -140,10 +138,6 @@ export async function sendOrderConfirmationEmail(order) {
                 <tr>
                   <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Cor:</td>
                   <td style="padding: 13px 18px; text-align: right; color: #ffffff; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${order.color || 'Preto'}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">NIF registado:</td>
-                  <td style="padding: 13px 18px; text-align: right; color: #f1f5f9; font-size: 13.5px; font-weight: 600; border-bottom: 1px solid #1e293b;">${nifDisplay}</td>
                 </tr>
                 <tr>
                   <td style="padding: 13px 18px; color: #94a3b8; font-size: 13.5px; font-weight: 500; border-bottom: 1px solid #1e293b;">Subtotal Sweat:</td>

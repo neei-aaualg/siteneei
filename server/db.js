@@ -1146,16 +1146,8 @@ export function createShopOrder(orderData) {
     throw err;
   }
 
-  // NIF (se fornecido, valida formato 9 dígitos; caso contrário consumidor final 999999990)
-  let nif = (orderData.nif || '').replace(/\s+/g, '');
-  if (nif && !/^\d{9}$/.test(nif)) {
-    const err = new Error('NIF inválido (deve conter 9 dígitos numéricos).');
-    err.statusCode = 400;
-    throw err;
-  }
-  if (!nif) {
-    nif = '999999990';
-  }
+  // NIF (opcional, por omissão Consumidor Final)
+  const nif = (orderData.nif || '').replace(/\s+/g, '') || 'Consumidor Final';
 
   // Tipo de entrega
   const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';

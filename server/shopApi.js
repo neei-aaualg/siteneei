@@ -7,7 +7,6 @@ import {
   getShopOrderById,
   updateShopOrderPaymentStatus,
   updateShopOrderEmailSent,
-  updateShopOrderMoloni,
   updateShopOrderStatus,
   getAllShopOrders,
   getShopSummaryStats,
@@ -20,7 +19,6 @@ import {
   verifyIfthenpayWebhook,
   isPaymentSandbox,
 } from './services/paymentService.js';
-import { createMoloniInvoiceReceipt } from './services/moloniService.js';
 
 /**
  * Roteador de endpoints da Loja e Encomendas de Sweats
@@ -148,17 +146,6 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           } catch (mailErr) {
             console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
           }
-
-          // 2. Acionar Moloni de forma não-bloqueante
-          createMoloniInvoiceReceipt(updatedOrder)
-            .then((moloniRes) => {
-              if (moloniRes.status === 'issued') {
-                updateShopOrderMoloni(updatedOrder.id, moloniRes.documentId, 'issued');
-              } else if (moloniRes.status === 'pending') {
-                updateShopOrderMoloni(updatedOrder.id, null, 'pending');
-              }
-            })
-            .catch((err) => console.error('[MOLONI ASYNC ERROR]', err));
         }
 
         return sendJson(res, 200, { status: 'ok', message: 'Pagamento registado com sucesso' });
@@ -194,17 +181,6 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       if (emailResult && emailResult.success) {
         updateShopOrderEmailSent(updatedOrder.id);
       }
-
-      // Moloni
-      createMoloniInvoiceReceipt(updatedOrder)
-        .then((moloniRes) => {
-          if (moloniRes.status === 'issued') {
-            updateShopOrderMoloni(updatedOrder.id, moloniRes.documentId, 'issued');
-          } else {
-            updateShopOrderMoloni(updatedOrder.id, null, 'pending');
-          }
-        })
-        .catch((e) => console.error(e));
 
       return sendJson(res, 200, {
         success: true,

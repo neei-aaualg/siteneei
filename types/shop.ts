@@ -7,8 +7,6 @@ export type PaymentStatus = 'pending' | 'paid' | 'expired' | 'failed';
 export type OrderStatus =
   'pending_payment' | 'confirmed' | 'in_production' | 'ready_for_pickup' | 'shipped' | 'delivered';
 
-export type MoloniStatus = 'none' | 'pending' | 'issued' | 'error';
-
 export interface ShopCampaign {
   id: string;
   title: string;
@@ -49,7 +47,7 @@ export interface ShopOrder {
   student_name: string;
   student_email: string;
   phone_number: string;
-  nif: string;
+  nif?: string | null;
   size: SweatSize;
   color: string;
   delivery_type: DeliveryType;
@@ -65,8 +63,6 @@ export interface ShopOrder {
   order_status: OrderStatus;
   email_sent: boolean;
   email_sent_at?: string | null;
-  moloni_document_id?: string | null;
-  moloni_status: MoloniStatus;
   created_at: string;
   paid_at?: string | null;
 }
