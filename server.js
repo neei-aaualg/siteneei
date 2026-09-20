@@ -323,7 +323,7 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // API Loja, Sweats, Pré-encomendas e Webhooks MB WAY / Stripe
+  // API Loja, Sweats, Pré-encomendas e Webhooks Stripe
   if (
     pathname.startsWith('/api/shop/') ||
     pathname.startsWith('/api/admin/shop/') ||

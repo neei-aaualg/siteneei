@@ -48,7 +48,7 @@ export function getStripeClient() {
 }
 
 /**
- * Dispara um pedido direto de pagamento por MB WAY através de um PaymentIntent da Stripe
+ * Dispara um pedido direto de pagamento através de um PaymentIntent da Stripe
  */
 export async function createStripeMbWayPaymentIntent({
   orderId,
@@ -67,7 +67,7 @@ export async function createStripeMbWayPaymentIntent({
   // Modo Sandbox de testes locais
   if (isStripeSandbox()) {
     console.log('---------------------------------------------------------');
-    console.log(`[STRIPE MB WAY SANDBOX] Pedido iniciado para ${orderId}`);
+    console.log(`[STRIPE SANDBOX] Pedido iniciado para ${orderId}`);
     console.log(`Telemóvel: ${cleanMobile} | Valor: ${formattedAmount}€ (${amountInCents} cêntimos)`);
     console.log(`Mensagem app: ${description || 'NEEI - Sweat Curso'}`);
     console.log('Modo Sandbox: Notificação simulada enviada para o telemóvel.');
@@ -79,7 +79,7 @@ export async function createStripeMbWayPaymentIntent({
       paymentIntentId: `pi_sandbox_${Date.now()}_${orderId}`,
       clientSecret: `pi_sandbox_secret_${Date.now()}`,
       expiresInSeconds: 300,
-      message: 'Notificação MB WAY simulada enviada para o teu telemóvel.',
+      message: 'Notificação simulada enviada para o teu telemóvel.',
     };
   }
 
@@ -109,7 +109,7 @@ export async function createStripeMbWayPaymentIntent({
     });
 
     console.log(
-      `[STRIPE] PaymentIntent MB WAY criado: ${paymentIntent.id} (Estado: ${paymentIntent.status})`
+      `[STRIPE] PaymentIntent criado: ${paymentIntent.id} (Estado: ${paymentIntent.status})`
     );
 
     // No modo de teste da Stripe, pode haver uma URL de autorização de teste em next_action
@@ -126,14 +126,14 @@ export async function createStripeMbWayPaymentIntent({
       status: paymentIntent.status,
       nextActionUrl: nextActionUrl || null,
       expiresInSeconds: 300,
-      message: 'Pedido enviado para a aplicação MB WAY do teu telemóvel.',
+      message: 'Pedido enviado para a aplicação do teu telemóvel.',
     };
   } catch (error) {
-    console.error('[STRIPE ERROR] Falha ao criar PaymentIntent MB WAY:', error);
+    console.error('[STRIPE ERROR] Falha ao criar PaymentIntent:', error);
     return {
       success: false,
       provider: 'stripe',
-      message: error.message || 'Erro ao comunicar com a rede MB WAY através da Stripe.',
+      message: error.message || 'Erro ao comunicar com a rede através da Stripe.',
     };
   }
 }
@@ -223,9 +223,8 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
             currency: 'eur',
             product_data: {
               name: `Sweat Oficial Engenharia Informática 2026 (${order.size})`,
-              description: `Tamanho: ${order.size} | Cor: ${order.color || 'Preto'} | Entrega: ${
-                order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
-              }`,
+              description: `Tamanho: ${order.size} | Cor: ${order.color || 'Preto'} | Entrega: ${order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
+                }`,
             },
             unit_amount: amountInCents,
           },

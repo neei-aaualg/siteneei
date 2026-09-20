@@ -106,7 +106,7 @@ export async function sendOrderConfirmationEmail(order) {
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 22px;">
                 <tr>
                   <td bgcolor="#022c22" style="background-color: #022c22; border: 1px solid #059669; border-radius: 9999px; padding: 7px 18px; color: #34d399; font-size: 13px; font-weight: 700; letter-spacing: 0.2px;">
-                    ✓ Pagamento Confirmado via MB WAY
+                    ✓ Pagamento Confirmado
                   </td>
                 </tr>
               </table>

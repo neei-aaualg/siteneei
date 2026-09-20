@@ -13,7 +13,7 @@ export function isPaymentSandbox() {
 }
 
 /**
- * Inicia um pedido de pagamento por MB WAY através da Stripe
+ * Inicia um pedido de pagamento através da Stripe
  */
 export async function initiateMbWayPayment({
   orderId,

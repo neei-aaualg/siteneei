@@ -1136,11 +1136,11 @@ export function createShopOrder(orderData) {
     throw err;
   }
 
-  // Validação do número de telemóvel para MB WAY (formato português: 9 dígitos a começar por 9)
+  // Validação do número de telemóvel (formato português: 9 dígitos a começar por 9)
   const rawPhone = (orderData.phone_number || '').replace(/\s+/g, '').replace(/^\+351/, '');
   if (!/^9\d{8}$/.test(rawPhone)) {
     const err = new Error(
-      'Número de telemóvel inválido para MB WAY (deve ter 9 dígitos e começar por 9).'
+      'Número de telemóvel inválido (deve ter 9 dígitos e começar por 9).'
     );
     err.statusCode = 400;
     throw err;

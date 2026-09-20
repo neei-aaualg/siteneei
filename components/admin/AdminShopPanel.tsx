@@ -185,7 +185,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             {stats ? `${stats.totalRevenue.toFixed(2)}€` : '0.00€'}
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            Valor bruto recebido via MB WAY
+            Valor bruto recebido
           </span>
         </div>
 
@@ -292,7 +292,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
               Lista Detalhada de Encomendas ({filteredOrders.length})
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Pesquisa, acompanhamento de pagamento MB WAY e envio de encomendas.
+              Pesquisa, acompanhamento de pagamento e envio de encomendas.
             </p>
           </div>
 
@@ -330,7 +330,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             >
               <option value="all">Pagamento: Todos</option>
               <option value="paid">Pago (Confirmado)</option>
-              <option value="pending">Pendente MB WAY</option>
+              <option value="pending">Pendente</option>
               <option value="failed">Falhado / Expirado</option>
             </select>
           </div>
@@ -400,7 +400,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                   <th className="py-3 px-3">Tamanho</th>
                   <th className="py-3 px-3">Entrega</th>
                   <th className="py-3 px-3">Valor</th>
-                  <th className="py-3 px-3">MB WAY</th>
+                  <th className="py-3 px-3">Estado</th>
                   <th className="py-3 px-3">Estado Operacional</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
@@ -470,7 +470,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                       {o.total_amount.toFixed(2)}€
                     </td>
 
-                    {/* Estado MB WAY */}
+                    {/* Estado */}
                     <td className="py-3 px-3">
                       {o.payment_status === 'paid' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">

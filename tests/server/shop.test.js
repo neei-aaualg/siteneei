@@ -130,7 +130,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
         phone_number: '12345', // Não é número PT válido
         size: 'M',
       });
-    }).toThrow(/Número de telemóvel inválido para MB WAY/);
+    }).toThrow(/Número de telemóvel inválido/);
   });
 
   it('atualiza o estado de pagamento para pago e reflete nas estatísticas de produção', () => {
@@ -206,7 +206,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     delete process.env.SWEATS_AVAILABLE;
   });
 
-  it('inicia pedido de pagamento MB WAY Stripe em modo sandbox e processa webhook de sucesso', async () => {
+  it('inicia pedido de pagamento Stripe em modo sandbox e processa webhook de sucesso', async () => {
     const paymentService = await import('../../server/services/paymentService.js');
     expect(paymentService.isPaymentSandbox()).toBe(true);
 

@@ -78,12 +78,12 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 3. POST /api/shop/checkout - Criar encomenda e disparar MB WAY (legacy / sandbox)
+    // 3. POST /api/shop/checkout - Criar encomenda e disparar Stripe
     if (pathname === '/api/shop/checkout' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const order = createShopOrder(body);
 
-      // Inicia pagamento por MB WAY via Stripe
+      // Inicia pagamento via Stripe
       const paymentResult = await initiateMbWayPayment({
         orderId: order.id,
         amount: order.total_amount,
@@ -95,7 +95,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
       if (!paymentResult.success) {
         return sendJson(res, 400, {
-          error: paymentResult.message || 'Falha ao solicitar pagamento MB WAY.',
+          error: paymentResult.message || 'Falha ao solicitar pagamento.',
         });
       }
 
@@ -180,7 +180,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
       console.log(`[STRIPE WEBHOOK] Evento recebido: ${event.type}`);
 
-      // Pagamento bem sucedido via PaymentIntent (MB WAY ou direto)
+      // Pagamento bem sucedido via PaymentIntent
       if (event.type === 'payment_intent.succeeded') {
         const paymentIntent = event.data?.object || {};
         const orderId = paymentIntent.metadata?.order_id;

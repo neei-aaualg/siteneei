@@ -1034,7 +1034,7 @@ export const Shop: React.FC = () => {
           </div>
         )}
 
-        {/* Ecrã de Pagamento MB WAY Ativo (Modal / Overlay em foco) */}
+        {/* Ecrã de Pagamento Ativo (Modal / Overlay em foco) */}
         {paymentStatus !== 'idle' && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
             <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl shadow-cyan-950/50 text-center relative animate-in fade-in zoom-in-95 duration-200">
@@ -1190,7 +1190,7 @@ export const Shop: React.FC = () => {
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Tempo Limite Expirado</h3>
                   <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    O pedido de pagamento MB WAY de 5 minutos expirou sem aprovação. Não te
+                    O pedido de pagamento de 5 minutos expirou sem aprovação. Não te
                     preocupes, podes tentar de novo!
                   </p>
                   <button
