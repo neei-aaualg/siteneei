@@ -186,11 +186,12 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(emailRes.messageId).toBeTruthy();
   });
 
-  it('respeita SWEATS_AVAILABLE=false tornando as sweats indisponíveis e bloqueando encomendas', () => {
-    process.env.SWEATS_AVAILABLE = 'false';
+  it('respeita SWEATS_AVAILABLE=f ou false tornando as sweats indisponíveis, ocultando foto e bloqueando encomendas', () => {
+    process.env.SWEATS_AVAILABLE = 'f';
 
     const campaign = db.getActiveShopCampaign();
     expect(campaign.is_available).toBe(false);
+    expect(campaign.image_url).toBeNull();
 
     expect(() => {
       db.createShopOrder({
@@ -200,7 +201,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
         size: 'M',
         delivery_type: 'pickup',
       });
-    }).toThrow(/não se encontra disponível para compra/);
+    }).toThrow(/disponíveis brevemente.*instagram/i);
 
     delete process.env.SWEATS_AVAILABLE;
   });

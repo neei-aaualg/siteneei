@@ -23,6 +23,8 @@ import {
   Layers,
   Tag,
   Filter,
+  Instagram,
+  ExternalLink,
 } from 'lucide-react';
 import { ShopCampaign, SweatSize, DeliveryType, MerchProduct } from '../types/shop';
 import {
@@ -135,10 +137,10 @@ export const Shop: React.FC = () => {
         name: campaign.item_name || 'Sweat Oficial Engenharia Informática 2026',
         category: 'clothing',
         price: campaign.item_price,
-        imageUrl: campaign.image_url || '/assets/sweat_mockup.jpg',
-        badge: sweatsAvailable ? 'Pré-encomenda' : 'Indisponível',
+        imageUrl: sweatsAvailable ? campaign.image_url || '/assets/sweat_mockup.jpg' : '',
+        badge: sweatsAvailable ? 'Já Disponível' : 'Brevemente',
         description:
-          'A sweat oficial do curso de Engenharia Informática da UAlg. Produzida em algodão premium de 320g/m² cardado, com corte unissexo moderno, bolso frontal canguru e bordado exclusivo.',
+          'A sweat oficial dos cursos de Engenharia Informática da UAlg.',
         features: [
           '80% Algodão cardado / 20% Poliéster (320g/m²)',
           'Bordado de alta definição NEEI · Engenharia Informática',
@@ -377,33 +379,30 @@ export const Shop: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveCategory('all')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeCategory === 'all'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory === 'all'
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+                }`}
             >
               Todos os Artigos ({products.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveCategory('clothing')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeCategory === 'clothing'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory === 'clothing'
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+                }`}
             >
               Vestuário ({products.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveCategory('accessories')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                activeCategory === 'accessories'
-                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-              }`}
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory === 'accessories'
+                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+                }`}
             >
               Acessórios (Brevemente)
             </button>
@@ -412,22 +411,29 @@ export const Shop: React.FC = () => {
 
         {/* Alerta Informativo quando as Sweats estão Indisponíveis (SWEATS_AVAILABLE=false) */}
         {!sweatsAvailable && (
-          <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 text-amber-800 dark:text-amber-200 flex items-start sm:items-center gap-3.5 shadow-sm">
-            <AlertCircle size={22} className="text-amber-500 flex-shrink-0 mt-0.5 sm:mt-0" />
-            <div className="text-xs sm:text-sm leading-relaxed">
-              <strong className="font-bold">Aviso de Disponibilidade:</strong> A pré-encomenda das
-              sweats encontra-se temporariamente indisponível para compra de momento. Acompanha o
-              Instagram{' '}
-              <a
-                href="https://instagram.com/neeiualg"
-                target="_blank"
-                rel="noreferrer"
-                className="underline font-bold text-amber-900 dark:text-amber-100"
-              >
-                @neeiualg
-              </a>{' '}
-              para seres avisado da reabertura de encomendas!
+          <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-cyan-500/30 text-slate-800 dark:text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start sm:items-center gap-3.5">
+              <div className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-500 flex-shrink-0">
+                <Clock size={22} />
+              </div>
+              <div className="text-xs sm:text-sm leading-relaxed">
+                <strong className="font-bold text-slate-900 dark:text-white block sm:inline mr-1">
+                  Disponível Brevemente:
+                </strong>
+                As sweats oficiais ficarão disponíveis brevemente! Para mais informações e data de
+                abertura de encomendas, acompanha o nosso Instagram oficial.
+              </div>
             </div>
+            <a
+              href="https://instagram.com/neeiualg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-95 text-white text-xs font-bold shadow-md self-start sm:self-auto flex-shrink-0 transition-all cursor-pointer"
+            >
+              <Instagram size={15} />
+              <span>@neeiualg</span>
+              <ExternalLink size={13} className="opacity-80" />
+            </a>
           </div>
         )}
 
@@ -438,112 +444,132 @@ export const Shop: React.FC = () => {
               key={prod.id}
               className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-950/80 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all flex flex-col group"
             >
-              {/* Imagem do Produto com Badge de Estado */}
-              <div className="relative aspect-square overflow-hidden bg-slate-900">
-                <img
-                  src={prod.imageUrl}
-                  alt={prod.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-4 left-4 flex flex-col gap-1.5">
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full shadow-md backdrop-blur-md border ${
-                      prod.available
-                        ? 'bg-emerald-500/90 text-white border-emerald-400'
-                        : 'bg-amber-500/90 text-slate-950 border-amber-400'
-                    }`}
-                  >
-                    {prod.badge}
-                  </span>
-                  {prod.available && daysLeft !== null && daysLeft > 0 && (
-                    <span className="text-[11px] font-semibold bg-slate-950/80 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
-                      {daysLeft} dias restantes
+              {prod.available ? (
+                /* Com foto quando disponível */
+                <div className="relative aspect-square overflow-hidden bg-slate-900">
+                  <img
+                    src={prod.imageUrl}
+                    alt={prod.name}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 left-4 flex flex-col gap-1.5">
+                    <span className="text-xs font-bold px-3 py-1 rounded-full shadow-md backdrop-blur-md border bg-emerald-500/90 text-white border-emerald-400">
+                      {prod.badge}
                     </span>
-                  )}
+                    {daysLeft !== null && daysLeft > 0 && (
+                      <span className="text-[11px] font-semibold bg-slate-950/80 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-500/30">
+                        {daysLeft} dias restantes
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl">
+                    {prod.price.toFixed(2)}€
+                  </div>
                 </div>
-                <div className="absolute bottom-4 right-4 bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl">
-                  {prod.price.toFixed(2)}€
+              ) : (
+                /* Sem foto quando indisponível */
+                <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-900 via-[#0a1526] to-[#04243a] flex flex-col items-center justify-center p-8 text-center border-b border-slate-200 dark:border-slate-800/80">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mb-3 shadow-inner">
+                    <Sparkles size={32} className="text-cyan-400" />
+                  </div>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 border border-cyan-500/40 px-3.5 py-1 rounded-full mb-2">
+                    Disponível Brevemente
+                  </span>
+                  <p className="text-xs text-slate-400 max-w-[220px] leading-relaxed">
+                    O modelo oficial e fotografias serão revelados com a abertura das encomendas.
+                  </p>
                 </div>
-              </div>
+              )}
 
               {/* Informações e Detalhes */}
               <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-                <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                    <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
-                      Vestuário Oficial
-                    </span>
-                    <span>Tamanhos XS ao 3XL</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                    {prod.name}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed line-clamp-3">
-                    {prod.description}
-                  </p>
+                {prod.available ? (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
+                          Vestuário
+                        </span>
+                        <span>Tamanhos XS ao 3XL</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                        {prod.name}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed line-clamp-3">
+                        {prod.description}
+                      </p>
 
-                  <ul className="mt-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                    {prod.features.slice(0, 3).map((f, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <CheckCircle2 size={14} className="text-cyan-500 flex-shrink-0" />
-                        <span>{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                      <ul className="mt-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                        {prod.features.slice(0, 3).map((f, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-cyan-500 flex-shrink-0" />
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
 
-                {/* Botões de Ação */}
-                <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
-                  {prod.available ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsCheckoutOpen(true)}
-                      className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
-                    >
-                      <ShoppingBag size={18} />
-                      <span>Pré-encomendar</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
-                    >
-                      <Lock size={16} />
-                      <span>Indisponível de momento</span>
-                    </button>
-                  )}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsCheckoutOpen(true)}
+                        className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
+                      >
+                        <ShoppingBag size={18} />
+                        <span>Pré-encomendar</span>
+                      </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsSizeGuideOpen(true)}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-                    title="Ver Guia de Tamanhos"
-                  >
-                    <Ruler size={18} />
-                  </button>
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsSizeGuideOpen(true)}
+                        className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                        title="Ver Guia de Tamanhos"
+                      >
+                        <Ruler size={18} />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
+                          Vestuário Oficial
+                        </span>
+                        <span className="font-semibold text-cyan-600 dark:text-cyan-400">
+                          Em Breve
+                        </span>
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                        {prod.name}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
+                        As sweats oficiais do curso de Engenharia Informática{' '}
+                        <strong>ficarão disponíveis brevemente</strong>!
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                        Acompanha o nosso Instagram oficial para mais informações, datas de abertura
+                        e detalhes do lançamento oficial.
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                      <a
+                        href="https://instagram.com/neeiualg"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:opacity-95 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-600/25 transition-all cursor-pointer"
+                      >
+                        <Instagram size={18} />
+                        <span>Acompanhar no Instagram (@neeiualg)</span>
+                        <ExternalLink size={14} className="opacity-80" />
+                      </a>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ))}
-
-          {/* Card Teaser: Novos Artigos a Caminho */}
-          <div className="rounded-3xl border-2 border-dashed border-slate-300 dark:border-slate-800 p-8 flex flex-col items-center justify-center text-center bg-slate-100/50 dark:bg-slate-900/20">
-            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-4">
-              <Package size={28} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-              Mais Artigos em Breve
-            </h3>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xs leading-relaxed">
-              T-shirts de eventos, autocolantes holográficos para portátil e lanyards exclusivos em
-              preparação para as próximas edições de convívios e workshops do NEEI.
-            </p>
-            <div className="mt-5 inline-flex items-center gap-1 text-xs font-bold text-cyan-600 dark:text-cyan-400">
-              <span>Novidades em breve</span>
-              <ChevronRight size={14} />
-            </div>
-          </div>
         </div>
 
         {/* Modal / Ecrã de Checkout (Pré-encomenda da Sweat) */}
@@ -606,11 +632,10 @@ export const Shop: React.FC = () => {
                             key={sz}
                             type="button"
                             onClick={() => setSelectedSize(sz)}
-                            className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
-                            }`}
+                            className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
+                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
+                              : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                              }`}
                           >
                             {sz}
                           </button>
@@ -630,11 +655,10 @@ export const Shop: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setDeliveryType('pickup')}
-                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                          deliveryType === 'pickup'
-                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                        }`}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
+                          ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
@@ -654,11 +678,10 @@ export const Shop: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setDeliveryType('shipping')}
-                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                          deliveryType === 'shipping'
-                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                        }`}
+                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
+                          ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                          }`}
                       >
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">

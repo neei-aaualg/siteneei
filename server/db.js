@@ -988,6 +988,17 @@ export function deleteJobOffer(id) {
    ========================================================================= */
 
 /**
+ * Avalia se as sweats estão disponíveis com base na variável SWEATS_AVAILABLE
+ * Aceita 'false', '0', 'f', 'no', 'off' como valor falso.
+ */
+export function isSweatsAvailableEnv() {
+  const val = process.env.SWEATS_AVAILABLE ?? process.env.VITE_SWEATS_AVAILABLE;
+  if (val === undefined || val === null || val === '') return true;
+  const s = String(val).trim().toLowerCase();
+  return !['false', '0', 'f', 'no', 'off', 'disabled'].includes(s);
+}
+
+/**
  * Obtém a campanha de loja ativa
  */
 export function getActiveShopCampaign() {
@@ -1006,8 +1017,7 @@ export function getActiveShopCampaign() {
     // fallback
   }
 
-  const isSweatsAvailable =
-    process.env.SWEATS_AVAILABLE !== 'false' && process.env.SWEATS_AVAILABLE !== '0';
+  const isSweatsAvailable = isSweatsAvailableEnv();
 
   return {
     id: row.id,
@@ -1016,7 +1026,7 @@ export function getActiveShopCampaign() {
     item_name: row.item_name,
     item_price: Number(row.item_price),
     shipping_fee: Number(row.shipping_fee),
-    image_url: row.image_url,
+    image_url: isSweatsAvailable ? row.image_url : null,
     deadline_date: row.deadline_date,
     is_active: Boolean(row.is_active),
     is_available: Boolean(row.is_active) && isSweatsAvailable,
@@ -1085,11 +1095,10 @@ export function updateShopCampaign(id, data) {
  * Cria uma nova encomenda em estado pending_payment
  */
 export function createShopOrder(orderData) {
-  const isSweatsAvailable =
-    process.env.SWEATS_AVAILABLE !== 'false' && process.env.SWEATS_AVAILABLE !== '0';
+  const isSweatsAvailable = isSweatsAvailableEnv();
   if (!isSweatsAvailable) {
     const err = new Error(
-      'A pré-encomenda das sweats não se encontra disponível para compra de momento.'
+      'As sweats não se encontram disponíveis de momento. Ficarão disponíveis brevemente! Acompanha o Instagram @neeiualg para mais informações.'
     );
     err.statusCode = 400;
     throw err;
