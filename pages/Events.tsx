@@ -4,7 +4,6 @@ import {
   Clock,
   MapPin,
   User,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -407,8 +406,8 @@ export const Events: React.FC = () => {
                     <button
                       onClick={() => setSelectedCategory('all')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === 'all'
-                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                        ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                         }`}
                     >
                       Todas ({upcomingActivities.length})
@@ -418,8 +417,8 @@ export const Events: React.FC = () => {
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat
-                            ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
-                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                           }`}
                       >
                         {cat}
@@ -540,170 +539,170 @@ export const Events: React.FC = () => {
               className="bg-white dark:bg-[#0c1724] rounded-3xl border border-gray-200 dark:border-cyan-900/60 shadow-2xl w-full max-w-lg my-auto max-h-[90vh] overflow-y-auto transition-all transform animate-scaleUp"
               onClick={(e) => e.stopPropagation()}
             >
-            {/* Modal Header */}
-            <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between gap-4">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 mb-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Inscrição Oficial
-                </span>
-                <h3 className="text-xl font-bold text-text-100 dark:text-white leading-snug">
-                  {selectedActivity.title}
-                </h3>
-              </div>
-              <button
-                onClick={closeRegisterModal}
-                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
-                aria-label="Fechar modal"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6">
-              {registrationSuccess ? (
-                <div className="text-center py-6 space-y-4">
-                  <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 size={36} />
-                  </div>
-                  <h4 className="text-xl font-bold text-text-100 dark:text-white">
-                    Inscrição Confirmada!
-                  </h4>
-                  <p className="text-sm text-text-200 dark:text-slate-300 max-w-sm mx-auto">
-                    O teu lugar para esta atividade está reservado. Vemo-nos no dia{' '}
-                    {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
-                  </p>
-                  <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
-                    <CalendarDropdown
-                      activity={selectedActivity}
-                      label="Adicionar ao Calendário"
-                      variant="button"
-                      align="left"
-                      direction="up"
-                    />
-                    <button
-                      onClick={closeRegisterModal}
-                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition cursor-pointer"
-                    >
-                      Concluído
-                    </button>
-                  </div>
+              {/* Modal Header */}
+              <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between gap-4">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 mb-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Inscrição Oficial
+                  </span>
+                  <h3 className="text-xl font-bold text-text-100 dark:text-white leading-snug">
+                    {selectedActivity.title}
+                  </h3>
                 </div>
-              ) : (
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                  <div className="bg-primary-100/40 dark:bg-slate-900/60 p-4 rounded-xl text-xs text-text-200 dark:text-slate-300 space-y-1.5 border border-primary-200/40 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>
-                        {formatDisplayDate(selectedActivity.date).full} ({selectedActivity.time})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>{selectedActivity.location}</span>
-                    </div>
-                  </div>
+                <button
+                  onClick={closeRegisterModal}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition"
+                  aria-label="Fechar modal"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-                  <div>
-                    <label
-                      htmlFor="student-name-input"
-                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
-                    >
-                      Nome Completo
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="student-name-input"
-                        type="text"
-                        autoComplete="name"
-                        placeholder="ex.: Afonso Bitoque"
-                        value={studentName}
-                        onChange={(e) => {
-                          setStudentName(e.target.value);
-                          if (formError) setFormError(null);
-                        }}
-                        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                        required
+              {/* Modal Content */}
+              <div className="p-6">
+                {registrationSuccess ? (
+                  <div className="text-center py-6 space-y-4">
+                    <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400">
+                      <CheckCircle2 size={36} />
+                    </div>
+                    <h4 className="text-xl font-bold text-text-100 dark:text-white">
+                      Inscrição Confirmada!
+                    </h4>
+                    <p className="text-sm text-text-200 dark:text-slate-300 max-w-sm mx-auto">
+                      O teu lugar para esta atividade está reservado. Vemo-nos no dia{' '}
+                      {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
+                    </p>
+                    <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                      <CalendarDropdown
+                        activity={selectedActivity}
+                        label="Adicionar ao Calendário"
+                        variant="button"
+                        align="left"
+                        direction="up"
                       />
+                      <button
+                        onClick={closeRegisterModal}
+                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition cursor-pointer"
+                      >
+                        Concluído
+                      </button>
                     </div>
                   </div>
+                ) : (
+                  <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                    <div className="bg-primary-100/40 dark:bg-slate-900/60 p-4 rounded-xl text-xs text-text-200 dark:text-slate-300 space-y-1.5 border border-primary-200/40 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <CalendarIcon size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          {formatDisplayDate(selectedActivity.date).full} ({selectedActivity.time})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin size={14} className="text-emerald-600 dark:text-emerald-400" />
+                        <span>{selectedActivity.location}</span>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label
-                      htmlFor="student-number-input"
-                      className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
-                    >
-                      Número de Aluno
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="student-number-input"
-                        type="text"
-                        placeholder="ex.: a74123 ou 74123"
-                        value={studentNumber}
-                        onChange={(e) => {
-                          setStudentNumber(e.target.value);
-                          if (formError) setFormError(null);
-                        }}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${studentNumber && !isStudentNumberValid(studentNumber)
+                    <div>
+                      <label
+                        htmlFor="student-name-input"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
+                        Nome Completo
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="student-name-input"
+                          type="text"
+                          autoComplete="name"
+                          placeholder="ex.: Afonso Bitoque"
+                          value={studentName}
+                          onChange={(e) => {
+                            setStudentName(e.target.value);
+                            if (formError) setFormError(null);
+                          }}
+                          className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="student-number-input"
+                        className="block text-xs font-semibold text-text-100 dark:text-slate-200 mb-1.5"
+                      >
+                        Número de Aluno
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="student-number-input"
+                          type="text"
+                          placeholder="ex.: a74123 ou 74123"
+                          value={studentNumber}
+                          onChange={(e) => {
+                            setStudentNumber(e.target.value);
+                            if (formError) setFormError(null);
+                          }}
+                          className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${studentNumber && !isStudentNumberValid(studentNumber)
                             ? 'border-amber-400 focus:ring-amber-400/20'
                             : studentNumber && isStudentNumberValid(studentNumber)
                               ? 'border-emerald-500 focus:ring-emerald-500/20'
                               : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
-                          }`}
-                        required
-                      />
-                      {studentNumber && isStudentNumberValid(studentNumber) && (
-                        <CheckCircle2
-                          size={18}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
+                            }`}
+                          required
                         />
-                      )}
+                        {studentNumber && isStudentNumberValid(studentNumber) && (
+                          <CheckCircle2
+                            size={18}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
+                          />
+                        )}
+                      </div>
+                      <p className="text-[11px] text-text-200 dark:text-slate-400 mt-1">
+                        Insere apenas o teu número de aluno (não precisas de colocar @ualg.pt).
+                      </p>
                     </div>
-                    <p className="text-[11px] text-text-200 dark:text-slate-400 mt-1">
-                      Insere apenas o teu número de aluno (não precisas de colocar @ualg.pt).
-                    </p>
-                  </div>
 
-                  {formError && (
-                    <div className="flex items-start gap-2.5 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-700 dark:text-red-300">
-                      <AlertCircle size={16} className="shrink-0 text-red-500 mt-0.5" />
-                      <span>{formError}</span>
+                    {formError && (
+                      <div className="flex items-start gap-2.5 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-700 dark:text-red-300">
+                        <AlertCircle size={16} className="shrink-0 text-red-500 mt-0.5" />
+                        <span>{formError}</span>
+                      </div>
+                    )}
+
+                    <div className="pt-2 flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={closeRegisterModal}
+                        className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting || !studentName || !studentNumber}
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 disabled:opacity-50 disabled:pointer-events-none transition-all"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>A validar...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Confirmar Inscrição</span>
+                            <Send size={15} />
+                          </>
+                        )}
+                      </button>
                     </div>
-                  )}
-
-                  <div className="pt-2 flex items-center justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={closeRegisterModal}
-                      className="px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting || !studentName || !studentNumber}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 disabled:opacity-50 disabled:pointer-events-none transition-all"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          <span>A validar...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Confirmar Inscrição</span>
-                          <Send size={15} />
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              )}
+                  </form>
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </Portal>
       )}
     </div>

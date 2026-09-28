@@ -69,8 +69,30 @@ export interface ShopOrder {
   order_status: OrderStatus;
   email_sent: boolean;
   email_sent_at?: string | null;
+  is_admin_created?: boolean;
+  admin_notes?: string | null;
   created_at: string;
   paid_at?: string | null;
+}
+
+export interface AdminCreateOrderPayload {
+  student_name: string;
+  student_email: string;
+  phone_number: string;
+  nif?: string;
+  size: SweatSize;
+  color?: string;
+  delivery_type: DeliveryType;
+  shipping_address?: string;
+  shipping_postal_code?: string;
+  shipping_city?: string;
+  item_price?: number;
+  shipping_fee?: number;
+  total_amount?: number;
+  payment_status: 'paid' | 'pending';
+  order_status?: OrderStatus;
+  send_email?: boolean;
+  admin_notes?: string;
 }
 
 export interface CheckoutPayload {
@@ -101,10 +123,14 @@ export interface OrderStatusResponse {
   paidAt?: string | null;
   createdAt?: string | null;
   studentName: string;
+  studentEmail?: string;
+  phoneNumber?: string;
   size: SweatSize;
   color?: string;
   totalAmount: number;
   deliveryType: DeliveryType;
+  shippingAddress?: string | null;
+  shippingPostalCode?: string | null;
   shippingCity?: string | null;
   pickupLocation?: string;
 }

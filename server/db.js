@@ -174,6 +174,8 @@ db.exec(`
     moloni_status TEXT NOT NULL DEFAULT 'none' CHECK(moloni_status IN ('none', 'pending', 'issued', 'error')),
     created_at TEXT NOT NULL,
     paid_at TEXT,
+    is_admin_created INTEGER NOT NULL DEFAULT 0,
+    admin_notes TEXT,
     FOREIGN KEY (campaign_id) REFERENCES shop_campaigns(id)
   );
 
@@ -231,9 +233,21 @@ try {
   // Ignora se não existir
 }
 
-// Limpeza de encomendas não confirmadas: apenas encomendas pagas devem permanecer na tabela shop_orders
+// Migração: adiciona colunas is_admin_created e admin_notes se não existirem
 try {
-  db.exec("DELETE FROM shop_orders WHERE payment_status != 'paid';");
+  db.exec('ALTER TABLE shop_orders ADD COLUMN is_admin_created INTEGER NOT NULL DEFAULT 0;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_orders ADD COLUMN admin_notes TEXT;');
+} catch (_) {
+  // Já existe
+}
+
+// Limpeza de encomendas não confirmadas: encomendas pendentes web são limpas, mas encomendas criadas por admin são preservadas
+try {
+  db.exec("DELETE FROM shop_orders WHERE payment_status != 'paid' AND is_admin_created != 1;");
 } catch (e) {
   // Ignora se tabela ainda não existir
 }
@@ -1436,6 +1450,8 @@ export function getShopOrderById(orderId) {
     email_sent_at: row.email_sent_at,
     moloni_document_id: row.moloni_document_id,
     moloni_status: row.moloni_status,
+    is_admin_created: Boolean(row.is_admin_created),
+    admin_notes: row.admin_notes || null,
     created_at: row.created_at,
     paid_at: row.paid_at,
   };
@@ -1601,6 +1617,11 @@ export function getAllShopOrders(filters = {}) {
     params.push(filters.delivery_type);
   }
 
+  if (filters.is_admin_created !== undefined && filters.is_admin_created !== 'all') {
+    conditions.push('is_admin_created = ?');
+    params.push(filters.is_admin_created === '1' || filters.is_admin_created === true ? 1 : 0);
+  }
+
   if (filters.search) {
     conditions.push(
       '(student_name LIKE ? OR student_email LIKE ? OR phone_number LIKE ? OR id LIKE ? OR nif LIKE ?)'
@@ -1622,8 +1643,12 @@ export function getAllShopOrders(filters = {}) {
     shipping_fee: Number(row.shipping_fee),
     total_amount: Number(row.total_amount),
     email_sent: Boolean(row.email_sent),
+    is_admin_created: Boolean(row.is_admin_created),
+    admin_notes: row.admin_notes || null,
   }));
 }
+
+export const getShopOrders = getAllShopOrders;
 
 /**
  * Obtém resumo estatístico da loja para o dashboard /admin
@@ -1695,5 +1720,96 @@ export function getFactoryExportData() {
     nif: o.nif,
     total_pago: `${Number(o.total_amount).toFixed(2)}€`,
     data_pagamento: o.paid_at || o.created_at,
+    origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
+    notas: o.admin_notes || '',
   }));
 }
+
+/**
+ * Cria uma encomenda manualmente a partir do painel de administração (marcada com is_admin_created = 1)
+ */
+export function createAdminManualOrder(orderData) {
+  const campaign = getActiveShopCampaign();
+  const now = new Date();
+  const year = now.getFullYear();
+  const randomSuffix = crypto.randomInt(1000, 9999);
+  const orderId = orderData.id || `SW-${year}-ADM${randomSuffix}`;
+  const createdAt = now.toISOString();
+
+  const studentName = (orderData.student_name || '').trim();
+  if (!studentName || studentName.length < 2) {
+    throw new Error('Nome do aluno é obrigatório.');
+  }
+
+  const studentEmail = (orderData.student_email || '').toLowerCase().trim();
+  if (!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)) {
+    throw new Error('Email de contacto válido é obrigatório.');
+  }
+
+  const cleanPhone = (orderData.phone_number || '').replace(/\D/g, '');
+  if (cleanPhone.length < 9) {
+    throw new Error('Número de telemóvel inválido (deve ter pelo menos 9 dígitos).');
+  }
+
+  const size = (orderData.size || 'M').toUpperCase().trim();
+  const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+  const itemPrice =
+    orderData.item_price !== undefined ? Number(orderData.item_price) : campaign?.item_price || 25.0;
+  const shippingFee =
+    deliveryType === 'shipping'
+      ? orderData.shipping_fee !== undefined
+        ? Number(orderData.shipping_fee)
+        : campaign?.shipping_fee || 3.5
+      : 0;
+  const totalAmount =
+    orderData.total_amount !== undefined
+      ? Number(orderData.total_amount)
+      : Number((itemPrice + shippingFee).toFixed(2));
+  const paymentStatus = orderData.payment_status === 'paid' ? 'paid' : 'pending';
+  const orderStatus =
+    orderData.order_status || (paymentStatus === 'paid' ? 'confirmed' : 'pending_payment');
+  const paidAt = paymentStatus === 'paid' ? orderData.paid_at || createdAt : null;
+  const adminNotes = (orderData.admin_notes || '').trim() || null;
+
+  const stmt = db.prepare(`
+    INSERT INTO shop_orders (
+      id, campaign_id, student_name, student_email, phone_number, nif,
+      size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
+      item_price, shipping_fee, total_amount, payment_status, payment_provider,
+      payment_ref, order_status, email_sent, moloni_status, created_at, paid_at,
+      is_admin_created, admin_notes
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, 'manual_admin',
+      'admin-manual', ?, 0, 'none', ?, ?,
+      1, ?
+    )
+  `);
+
+  stmt.run(
+    orderId,
+    campaign?.id || 'camp-sweat-ei-2026',
+    studentName,
+    studentEmail,
+    cleanPhone,
+    orderData.nif || 'Consumidor Final',
+    size,
+    orderData.color || 'Preto',
+    deliveryType,
+    deliveryType === 'shipping' ? orderData.shipping_address || null : null,
+    deliveryType === 'shipping' ? orderData.shipping_postal_code || null : null,
+    deliveryType === 'shipping' ? orderData.shipping_city || null : null,
+    itemPrice,
+    shippingFee,
+    totalAmount,
+    paymentStatus,
+    orderStatus,
+    createdAt,
+    paidAt,
+    adminNotes
+  );
+
+  return getShopOrderById(orderId);
+}
+

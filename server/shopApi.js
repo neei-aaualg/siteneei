@@ -18,6 +18,7 @@ import {
   isSweatsAvailableEnv,
   isShowTestShopEnv,
   pendingOrdersCache,
+  createAdminManualOrder,
 } from './db.js';
 import { sendOrderConfirmationEmail } from './services/emailService.js';
 import {
@@ -142,6 +143,23 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         studentEmail: order.student_email,
         studentName: order.student_name,
         description: `NEEI - Sweat ${order.size}`,
+        metadata: {
+          order_id: order.id,
+          student_name: order.student_name,
+          student_email: order.student_email,
+          phone_number: order.phone_number,
+          nif: order.nif || '',
+          size: order.size,
+          color: order.color || 'Preto',
+          delivery_type: order.delivery_type,
+          shipping_address: order.shipping_address || '',
+          shipping_postal_code: order.shipping_postal_code || '',
+          shipping_city: order.shipping_city || '',
+          item_price: String(order.item_price),
+          shipping_fee: String(order.shipping_fee),
+          total_amount: String(order.total_amount),
+          is_admin_preview: isAdminPreview ? '1' : '0',
+        },
       });
 
       if (!paymentResult.success) {
@@ -232,6 +250,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         color: order.color || 'Preto',
         totalAmount: order.total_amount,
         deliveryType: order.delivery_type,
+        shippingAddress: order.shipping_address || null,
+        shippingPostalCode: order.shipping_postal_code || null,
         shippingCity: order.shipping_city || null,
         pickupLocation,
       });
@@ -366,15 +386,18 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           if (!order) {
             const pendingOrder = getPendingShopOrder(orderId) || {
               id: orderId,
-              student_name: session.customer_details?.name,
-              student_email: session.customer_details?.email || session.customer_email,
-              phone_number: session.customer_details?.phone || '',
+              student_name: session.metadata?.student_name || session.customer_details?.name,
+              student_email: session.metadata?.student_email || session.customer_details?.email || session.customer_email,
+              phone_number: session.metadata?.phone_number || session.customer_details?.phone || '',
               size: session.metadata?.size || 'M',
-              color: 'Preto',
-              delivery_type: 'pickup',
-              item_price: Number(session.amount_total ? session.amount_total / 100 : 25),
-              shipping_fee: 0,
-              total_amount: Number(session.amount_total ? session.amount_total / 100 : 25),
+              color: session.metadata?.color || 'Preto',
+              delivery_type: session.metadata?.delivery_type || 'pickup',
+              shipping_address: session.metadata?.shipping_address || null,
+              shipping_postal_code: session.metadata?.shipping_postal_code || null,
+              shipping_city: session.metadata?.shipping_city || null,
+              item_price: Number(session.metadata?.item_price || (session.amount_total ? session.amount_total / 100 : 25)),
+              shipping_fee: Number(session.metadata?.shipping_fee || 0),
+              total_amount: Number(session.metadata?.total_amount || (session.amount_total ? session.amount_total / 100 : 25)),
             };
             order = recordPaidShopOrder(pendingOrder, session.payment_intent || session.id, new Date().toISOString());
           } else if (order.payment_status !== 'paid') {
@@ -542,11 +565,33 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           order_status: searchParams?.get('order_status') || undefined,
           size: searchParams?.get('size') || undefined,
           delivery_type: searchParams?.get('delivery_type') || undefined,
+          is_admin_created: searchParams?.get('is_admin_created') || undefined,
           search: searchParams?.get('search') || undefined,
         };
 
         const orders = getAllShopOrders(filters);
         return sendJson(res, 200, { orders });
+      }
+
+      // POST /api/admin/shop/orders - Criar encomenda manualmente por administrador
+      if (pathname === '/api/admin/shop/orders' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        try {
+          const newOrder = createAdminManualOrder(body);
+          if (body.send_email && newOrder.payment_status === 'paid') {
+            try {
+              const mailRes = await sendOrderConfirmationEmail(newOrder);
+              if (mailRes && mailRes.success) {
+                updateShopOrderEmailSent(newOrder.id);
+              }
+            } catch (mailErr) {
+              console.error('[ADMIN MANUAL ORDER EMAIL ERROR]', mailErr.message);
+            }
+          }
+          return sendJson(res, 201, { success: true, order: newOrder });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao criar encomenda manual' });
+        }
       }
 
       // PATCH /api/admin/shop/orders/bulk-status - Atualizar estado de múltiplas encomendas de uma só vez

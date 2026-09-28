@@ -57,6 +57,7 @@ export async function createStripeMbWayPaymentIntent({
   studentEmail,
   studentName,
   description,
+  metadata = {},
 }) {
   const cleanMobile = String(mobileNumber || '')
     .replace(/\s+/g, '')
@@ -99,12 +100,13 @@ export async function createStripeMbWayPaymentIntent({
         },
       },
       confirm: true,
-      return_url: `${process.env.APP_URL || 'http://localhost:3000'}/merch?orderId=${orderId}`,
+      return_url: `${process.env.APP_URL || 'http://localhost:3000'}/merch?payment_intent_done=1&orderId=${orderId}`,
       description: description || `NEEI Merch - Encomenda ${orderId}`,
       metadata: {
         order_id: orderId,
         student_email: studentEmail,
         student_name: studentName || '',
+        ...metadata,
       },
     });
 
@@ -239,6 +241,17 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
       metadata: {
         order_id: order.id,
         size: order.size,
+        color: order.color || 'Preto',
+        delivery_type: order.delivery_type,
+        shipping_address: order.shipping_address || '',
+        shipping_postal_code: order.shipping_postal_code || '',
+        shipping_city: order.shipping_city || '',
+        item_price: String(order.item_price),
+        shipping_fee: String(order.shipping_fee),
+        total_amount: String(order.total_amount),
+        student_name: order.student_name,
+        student_email: order.student_email,
+        phone_number: order.phone_number,
       },
       success_url: successUrl,
       cancel_url: cancelUrl,

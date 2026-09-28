@@ -6,6 +6,7 @@ import {
   OrderStatusResponse,
   ShopSummaryStats,
   OrderStatus,
+  AdminCreateOrderPayload,
 } from '../types/shop';
 
 /**
@@ -282,4 +283,27 @@ export async function updateAdminCampaign(
     throw new Error(errData.error || 'Falha ao atualizar campanha');
   }
   return res.json();
+}
+
+/**
+ * Cria uma encomenda manualmente a partir do painel de administração
+ */
+export async function createAdminManualOrder(
+  token: string,
+  payload: AdminCreateOrderPayload
+): Promise<{ success: boolean; order: ShopOrder }> {
+  const res = await fetch('/api/admin/shop/orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao criar encomenda manual');
+  }
+  return data;
 }

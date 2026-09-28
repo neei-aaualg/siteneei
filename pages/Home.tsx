@@ -17,8 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  User,
-  Sparkles,
+  Brush,
 } from 'lucide-react';
 
 // --- Componente do Terminal Interativo ---
@@ -233,7 +232,7 @@ const HighlightsCarousel: React.FC = () => {
       date: 'Jun 2026',
     },
     {
-      icon: <Sparkles className="text-accent-200" size={32} />,
+      icon: <Brush className="text-accent-200" size={32} />,
       title: 'Concurso de Logos',
       desc: 'Realizado um concurso público para o novo logo do NEEI. O logo atual acabou por se manter após votação interna.',
       date: 'Mai 2026',

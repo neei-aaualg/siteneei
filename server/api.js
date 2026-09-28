@@ -19,6 +19,12 @@ import {
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
 export function readRawBody(req) {
+  if (typeof req.rawBody === 'string') {
+    return Promise.resolve(req.rawBody);
+  }
+  if (typeof req.on !== 'function') {
+    return Promise.resolve('');
+  }
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', (chunk) => {
@@ -38,6 +44,12 @@ export function readRawBody(req) {
 }
 
 export function readJsonBody(req) {
+  if (req.body && typeof req.body === 'object') {
+    return Promise.resolve(req.body);
+  }
+  if (typeof req.on !== 'function') {
+    return Promise.resolve({});
+  }
   return new Promise((resolve, reject) => {
     let raw = '';
     req.on('data', (chunk) => {

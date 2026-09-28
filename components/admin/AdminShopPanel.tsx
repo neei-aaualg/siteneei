@@ -21,8 +21,20 @@ import {
   Copy,
   Check,
   Eye,
+  Plus,
+  Tag,
+  X,
+  User,
+  CreditCard,
 } from 'lucide-react';
-import { ShopOrder, ShopSummaryStats, OrderStatus, SweatSize } from '../../types/shop';
+import {
+  ShopOrder,
+  ShopSummaryStats,
+  OrderStatus,
+  SweatSize,
+  DeliveryType,
+  AdminCreateOrderPayload,
+} from '../../types/shop';
 import {
   fetchAdminShopOrders,
   fetchAdminShopStats,
@@ -30,8 +42,11 @@ import {
   updateMultipleAdminOrderStatus,
   resendOrderEmail,
   fetchShopCampaign,
+  createAdminManualOrder,
 } from '../../services/shopService';
 import { formatDateTimeDDMMAAAA } from '../../utils/dateHelpers';
+import { Portal } from '../Portal';
+import { getPortugalDistricts, getCountiesForDistrict } from '../../constants/portugalDistricts';
 
 interface AdminShopPanelProps {
   token: string;
@@ -58,6 +73,40 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const [orderStatusFilter, setOrderStatusFilter] = useState('all');
   const [sizeFilter, setSizeFilter] = useState('all');
   const [deliveryFilter, setDeliveryFilter] = useState('all');
+  const [originFilter, setOriginFilter] = useState<'all' | 'admin' | 'web'>('all');
+
+  // Modal de Criação Manual de Encomenda
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const initialManualForm = {
+    student_name: '',
+    student_email: '',
+    phone_number: '',
+    nif: '',
+    size: 'M' as SweatSize,
+    color: 'Preto',
+    delivery_type: 'pickup' as DeliveryType,
+    shipping_address: '',
+    shipping_postal_code: '',
+    shipping_district: 'Faro',
+    shipping_county: 'Faro',
+    item_price: 20,
+    shipping_fee: 4.5,
+    payment_status: 'paid' as 'paid' | 'pending',
+    order_status: 'confirmed' as OrderStatus,
+    send_email: true,
+    admin_notes: '',
+  };
+
+  const [manualForm, setManualForm] = useState(initialManualForm);
+
+  const districtsList = useMemo(() => getPortugalDistricts(), []);
+  const manualCounties = useMemo(
+    () => getCountiesForDistrict(manualForm.shipping_district),
+    [manualForm.shipping_district]
+  );
 
   // Estados de ação
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -78,6 +127,13 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         setSweatsAvailable(Boolean(campaignData.sweatsAvailable));
         if (campaignData.showTestShop !== undefined) {
           setShowTestShop(Boolean(campaignData.showTestShop));
+        }
+        if (campaignData.item_price) {
+          setManualForm((prev) => ({
+            ...prev,
+            item_price: campaignData.item_price,
+            shipping_fee: campaignData.shipping_fee || 4.5,
+          }));
         }
       }
     } catch (err: any) {
@@ -111,6 +167,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       const matchesStatus = orderStatusFilter === 'all' || o.order_status === orderStatusFilter;
       const matchesSize = sizeFilter === 'all' || o.size === sizeFilter;
       const matchesDelivery = deliveryFilter === 'all' || o.delivery_type === deliveryFilter;
+      const matchesOrigin =
+        originFilter === 'all' ||
+        (originFilter === 'admin' ? Boolean(o.is_admin_created) : !o.is_admin_created);
 
       const q = search.toLowerCase().trim();
       const matchesSearch =
@@ -119,11 +178,19 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         o.student_email.toLowerCase().includes(q) ||
         o.phone_number.includes(q) ||
         o.id.toLowerCase().includes(q) ||
-        o.nif.includes(q);
+        Boolean(o.nif && o.nif.includes(q)) ||
+        Boolean(o.admin_notes && o.admin_notes.toLowerCase().includes(q));
 
-      return matchesPayment && matchesStatus && matchesSize && matchesDelivery && matchesSearch;
+      return (
+        matchesPayment &&
+        matchesStatus &&
+        matchesSize &&
+        matchesDelivery &&
+        matchesOrigin &&
+        matchesSearch
+      );
     });
-  }, [orders, search, paymentFilter, orderStatusFilter, sizeFilter, deliveryFilter]);
+  }, [orders, search, paymentFilter, orderStatusFilter, sizeFilter, deliveryFilter, originFilter]);
 
   // Alterar estado operacional da encomenda
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
@@ -269,6 +336,123 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         return 'border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 font-medium focus:ring-amber-500';
       default:
         return 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200';
+    }
+  };
+
+  // Handlers para criação manual de encomendas
+  const handleManualNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const clean = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+    setManualForm((prev) => ({ ...prev, student_name: clean }));
+  };
+
+  const handleManualPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setManualForm((prev) => ({ ...prev, phone_number: digits }));
+  };
+
+  const handleManualNifChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setManualForm((prev) => ({ ...prev, nif: digits }));
+  };
+
+  const handleManualPostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 7);
+    if (digits.length <= 4) {
+      setManualForm((prev) => ({ ...prev, shipping_postal_code: digits }));
+    } else {
+      setManualForm((prev) => ({
+        ...prev,
+        shipping_postal_code: `${digits.slice(0, 4)}-${digits.slice(4)}`,
+      }));
+    }
+  };
+
+  const handleManualDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDist = e.target.value;
+    const counties = getCountiesForDistrict(newDist);
+    setManualForm((prev) => ({
+      ...prev,
+      shipping_district: newDist,
+      shipping_county: counties.length > 0 ? counties[0] : '',
+    }));
+  };
+
+  const handleCreateManualOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError(null);
+
+    const name = manualForm.student_name.trim();
+    if (!name || name.length < 3) {
+      setCreateError('Por favor insere o nome completo do aluno (mínimo 3 caracteres).');
+      return;
+    }
+
+    const email = manualForm.student_email.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setCreateError('Por favor insere um endereço de email válido.');
+      return;
+    }
+
+    const phone = manualForm.phone_number.replace(/\D/g, '');
+    if (phone.length !== 9) {
+      setCreateError('O telemóvel deve ter exatamente 9 dígitos portugueses.');
+      return;
+    }
+
+    if (manualForm.delivery_type === 'shipping') {
+      if (!manualForm.shipping_address.trim() || manualForm.shipping_address.trim().length < 5) {
+        setCreateError('Por favor insere uma morada de envio completa.');
+        return;
+      }
+      if (!/^\d{4}-\d{3}$/.test(manualForm.shipping_postal_code.trim())) {
+        setCreateError('O código postal deve ter o formato 0000-000.');
+        return;
+      }
+    }
+
+    setCreatingOrder(true);
+    try {
+      const fullLocality =
+        manualForm.delivery_type === 'shipping'
+          ? `${manualForm.shipping_county}, ${manualForm.shipping_district}`
+          : undefined;
+
+      const payload: AdminCreateOrderPayload = {
+        student_name: name,
+        student_email: email,
+        phone_number: phone,
+        nif: manualForm.nif.trim() || undefined,
+        size: manualForm.size,
+        color: manualForm.color || 'Preto',
+        delivery_type: manualForm.delivery_type,
+        shipping_address:
+          manualForm.delivery_type === 'shipping' ? manualForm.shipping_address.trim() : undefined,
+        shipping_postal_code:
+          manualForm.delivery_type === 'shipping'
+            ? manualForm.shipping_postal_code.trim()
+            : undefined,
+        shipping_city: fullLocality,
+        item_price: Number(manualForm.item_price) || 20,
+        shipping_fee:
+          manualForm.delivery_type === 'shipping' ? Number(manualForm.shipping_fee) || 4.5 : 0,
+        payment_status: manualForm.payment_status,
+        order_status: manualForm.order_status,
+        send_email: manualForm.send_email,
+        admin_notes: manualForm.admin_notes.trim() || undefined,
+      };
+
+      const res = await createAdminManualOrder(token, payload);
+      if (res?.order) {
+        setOrders((prev) => [res.order, ...prev]);
+      }
+      showFeedback('manual-order-created', `Encomenda ${res.order?.id || ''} registada com sucesso!`);
+      setIsCreateModalOpen(false);
+      setManualForm(initialManualForm);
+      fetchAdminShopStats(token).then((st) => setStats(st)).catch(() => {});
+    } catch (err: any) {
+      setCreateError(err.message || 'Falha ao criar encomenda manual.');
+    } finally {
+      setCreatingOrder(false);
     }
   };
 
@@ -479,21 +663,35 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={loadData}
-            disabled={loading}
-            className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 self-start md:self-auto"
-            title="Recarregar"
-          >
-            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-          </button>
+          <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setCreateError(null);
+                setIsCreateModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-600/30 transition-all cursor-pointer"
+            >
+              <Plus size={15} />
+              <span>Nova Encomenda Manual</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={loadData}
+              disabled={loading}
+              className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 cursor-pointer"
+              title="Recarregar"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
 
         {/* Barra de Filtros e Pesquisa */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {/* Pesquisa Livre */}
-          <div className="relative sm:col-span-2 lg:col-span-1">
+          <div>
             <input
               type="text"
               value={search}
@@ -502,6 +700,19 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
               className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
             />
             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+          </div>
+
+          {/* Filtro Origem */}
+          <div>
+            <select
+              value={originFilter}
+              onChange={(e) => setOriginFilter(e.target.value as any)}
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
+            >
+              <option value="all">Origem: Todas</option>
+              <option value="admin">🏷️ Criadas por Admin</option>
+              <option value="web">🌐 Loja Web Pública</option>
+            </select>
           </div>
 
           {/* Filtro Pagamento */}
@@ -688,19 +899,35 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
                     {/* ID & Data */}
                     <td className="py-3 px-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                         <span className="font-mono font-bold text-slate-900 dark:text-white block">
                           {o.id}
                         </span>
+                        {o.is_admin_created ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40"
+                            title={o.admin_notes ? `Criada por Admin: ${o.admin_notes}` : 'Criada manualmente por um administrador'}
+                          >
+                            <Tag size={10} /> Criada por Admin
+                          </span>
+                        ) : null}
                         {o.order_status === 'test' && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60">
                             <FlaskConical size={10} /> Teste
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-400 block">
                         {formatDateTimeDDMMAAAA(o.created_at)}
                       </span>
+                      {o.admin_notes && (
+                        <span
+                          className="text-[10px] text-amber-600 dark:text-amber-400 italic block truncate max-w-[180px]"
+                          title={o.admin_notes}
+                        >
+                          Nota: {o.admin_notes}
+                        </span>
+                      )}
                     </td>
 
                     {/* Aluno */}
@@ -815,6 +1042,433 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           </div>
         )}
       </div>
+
+      {/* Modal para Adicionar Encomenda Manual (Criada por Admin) */}
+      {isCreateModalOpen && (
+        <Portal>
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(false)}
+                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                  <Plus size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                      Nova Encomenda Manual
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
+                      <Tag size={10} /> Criada por Admin
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Regista manualmente encomendas efetuadas em numerário, gabinete ou atribuídas internamente.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateManualOrderSubmit} className="space-y-5">
+                {/* 1. Dados Pessoais do Aluno */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <User size={13} className="text-cyan-500" />
+                    <span>1. Dados do Comprador / Aluno</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Nome Completo *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={manualForm.student_name}
+                        onChange={handleManualNameChange}
+                        placeholder="Ex: David Rodrigues"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Email Institucional ou Pessoal *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={manualForm.student_email}
+                        onChange={(e) =>
+                          setManualForm((prev) => ({ ...prev, student_email: e.target.value }))
+                        }
+                        placeholder="aXXXXX@ualg.pt"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Telemóvel (9 dígitos) *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={9}
+                        value={manualForm.phone_number}
+                        onChange={handleManualPhoneChange}
+                        placeholder="912345678"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        NIF (Opcional)
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={9}
+                        value={manualForm.nif}
+                        onChange={handleManualNifChange}
+                        placeholder="123456789"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Seleção de Peça e Tamanho */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <ShoppingBag size={13} className="text-cyan-500" />
+                    <span>2. Configuração da Sweat</span>
+                  </h4>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
+                      Tamanho da Sweat *
+                    </label>
+                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => setManualForm((prev) => ({ ...prev, size: sz }))}
+                          className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            manualForm.size === sz
+                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-md'
+                              : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Preço da Peça (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={manualForm.item_price}
+                        onChange={(e) =>
+                          setManualForm((prev) => ({ ...prev, item_price: parseFloat(e.target.value) || 0 }))
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Cor
+                      </label>
+                      <input
+                        type="text"
+                        value={manualForm.color}
+                        onChange={(e) =>
+                          setManualForm((prev) => ({ ...prev, color: e.target.value }))
+                        }
+                        placeholder="Preto"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Modalidade de Entrega */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Truck size={13} className="text-cyan-500" />
+                    <span>3. Modalidade de Entrega</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setManualForm((prev) => ({ ...prev, delivery_type: 'pickup' }))}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        manualForm.delivery_type === 'pickup'
+                          ? 'bg-cyan-50/50 dark:bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500/50'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <MapPin size={14} className="text-cyan-500" /> Gabinete NEEI
+                        </span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded-full">
+                          Grátis
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Levantamento presencial no Campus de Gambelas.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setManualForm((prev) => ({ ...prev, delivery_type: 'shipping' }))}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        manualForm.delivery_type === 'shipping'
+                          ? 'bg-cyan-50/50 dark:bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500/50'
+                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                          <Truck size={14} className="text-cyan-500" /> Envio CTT Nacional
+                        </span>
+                        <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-1.5 py-0.2 rounded-full">
+                          +{manualForm.shipping_fee.toFixed(2)}€
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Envio postal para morada do estudante.
+                      </p>
+                    </button>
+                  </div>
+
+                  {manualForm.delivery_type === 'shipping' && (
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 animate-in fade-in duration-150">
+                      <div>
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                          Morada Completa *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={manualForm.shipping_address}
+                          onChange={(e) =>
+                            setManualForm((prev) => ({ ...prev, shipping_address: e.target.value }))
+                          }
+                          placeholder="Rua, Número de Polícia, Andar/Porta"
+                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Código Postal *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={8}
+                            value={manualForm.shipping_postal_code}
+                            onChange={handleManualPostalCodeChange}
+                            placeholder="8000-000"
+                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Distrito *
+                          </label>
+                          <select
+                            value={manualForm.shipping_district}
+                            onChange={handleManualDistrictChange}
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                          >
+                            {districtsList.map((d) => (
+                              <option key={d} value={d}>
+                                {d}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Concelho *
+                          </label>
+                          <select
+                            value={manualForm.shipping_county}
+                            onChange={(e) =>
+                              setManualForm((prev) => ({ ...prev, shipping_county: e.target.value }))
+                            }
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                          >
+                            {manualCounties.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Estado & Pagamento */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <CreditCard size={13} className="text-cyan-500" />
+                    <span>4. Estado Financeiro e Operacional</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Estado do Pagamento
+                      </label>
+                      <select
+                        value={manualForm.payment_status}
+                        onChange={(e) =>
+                          setManualForm((prev) => ({
+                            ...prev,
+                            payment_status: e.target.value as 'paid' | 'pending',
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                      >
+                        <option value="paid">Pago (Confirmado)</option>
+                        <option value="pending">Pendente Pagamento</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Estado Operacional
+                      </label>
+                      <select
+                        value={manualForm.order_status}
+                        onChange={(e) =>
+                          setManualForm((prev) => ({
+                            ...prev,
+                            order_status: e.target.value as OrderStatus,
+                          }))
+                        }
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                      >
+                        <option value="confirmed">Confirmada / Aguarda Fabrico</option>
+                        <option value="in_production">Em Produção (Fábrica)</option>
+                        <option value="ready_for_pickup">Pronta p/ Levantamento</option>
+                        <option value="shipped">Enviada via CTT</option>
+                        <option value="delivered">Entregue / Concluída</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Notas Internas do Administrador (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      value={manualForm.admin_notes}
+                      onChange={(e) =>
+                        setManualForm((prev) => ({ ...prev, admin_notes: e.target.value }))
+                      }
+                      placeholder="Ex: Pago em dinheiro na sala 0.18 ao tesoureiro"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div className="pt-1 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="manual_send_email"
+                      checked={manualForm.send_email}
+                      onChange={(e) =>
+                        setManualForm((prev) => ({ ...prev, send_email: e.target.checked }))
+                      }
+                      className="w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="manual_send_email"
+                      className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none"
+                    >
+                      Enviar email de confirmação imediato para o comprador
+                    </label>
+                  </div>
+                </div>
+
+                {/* Resumo do Total */}
+                <div className="p-3.5 rounded-2xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-200/60 dark:border-cyan-900/60 flex items-center justify-between text-xs">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    Total Registado:
+                  </span>
+                  <span className="font-black text-cyan-600 dark:text-cyan-400 text-base">
+                    {(
+                      manualForm.item_price +
+                      (manualForm.delivery_type === 'shipping' ? manualForm.shipping_fee : 0)
+                    ).toFixed(2)}
+                    €
+                  </span>
+                </div>
+
+                {createError && (
+                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                    <AlertCircle size={16} className="flex-shrink-0" />
+                    <span>{createError}</span>
+                  </div>
+                )}
+
+                {/* Botões do Modal */}
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingOrder}
+                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {creatingOrder ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>A criar encomenda...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={14} />
+                        <span>Criar Encomenda Manual</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
     </div>
   );
 };

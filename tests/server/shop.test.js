@@ -9,6 +9,7 @@ let db;
 let emailService;
 let shopApi;
 const originalDbPath = process.env.DATABASE_PATH;
+const originalAdminPassword = process.env.ADMIN_PASSWORD;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -17,6 +18,7 @@ beforeEach(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => { });
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neei-shop-test-'));
   process.env.DATABASE_PATH = path.join(tmpDir, 'shop_test.db');
+  process.env.ADMIN_PASSWORD = 'test-admin-secret';
 
   db = await import('../../server/db.js');
   emailService = await import('../../server/services/emailService.js');
@@ -41,6 +43,11 @@ afterEach(() => {
     delete process.env.DATABASE_PATH;
   } else {
     process.env.DATABASE_PATH = originalDbPath;
+  }
+  if (originalAdminPassword === undefined) {
+    delete process.env.ADMIN_PASSWORD;
+  } else {
+    process.env.ADMIN_PASSWORD = originalAdminPassword;
   }
   vi.useRealTimers();
 });
@@ -419,5 +426,94 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(jsonBody.studentName).toBe('Maria Rastreio');
     expect(jsonBody.size).toBe('S');
     expect(jsonBody.pickupLocation).toBeTruthy();
+  });
+
+  it('permite ao admin criar encomendas manuais com tag is_admin_created e notas', async () => {
+    const manualOrder = db.createAdminManualOrder({
+      student_name: 'Admin Teste',
+      student_email: 'admintest@ualg.pt',
+      phone_number: '912345678',
+      nif: '123456789',
+      size: 'L',
+      color: 'Preto',
+      delivery_type: 'shipping',
+      shipping_address: 'Campus de Gambelas, Gabinete NEEI',
+      shipping_postal_code: '8005-139',
+      shipping_city: 'Faro, Faro',
+      item_price: 20,
+      shipping_fee: 4.5,
+      total_amount: 24.5,
+      payment_status: 'paid',
+      order_status: 'confirmed',
+      admin_notes: 'Pago em numerário',
+    });
+
+    expect(manualOrder).toBeTruthy();
+    expect(manualOrder.is_admin_created).toBe(true);
+    expect(manualOrder.admin_notes).toBe('Pago em numerário');
+    expect(manualOrder.payment_status).toBe('paid');
+    expect(manualOrder.shipping_city).toBe('Faro, Faro');
+
+    // Verifica que getShopOrders inclui a tag
+    const orders = db.getShopOrders();
+    const found = orders.find((o) => o.id === manualOrder.id);
+    expect(found).toBeTruthy();
+    expect(found.is_admin_created).toBe(true);
+    expect(found.admin_notes).toBe('Pago em numerário');
+
+    // Verifica que export-factory inclui a origem e notas
+    const factoryRows = db.getFactoryExportData();
+    const factoryRow = factoryRows.find((r) => r.id === manualOrder.id);
+    expect(factoryRow).toBeTruthy();
+    expect(factoryRow.origem).toBe('Manual (Admin)');
+    expect(factoryRow.notas).toBe('Pago em numerário');
+  });
+
+  it('cria encomenda manual através do endpoint POST /api/admin/shop/orders', async () => {
+    let statusCode = 0;
+    let jsonBody = null;
+    const fakeRes = {
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = JSON.parse(data);
+      },
+    };
+
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+
+    const payload = {
+      student_name: 'Manuel Gabinete',
+      student_email: 'manuel@ualg.pt',
+      phone_number: '965432100',
+      size: 'XL',
+      delivery_type: 'pickup',
+      payment_status: 'paid',
+      admin_notes: 'Entrega em mão no dia aberto',
+      send_email: false,
+    };
+
+    const handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: payload,
+      },
+      fakeRes,
+      '/api/admin/shop/orders'
+    );
+
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.success).toBe(true);
+    expect(jsonBody.order).toBeTruthy();
+    expect(jsonBody.order.is_admin_created).toBe(true);
+    expect(jsonBody.order.admin_notes).toBe('Entrega em mão no dia aberto');
+    expect(jsonBody.order.student_name).toBe('Manuel Gabinete');
   });
 });

@@ -22,6 +22,7 @@ export async function initiateMbWayPayment({
   studentEmail,
   studentName,
   description,
+  metadata = {},
 }) {
   return createStripeMbWayPaymentIntent({
     orderId,
@@ -30,6 +31,7 @@ export async function initiateMbWayPayment({
     studentEmail,
     studentName,
     description,
+    metadata,
   });
 }
 

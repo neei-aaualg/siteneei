@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import {
   ShoppingBag,
-  Sparkles,
+  GraduationCap,
   CheckCircle2,
   Clock,
   Truck,
@@ -28,6 +28,7 @@ import {
   ExternalLink,
   CreditCard,
   ChevronLeft,
+  Shirt,
 } from 'lucide-react';
 import { ShopCampaign, SweatSize, DeliveryType, MerchProduct } from '../types/shop';
 import {
@@ -42,6 +43,7 @@ import { getStoredAdminToken, setStoredAdminToken } from '../services/activities
 import { StripePaymentWidget } from '../components/StripePaymentWidget';
 import { OrderTrackerModal } from '../components/OrderTrackerModal';
 import { Portal } from '../components/Portal';
+import { getPortugalDistricts, getCountiesForDistrict } from '../constants/portugalDistricts';
 
 // Tabela do Guia de Medidas (em centímetros)
 const SIZE_GUIDE: Record<
@@ -88,7 +90,28 @@ export const Shop: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
   const [shippingPostalCode, setShippingPostalCode] = useState('');
-  const [shippingCity, setShippingCity] = useState('');
+  const [shippingDistrict, setShippingDistrict] = useState('Faro');
+  const [shippingCounty, setShippingCounty] = useState('Faro');
+
+  // Detalhes da encomenda confirmada (para ecrã de sucesso garantindo precisão)
+  const [confirmedOrderDetails, setConfirmedOrderDetails] = useState<{
+    orderId?: string;
+    studentName?: string;
+    studentEmail?: string;
+    phoneNumber?: string;
+    size?: string;
+    deliveryType?: DeliveryType;
+    shippingAddress?: string;
+    shippingPostalCode?: string;
+    shippingCity?: string;
+    totalAmount?: number;
+  } | null>(null);
+
+  const districtsList = useMemo(() => getPortugalDistricts(), []);
+  const availableCounties = useMemo(
+    () => getCountiesForDistrict(shippingDistrict),
+    [shippingDistrict]
+  );
 
   // Estados de Submissão e Pagamento
   const [submitting, setSubmitting] = useState(false);
@@ -172,11 +195,57 @@ export const Shop: React.FC = () => {
     if (done === '1' && orderId) {
       setActiveOrderId(orderId);
       setPaymentStatus('paid');
-      // Confirma e regista a encomenda na BD caso o webhook ainda não tenha chegado
+
+      // 1. Tenta recuperar do sessionStorage
+      try {
+        const cached = sessionStorage.getItem('neei_last_order');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.orderId === orderId) {
+            setConfirmedOrderDetails(parsed);
+          }
+        }
+      } catch (_) {}
+
+      // 2. Confirma e regista a encomenda na BD caso o webhook ainda não tenha chegado
       confirmPayment({
         orderId,
         paymentIntentId: paymentIntentId || undefined,
-      }).catch(() => { });
+      })
+        .then((res) => {
+          if (res?.order) {
+            setConfirmedOrderDetails({
+              orderId: res.order.id,
+              studentName: res.order.student_name,
+              studentEmail: res.order.student_email,
+              phoneNumber: res.order.phone_number,
+              size: res.order.size,
+              deliveryType: res.order.delivery_type,
+              shippingAddress: res.order.shipping_address || undefined,
+              shippingPostalCode: res.order.shipping_postal_code || undefined,
+              shippingCity: res.order.shipping_city || undefined,
+              totalAmount: res.order.total_amount,
+            });
+          }
+        })
+        .catch(() => {
+          // Fallback adicional via fetchOrderStatus
+          fetchOrderStatus(orderId)
+            .then((st) => {
+              setConfirmedOrderDetails((prev) => ({
+                orderId: st.orderId,
+                studentName: st.studentName || prev?.studentName,
+                studentEmail: prev?.studentEmail,
+                phoneNumber: prev?.phoneNumber,
+                size: st.size || prev?.size,
+                deliveryType: st.deliveryType || prev?.deliveryType,
+                shippingCity: st.shippingCity || prev?.shippingCity,
+                totalAmount: st.totalAmount || prev?.totalAmount,
+              }));
+            })
+            .catch(() => {});
+        });
+
       // Limpa os parâmetros da URL sem recarregar
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
@@ -301,6 +370,35 @@ export const Shop: React.FC = () => {
     };
   }, [activeOrderId, paymentStatus]);
 
+  // Validações e manipulações de inputs estritas (apenas caracteres válidos)
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const clean = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s'-]/g, '');
+    setStudentName(clean);
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+    setPhoneNumber(digits);
+  };
+
+  const handlePostalCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 7);
+    if (digits.length <= 4) {
+      setShippingPostalCode(digits);
+    } else {
+      setShippingPostalCode(`${digits.slice(0, 4)}-${digits.slice(4)}`);
+    }
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDistrict = e.target.value;
+    setShippingDistrict(newDistrict);
+    const counties = getCountiesForDistrict(newDistrict);
+    if (counties.length > 0) {
+      setShippingCounty(counties[0]);
+    }
+  };
+
   // Passo 1 — Submissão do formulário de dados e criação do PaymentIntent
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -311,27 +409,38 @@ export const Shop: React.FC = () => {
       return;
     }
 
-    // Validações básicas
-    if (!studentName.trim() || studentName.trim().length < 3) {
-      setFormError('Por favor insere o teu nome completo.');
+    // Validações rigorosas
+    const trimmedName = studentName.trim();
+    if (!trimmedName || trimmedName.length < 3) {
+      setFormError('Por favor insere o teu nome completo (mínimo 3 caracteres).');
       return;
     }
-    if (!studentEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail.trim())) {
+
+    const trimmedEmail = studentEmail.trim().toLowerCase();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setFormError('Por favor insere um endereço de email válido para receberes a confirmação.');
       return;
     }
-    const cleanPhone = phoneNumber.replace(/\s+/g, '').replace(/^\+351/, '');
-    if (!/^9\d{8}$/.test(cleanPhone)) {
+
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length !== 9 || !cleanPhone.startsWith('9')) {
       setFormError(
-        'Número de telemóvel inválido. Deve ter 9 dígitos portugueses a começar por 9.'
+        'Número de telemóvel inválido. Deve ter exatamente 9 dígitos portugueses a começar por 9.'
       );
       return;
     }
+
     if (deliveryType === 'shipping') {
-      if (!shippingAddress.trim() || !shippingPostalCode.trim() || !shippingCity.trim()) {
-        setFormError(
-          'Para envio por correio é obrigatório preencher a Morada, Código Postal e Localidade.'
-        );
+      if (!shippingAddress.trim() || shippingAddress.trim().length < 5) {
+        setFormError('Por favor insere uma morada de envio completa (rua, número, andar, etc.).');
+        return;
+      }
+      if (!/^\d{4}-\d{3}$/.test(shippingPostalCode.trim())) {
+        setFormError('Código postal inválido. Deve estar no formato 0000-000 (ex: 8000-000).');
+        return;
+      }
+      if (!shippingDistrict || !shippingCounty) {
+        setFormError('Por favor seleciona o distrito e concelho de envio.');
         return;
       }
     }
@@ -339,26 +448,47 @@ export const Shop: React.FC = () => {
     setSubmitting(true);
     try {
       const adminToken = getStoredAdminToken();
+      const fullLocality =
+        deliveryType === 'shipping' ? `${shippingCounty}, ${shippingDistrict}` : undefined;
+
       // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
       const res = await createPaymentIntent({
-        student_name: studentName.trim(),
-        student_email: studentEmail.trim(),
+        student_name: trimmedName,
+        student_email: trimmedEmail,
         phone_number: cleanPhone,
         size: selectedSize,
         delivery_type: deliveryType,
         shipping_address: deliveryType === 'shipping' ? shippingAddress.trim() : undefined,
         shipping_postal_code: deliveryType === 'shipping' ? shippingPostalCode.trim() : undefined,
-        shipping_city: deliveryType === 'shipping' ? shippingCity.trim() : undefined,
+        shipping_city: fullLocality,
         adminPreview: isAdminPreview,
         adminToken: isAdminPreview ? adminToken : undefined,
       });
+
+      const orderDataToSave = {
+        orderId: res.orderId,
+        studentName: trimmedName,
+        studentEmail: trimmedEmail,
+        phoneNumber: cleanPhone,
+        size: selectedSize,
+        deliveryType,
+        shippingAddress: deliveryType === 'shipping' ? shippingAddress.trim() : null,
+        shippingPostalCode: deliveryType === 'shipping' ? shippingPostalCode.trim() : null,
+        shippingCity: fullLocality || null,
+        totalAmount: res.totalAmount,
+      };
+
+      setConfirmedOrderDetails(orderDataToSave);
+      try {
+        sessionStorage.setItem('neei_last_order', JSON.stringify(orderDataToSave));
+      } catch (_) {}
 
       setActiveOrderId(res.orderId);
       setStripeClientSecret(res.clientSecret);
       setStripePublishableKey(res.publishableKey);
       setStripeTotalAmount(res.totalAmount);
       setStripeIsSandbox(res.isSandbox ?? false);
-      // Avança para o passo 2 — widget de pagamento
+      // Avança para o passo 2 — janela exclusiva de pagamento
       setCheckoutStep(2);
     } catch (err: any) {
       setFormError(err.message || 'Ocorreu um erro ao processar a tua encomenda. Tenta novamente.');
@@ -367,14 +497,28 @@ export const Shop: React.FC = () => {
     }
   };
 
-  // Callback de sucesso do widget Stripe (sandbox ou após redirecionamento)
+  // Callback de sucesso do widget Stripe (sandbox ou após pagamento)
   const handlePaymentSuccess = async () => {
     if (!activeOrderId) return;
     try {
       if (stripeIsSandbox) {
         await simulatePayment(activeOrderId);
       } else {
-        await confirmPayment({ orderId: activeOrderId });
+        const res = await confirmPayment({ orderId: activeOrderId });
+        if (res?.order) {
+          setConfirmedOrderDetails({
+            orderId: res.order.id,
+            studentName: res.order.student_name,
+            studentEmail: res.order.student_email,
+            phoneNumber: res.order.phone_number,
+            size: res.order.size,
+            deliveryType: res.order.delivery_type,
+            shippingAddress: res.order.shipping_address || undefined,
+            shippingPostalCode: res.order.shipping_postal_code || undefined,
+            shippingCity: res.order.shipping_city || undefined,
+            totalAmount: res.order.total_amount,
+          });
+        }
       }
     } catch (_) {
       // ignora erro — o polling ou webhook tratarão da confirmação
@@ -403,6 +547,21 @@ export const Shop: React.FC = () => {
     setSimulating(true);
     try {
       await simulatePayment(activeOrderId);
+      const res = await confirmPayment({ orderId: activeOrderId }).catch(() => null);
+      if (res?.order) {
+        setConfirmedOrderDetails({
+          orderId: res.order.id,
+          studentName: res.order.student_name,
+          studentEmail: res.order.student_email,
+          phoneNumber: res.order.phone_number,
+          size: res.order.size,
+          deliveryType: res.order.delivery_type,
+          shippingAddress: res.order.shipping_address || undefined,
+          shippingPostalCode: res.order.shipping_postal_code || undefined,
+          shippingCity: res.order.shipping_city || undefined,
+          totalAmount: res.order.total_amount,
+        });
+      }
       setPaymentStatus('paid');
       confetti({
         particleCount: 100,
@@ -470,7 +629,7 @@ export const Shop: React.FC = () => {
         {/* Header Hero da Página de Merch */}
         <div className="text-center max-w-3xl mx-auto mb-10">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider mb-4">
-            <Sparkles size={14} className="text-cyan-500" />
+            <GraduationCap size={14} className="text-cyan-500" />
             <span>Merchandise Oficial · NEEI AAUAlg</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
@@ -619,7 +778,7 @@ export const Shop: React.FC = () => {
                 /* Sem foto quando indisponível */
                 <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-900 via-[#0a1526] to-[#04243a] flex flex-col items-center justify-center p-8 text-center border-b border-slate-200 dark:border-slate-800/80">
                   <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mb-3 shadow-inner">
-                    <Sparkles size={32} className="text-cyan-400" />
+                    <Shirt size={32} className="text-cyan-400" />
                   </div>
                   <span className="text-xs font-extrabold uppercase tracking-wider text-cyan-400 bg-cyan-950/80 border border-cyan-500/40 px-3.5 py-1 rounded-full mb-2">
                     Brevemente
@@ -725,326 +884,408 @@ export const Shop: React.FC = () => {
         {isCheckoutOpen && (
           <Portal>
             <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200">
-              {/* Botão Fechar */}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCheckoutOpen(false);
-                  setCheckoutStep(1);
-                  setStripeClientSecret(null);
-                  setFormError(null);
-                }}
-                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+              <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200">
+                {/* Botão Fechar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCheckoutOpen(false);
+                    setCheckoutStep(1);
+                    setStripeClientSecret(null);
+                    setFormError(null);
+                  }}
+                  className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
 
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
-                  {checkoutStep === 1 ? <ShoppingBag size={20} /> : <CreditCard size={20} />}
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                    {checkoutStep === 1 ? 'Pré-encomenda da Sweat' : 'Escolhe o método de pagamento'}
-                  </h2>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
-                      1. Dados
-                    </span>
-                    <ChevronRight size={12} className="text-slate-500" />
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 2 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-500'}`}>
-                      2. Pagamento
-                    </span>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                    {checkoutStep === 1 ? <ShoppingBag size={20} /> : <CreditCard size={20} />}
                   </div>
-                </div>
-              </div>
-
-              {!sweatsAvailable && !isAdminPreview ? (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
-                  As encomendas das sweats estão temporariamente suspensas de momento.
-                </div>
-              ) : (
-                <form onSubmit={handleCheckout} className="space-y-6">
-                  {/* 1. Seleção de Tamanho */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                        Tamanho:{' '}
-                        <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
-                          {selectedSize}
-                        </span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setIsSizeGuideOpen(true)}
-                        className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
-                      >
-                        <Ruler size={13} />
-                        Guia de Tamanhos
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                      {campaign.sizes_available.map((sz) => {
-                        const isSelected = selectedSize === sz;
-                        return (
-                          <button
-                            key={sz}
-                            type="button"
-                            onClick={() => setSelectedSize(sz)}
-                            className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
-                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
-                              : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
-                              }`}
-                          >
-                            {sz}
-                          </button>
-                        );
-                      })}
+                  <div className="flex-1">
+                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                      {checkoutStep === 1 ? 'Pré-encomenda da Sweat' : 'Escolhe o método de pagamento'}
+                    </h2>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
+                        1. Dados
+                      </span>
+                      <ChevronRight size={12} className="text-slate-500" />
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 2 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-500'}`}>
+                        2. Pagamento
+                      </span>
                     </div>
                   </div>
+                </div>
 
-                  {/* 2. Modalidade de Entrega */}
-                  <div>
-                    <label className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">
-                      Como queres receber a tua sweat?
-                    </label>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryType('pickup')}
-                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
-                          ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-                            <MapPin size={16} className="text-cyan-500" />
-                            <span>Gabinete NEEI</span>
-                          </div>
-                          <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
-                            Grátis
+                {!sweatsAvailable && !isAdminPreview ? (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
+                    As encomendas das sweats estão temporariamente suspensas de momento.
+                  </div>
+                ) : checkoutStep === 1 ? (
+                  /* =========================================================================
+                     PASSO 1: FORMULÁRIO DE DADOS & SELEÇÃO
+                     ========================================================================= */
+                  <form onSubmit={handleCheckout} className="space-y-6">
+                    {/* 1. Seleção de Tamanho */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                          Tamanho:{' '}
+                          <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
+                            {selectedSize}
                           </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                          Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.
-                        </p>
-                      </button>
-
-                      {/* Opção 2: Envio CTT Nacional */}
-                      <button
-                        type="button"
-                        onClick={() => setDeliveryType('shipping')}
-                        className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
-                          ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-                            <Truck size={16} className="text-cyan-500" />
-                            <span>Envio CTT Nacional</span>
-                          </div>
-                          <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
-                            +{campaign.shipping_fee.toFixed(2)}€
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                          Recebe em qualquer morada de Portugal Continental ou Ilhas.
-                        </p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Campos de Morada se Envio por Correio */}
-                  {deliveryType === 'shipping' && (
-                    <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-3 animate-in fade-in duration-150">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Morada de Envio *
                         </label>
-                        <input
-                          type="text"
-                          required
-                          value={shippingAddress}
-                          onChange={(e) => setShippingAddress(e.target.value)}
-                          placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsSizeGuideOpen(true)}
+                          className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                        >
+                          <Ruler size={13} />
+                          Guia de Tamanhos
+                        </button>
                       </div>
+
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                        {campaign.sizes_available.map((sz) => {
+                          const isSelected = selectedSize === sz;
+                          return (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => setSelectedSize(sz)}
+                              className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
+                                ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
+                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                                }`}
+                            >
+                              {sz}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 2. Modalidade de Entrega */}
+                    <div>
+                      <label className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">
+                        Como queres receber a tua sweat?
+                      </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryType('pickup')}
+                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
+                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
+                              <MapPin size={16} className="text-cyan-500" />
+                              <span>Gabinete NEEI</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                              Grátis
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.
+                          </p>
+                        </button>
+
+                        {/* Opção 2: Envio CTT Nacional */}
+                        <button
+                          type="button"
+                          onClick={() => setDeliveryType('shipping')}
+                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
+                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
+                              <Truck size={16} className="text-cyan-500" />
+                              <span>Envio CTT Nacional</span>
+                            </div>
+                            <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
+                              +{campaign.shipping_fee.toFixed(2)}€
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Recebe em qualquer morada de Portugal Continental ou Ilhas.
+                          </p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Campos de Morada se Envio por Correio */}
+                    {deliveryType === 'shipping' && (
+                      <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-3 animate-in fade-in duration-150">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                            Morada de Envio *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={shippingAddress}
+                            onChange={(e) => setShippingAddress(e.target.value)}
+                            placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+
+                        {/* Código Postal + Distrito + Concelho */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                              Código Postal *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              maxLength={8}
+                              value={shippingPostalCode}
+                              onChange={handlePostalCodeChange}
+                              placeholder="8000-000"
+                              className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                            />
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Formato 0000-000</span>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                              Distrito / Região *
+                            </label>
+                            <select
+                              value={shippingDistrict}
+                              onChange={handleDistrictChange}
+                              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                            >
+                              {districtsList.map((dist) => (
+                                <option key={dist} value={dist}>
+                                  {dist}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                              Concelho *
+                            </label>
+                            <select
+                              value={shippingCounty}
+                              onChange={(e) => setShippingCounty(e.target.value)}
+                              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                            >
+                              {availableCounties.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. Dados Pessoais do Aluno */}
+                    <div className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Código Postal *
+                            Nome Completo *
                           </label>
                           <input
                             type="text"
                             required
-                            value={shippingPostalCode}
-                            onChange={(e) => setShippingPostalCode(e.target.value)}
-                            placeholder="8000-000"
-                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            value={studentName}
+                            onChange={handleNameChange}
+                            placeholder="Teu nome completo"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                           />
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Apenas letras e espaços</span>
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Localidade / Cidade *
+                            Email Institucional ou Pessoal *
                           </label>
                           <input
-                            type="text"
+                            type="email"
                             required
-                            value={shippingCity}
-                            onChange={(e) => setShippingCity(e.target.value)}
-                            placeholder="Faro"
-                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            value={studentEmail}
+                            onChange={(e) => setStudentEmail(e.target.value)}
+                            placeholder="aXXXXX@ualg.pt"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                           />
+                          <span className="text-[10px] text-slate-400 block mt-0.5">Onde receberás o comprovativo</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Telemóvel (apenas 9 dígitos) *
+                          </label>
+                          {phoneNumber.length === 9 && phoneNumber.startsWith('9') && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <Check size={12} /> Número Válido
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="tel"
+                          required
+                          maxLength={9}
+                          value={phoneNumber}
+                          onChange={handlePhoneChange}
+                          placeholder="912345678"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
+                        />
+                        <span className="text-[10px] text-slate-500 block mt-1">
+                          Apenas números. Se pagares por MB WAY, a notificação será enviada para este número.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Resumo de Valores */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                        <span>Sweat Oficial ({selectedSize})</span>
+                        <span>{campaign.item_price.toFixed(2)}€</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                        <span>
+                          Portes:{' '}
+                          {deliveryType === 'shipping'
+                            ? `Envio CTT Nacional (${shippingCounty}, ${shippingDistrict})`
+                            : 'Levantamento no Gabinete NEEI'}
+                        </span>
+                        <span>
+                          {deliveryType === 'shipping'
+                            ? `${campaign.shipping_fee.toFixed(2)}€`
+                            : 'Grátis'}
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
+                        <span>Total a Pagar</span>
+                        <span className="text-xl font-black text-cyan-600 dark:text-cyan-400">
+                          {totalPrice.toFixed(2)}€
+                        </span>
+                      </div>
+                    </div>
+
+                    {formError && (
+                      <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                        <AlertCircle size={16} className="flex-shrink-0" />
+                        <span>{formError}</span>
+                      </div>
+                    )}
+
+                    {/* Botão de Submissão — Passo 1 */}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full py-3.5 px-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 size={18} className="animate-spin" />
+                          <span>A preparar janela de pagamento...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight size={18} />
+                          <span>Continuar para Pagamento · {totalPrice.toFixed(2)}€</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+                ) : (
+                  /* =========================================================================
+                     PASSO 2: JANELA DEDICADA EXCLUSIVA DE PAGAMENTO (SUBSTITUI O FORMULÁRIO)
+                     ========================================================================= */
+                  <div className="space-y-5 animate-in fade-in duration-200">
+                    {/* Botão superior de retrocesso */}
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCheckoutStep(1);
+                          setFormError(null);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft size={16} />
+                        <span>Voltar aos dados</span>
+                      </button>
+                      <span className="text-[11px] font-semibold text-slate-400">
+                        Passo 2 de 2 · Pagamento
+                      </span>
+                    </div>
+
+                    {/* Resumo compacto e detalhado da encomenda */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                      <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-sm">
+                        <span>Sweat Oficial NEEI ({selectedSize})</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-black text-base">
+                          {stripeTotalAmount.toFixed(2)}€
+                        </span>
+                      </div>
+                      <div className="text-slate-600 dark:text-slate-400 flex flex-col gap-1 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+                        <div>
+                          <strong className="text-slate-700 dark:text-slate-300">Aluno:</strong> {studentName} ({studentEmail}) · {phoneNumber}
+                        </div>
+                        <div>
+                          <strong className="text-slate-700 dark:text-slate-300">Entrega:</strong>{' '}
+                          {deliveryType === 'shipping'
+                            ? `Envio CTT (${shippingAddress}, ${shippingPostalCode} ${shippingCounty}, ${shippingDistrict})`
+                            : 'Levantamento no Gabinete NEEI (Gambelas)'}
                         </div>
                       </div>
                     </div>
-                  )}
 
-                  {/* 3. Dados Pessoais do Aluno */}
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Nome Completo *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={studentName}
-                          onChange={(e) => setStudentName(e.target.value)}
-                          placeholder="Teu nome completo"
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Email Institucional ou Pessoal *
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={studentEmail}
-                          onChange={(e) => setStudentEmail(e.target.value)}
-                          placeholder="aXXXXX@ualg.pt"
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Telemóvel *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="912 345 678"
-                        className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                    {/* Widget Oficial de Pagamento Stripe */}
+                    {stripeClientSecret && stripePublishableKey && activeOrderId ? (
+                      <StripePaymentWidget
+                        clientSecret={stripeClientSecret}
+                        publishableKey={stripePublishableKey}
+                        orderId={activeOrderId}
+                        totalAmount={stripeTotalAmount}
+                        isSandbox={stripeIsSandbox}
+                        onSuccess={handlePaymentSuccess}
+                        onError={handlePaymentError}
                       />
-                      <span className="text-[10px] text-slate-500 block mt-1">
-                        Enviaremos o pedido de pagamento para este número.
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Resumo de Valores */}
-                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                    <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                      <span>Sweat Oficial ({selectedSize})</span>
-                      <span>{campaign.item_price.toFixed(2)}€</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                      <span>
-                        Portes:{' '}
-                        {deliveryType === 'shipping'
-                          ? 'Envio CTT Nacional'
-                          : 'Levantamento no Gabinete'}
-                      </span>
-                      <span>
-                        {deliveryType === 'shipping'
-                          ? `${campaign.shipping_fee.toFixed(2)}€`
-                          : 'Grátis'}
-                      </span>
-                    </div>
-                    <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
-                      <span>Total</span>
-                      <span className="text-xl font-black text-cyan-600 dark:text-cyan-400">
-                        {totalPrice.toFixed(2)}€
-                      </span>
-                    </div>
-                  </div>
-
-                  {formError && (
-                    <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-                      <AlertCircle size={16} className="flex-shrink-0" />
-                      <span>{formError}</span>
-                    </div>
-                  )}
-
-                  {/* Botão de Submissão — Passo 1 */}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full py-3.5 px-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        <span>A criar pedido de pagamento...</span>
-                      </>
                     ) : (
-                      <>
-                        <ArrowRight size={18} />
-                        <span>Continuar para Pagamento · {totalPrice.toFixed(2)}€</span>
-                      </>
+                      <div className="p-8 text-center text-slate-400 space-y-3">
+                        <Loader2 size={24} className="animate-spin mx-auto text-cyan-500" />
+                        <p className="text-xs">A carregar formulário de pagamento seguro...</p>
+                      </div>
                     )}
-                  </button>
-                </form>
-              )}
 
-              {/* Passo 2 — Widget de Pagamento Stripe */}
-              {checkoutStep === 2 && stripeClientSecret && stripePublishableKey && (
-                <div className="space-y-4">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutStep(1)}
-                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer mb-2"
-                  >
-                    <ChevronLeft size={14} /> Voltar aos dados
-                  </button>
-
-                  {/* Resumo compacto do pedido */}
-                  <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-sm">
-                    <div className="text-slate-800 dark:text-slate-200">
-                      <span className="font-bold text-slate-900 dark:text-white">Sweat {selectedSize}</span>
-                      <span className="text-slate-400 dark:text-slate-600 mx-2">·</span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400">{deliveryType === 'shipping' ? 'Envio CTT' : 'Levantamento Gambelas'}</span>
+                    {/* Botão inferior para voltar atrás a qualquer momento */}
+                    <div className="pt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCheckoutStep(1);
+                          setFormError(null);
+                        }}
+                        className="text-xs text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <ChevronLeft size={13} />
+                        <span>Desejas alterar o tamanho ou a morada? Clica aqui para voltar atrás</span>
+                      </button>
                     </div>
-                    <span className="font-black text-cyan-600 dark:text-cyan-400 text-base">{stripeTotalAmount.toFixed(2)}€</span>
                   </div>
-
-                  <StripePaymentWidget
-                    clientSecret={stripeClientSecret}
-                    publishableKey={stripePublishableKey}
-                    orderId={activeOrderId!}
-                    totalAmount={stripeTotalAmount}
-                    isSandbox={stripeIsSandbox}
-                    onSuccess={handlePaymentSuccess}
-                    onError={handlePaymentError}
-                  />
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
           </Portal>
         )}
 
@@ -1053,70 +1294,70 @@ export const Shop: React.FC = () => {
           <Portal>
             <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-              <button
-                type="button"
-                onClick={() => setIsSizeGuideOpen(false)}
-                className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
-              >
-                <X size={20} />
-              </button>
-
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                <Ruler className="text-cyan-500" size={22} />
-                Guia de Tamanhos (cm)
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                Medidas aproximadas com a peça esticada numa superfície plana.
-              </p>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                      <th className="py-2.5 px-3">Tamanho</th>
-                      <th className="py-2.5 px-3">Peito (A)</th>
-                      <th className="py-2.5 px-3">Comprimento (B)</th>
-                      <th className="py-2.5 px-3">Manga (C)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                    {Object.entries(SIZE_GUIDE).map(([sz, dims]) => (
-                      <tr
-                        key={sz}
-                        className={
-                          selectedSize === sz
-                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                        }
-                      >
-                        <td className="py-2 px-3 flex items-center gap-1.5">
-                          <span>{sz}</span>
-                          {selectedSize === sz && (
-                            <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
-                              Escolhido
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3">{dims.chest} cm</td>
-                        <td className="py-2 px-3">{dims.length} cm</td>
-                        <td className="py-2 px-3">{dims.sleeve} cm</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setIsSizeGuideOpen(false)}
-                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-colors cursor-pointer"
+                  className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
                 >
-                  Entendido
+                  <X size={20} />
                 </button>
+
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                  <Ruler className="text-cyan-500" size={22} />
+                  Guia de Tamanhos (cm)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                  Medidas aproximadas com a peça esticada numa superfície plana.
+                </p>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                        <th className="py-2.5 px-3">Tamanho</th>
+                        <th className="py-2.5 px-3">Peito (A)</th>
+                        <th className="py-2.5 px-3">Comprimento (B)</th>
+                        <th className="py-2.5 px-3">Manga (C)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                      {Object.entries(SIZE_GUIDE).map(([sz, dims]) => (
+                        <tr
+                          key={sz}
+                          className={
+                            selectedSize === sz
+                              ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
+                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          }
+                        >
+                          <td className="py-2 px-3 flex items-center gap-1.5">
+                            <span>{sz}</span>
+                            {selectedSize === sz && (
+                              <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
+                                Escolhido
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3">{dims.chest} cm</td>
+                          <td className="py-2 px-3">{dims.length} cm</td>
+                          <td className="py-2 px-3">{dims.sleeve} cm</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsSizeGuideOpen(false)}
+                    className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-colors cursor-pointer"
+                  >
+                    Entendido
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           </Portal>
         )}
 
@@ -1125,205 +1366,222 @@ export const Shop: React.FC = () => {
           <Portal>
             <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
               <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl shadow-cyan-950/50 text-center relative my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-              {paymentStatus === 'waiting_payment' && (
-                <div>
-                  <div className="w-16 h-16 bg-cyan-500/20 border-2 border-cyan-500 rounded-full flex items-center justify-center mx-auto mb-5 text-cyan-400 animate-pulse">
-                    <Smartphone size={32} />
-                  </div>
-
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 text-xs font-semibold mb-3 border border-cyan-800">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>À espera
-                    de autorização
-                  </div>
-
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    Abre a tua app <span className="text-[#309b42] font-black">MB WAY</span>
-                  </h3>
-                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    Enviámos uma notificação para o teu telemóvel (
-                    <strong className="text-white">{phoneNumber}</strong>) no valor de{' '}
-                    <strong className="text-cyan-300 text-base">{totalPrice.toFixed(2)}€</strong>.
-                    Autoriza na app para confirmar a tua sweat!
-                  </p>
-
-                  <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 mb-6 flex items-center justify-around">
-                    <div>
-                      <span className="text-xs text-slate-400 block">Tempo restante</span>
-                      <span className="text-2xl font-mono font-bold text-amber-400">
-                        {formatTime(paymentTimeRemaining)}
-                      </span>
+                {paymentStatus === 'waiting_payment' && (
+                  <div>
+                    <div className="w-16 h-16 bg-cyan-500/20 border-2 border-cyan-500 rounded-full flex items-center justify-center mx-auto mb-5 text-cyan-400 animate-pulse">
+                      <Smartphone size={32} />
                     </div>
-                    <div className="h-8 w-px bg-slate-800"></div>
-                    <div>
-                      <span className="text-xs text-slate-400 block">Nº Encomenda</span>
-                      <span className="text-sm font-mono font-semibold text-slate-200">
-                        {activeOrderId}
-                      </span>
-                    </div>
-                  </div>
 
-                  {/* Sandbox helper */}
-                  {isSandbox && (
-                    <div className="mb-5 p-3.5 bg-amber-950/50 border border-amber-500/40 rounded-xl text-left">
-                      <div className="flex items-center gap-2 text-amber-300 font-semibold text-xs mb-1">
-                        <Sparkles size={14} /> Modo de Testes / Sandbox
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950 text-cyan-300 text-xs font-semibold mb-3 border border-cyan-800">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>À espera
+                      de autorização
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Abre a tua app <span className="text-[#309b42] font-black">MB WAY</span>
+                    </h3>
+                    <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                      Enviámos uma notificação para o teu telemóvel (
+                      <strong className="text-white">{phoneNumber}</strong>) no valor de{' '}
+                      <strong className="text-cyan-300 text-base">{totalPrice.toFixed(2)}€</strong>.
+                      Autoriza na app para confirmar a tua sweat!
+                    </p>
+
+                    <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 mb-6 flex items-center justify-around">
+                      <div>
+                        <span className="text-xs text-slate-400 block">Tempo restante</span>
+                        <span className="text-2xl font-mono font-bold text-amber-400">
+                          {formatTime(paymentTimeRemaining)}
+                        </span>
                       </div>
-                      <p className="text-xs text-amber-200/80 mb-2">
-                        Em ambiente de testes (as notificações reais só ocorrem com chaves live), podes simular a aprovação instantânea:
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleSimulatePayment}
-                        disabled={simulating}
-                        className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
-                      >
-                        {simulating ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          '⚡ Simular Aprovação no Telemóvel'
-                        )}
-                      </button>
+                      <div className="h-8 w-px bg-slate-800"></div>
+                      <div>
+                        <span className="text-xs text-slate-400 block">Nº Encomenda</span>
+                        <span className="text-sm font-mono font-semibold text-slate-200">
+                          {activeOrderId}
+                        </span>
+                      </div>
                     </div>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        confirm(
-                          'Tens a certeza que queres fechar este ecrã? A tua encomenda continuará a aguardar pagamento.'
-                        )
-                      ) {
+                    {/* Sandbox helper */}
+                    {isSandbox && (
+                      <div className="mb-5 p-3.5 bg-amber-950/50 border border-amber-500/40 rounded-xl text-left">
+                        <div className="flex items-center gap-2 text-amber-300 font-semibold text-xs mb-1">
+                          <Shirt size={14} /> Modo de Testes / Sandbox
+                        </div>
+                        <p className="text-xs text-amber-200/80 mb-2">
+                          Em ambiente de testes (as notificações reais só ocorrem com chaves live), podes simular a aprovação instantânea:
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleSimulatePayment}
+                          disabled={simulating}
+                          className="w-full py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow cursor-pointer"
+                        >
+                          {simulating ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            '⚡ Simular Aprovação no Telemóvel'
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            'Tens a certeza que queres fechar este ecrã? A tua encomenda continuará a aguardar pagamento.'
+                          )
+                        ) {
+                          setPaymentStatus('idle');
+                          setIsCheckoutOpen(false);
+                        }
+                      }}
+                      className="text-xs text-slate-400 hover:text-white transition-colors underline cursor-pointer"
+                    >
+                      Fechar e verificar mais tarde
+                    </button>
+                  </div>
+                )}
+
+                {paymentStatus === 'paid' && (() => {
+                  const displayBuyerName = confirmedOrderDetails?.studentName || studentName || 'Colega';
+                  const displayBuyerEmail = confirmedOrderDetails?.studentEmail || studentEmail;
+                  const displaySize = confirmedOrderDetails?.size || selectedSize;
+                  const displayDeliveryType = confirmedOrderDetails?.deliveryType || deliveryType;
+                  const displayAddress = confirmedOrderDetails?.shippingAddress || (deliveryType === 'shipping' ? shippingAddress : '');
+                  const displayPostal = confirmedOrderDetails?.shippingPostalCode || (deliveryType === 'shipping' ? shippingPostalCode : '');
+                  const displayCity = confirmedOrderDetails?.shippingCity || (deliveryType === 'shipping' ? `${shippingCounty}, ${shippingDistrict}` : '');
+
+                  return (
+                    <div>
+                      <div className="w-16 h-16 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-5 text-emerald-400">
+                        <CheckCircle2 size={36} />
+                      </div>
+
+                      <h3 className="text-2xl font-bold text-white mb-2">
+                        Encomenda Confirmada com Sucesso!
+                      </h3>
+                      <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                        Muito obrigado, <strong className="text-white">{displayBuyerName}</strong>! O teu
+                        pagamento foi recebido e a tua sweat de tamanho{' '}
+                        <strong className="text-cyan-300">{displaySize}</strong> já está reservada para
+                        produção.
+                      </p>
+
+                      <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 text-left mb-6 space-y-2">
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Nº de Encomenda:</span>
+                          <button
+                            type="button"
+                            onClick={copyOrderId}
+                            className="font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            {activeOrderId}
+                            {copiedOrderId ? <Check size={13} /> : <Copy size={13} />}
+                          </button>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Email de Confirmação:</span>
+                          <span className="text-slate-200 font-medium">{displayBuyerEmail}</span>
+                        </div>
+                        <div className="flex justify-between items-start text-xs text-slate-400">
+                          <span>Modalidade de Entrega:</span>
+                          <div className="text-right">
+                            <span className="text-slate-200 font-semibold block">
+                              {displayDeliveryType === 'shipping'
+                                ? 'Envio CTT Nacional'
+                                : 'Levantamento no Gabinete NEEI'}
+                            </span>
+                            {displayDeliveryType === 'shipping' && (displayAddress || displayCity) && (
+                              <span className="text-[11px] text-slate-400 block mt-0.5 max-w-[240px] truncate">
+                                {[displayAddress, displayPostal, displayCity].filter(Boolean).join(', ')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl text-left text-xs text-cyan-300 mb-6 flex items-start gap-2">
+                        <Info size={16} className="text-cyan-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          Enviámos um email com todos os detalhes e instruções para{' '}
+                          <strong>{displayBuyerEmail}</strong>. Assim que a sweat estiver pronta na fábrica,
+                          avisaremos por email!
+                        </span>
+                      </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTrackerInitialId(activeOrderId || '');
+                        setIsTrackerOpen(true);
                         setPaymentStatus('idle');
                         setIsCheckoutOpen(false);
-                      }
-                    }}
-                    className="text-xs text-slate-400 hover:text-white transition-colors underline cursor-pointer"
-                  >
-                    Fechar e verificar mais tarde
-                  </button>
-                </div>
-              )}
+                      }}
+                      className="w-full py-2.5 px-4 mb-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <PackageSearch size={16} />
+                      <span>Acompanhar Estado Desta Encomenda</span>
+                    </button>
 
-              {paymentStatus === 'paid' && (
-                <div>
-                  <div className="w-16 h-16 bg-emerald-500/20 border-2 border-emerald-500 rounded-full flex items-center justify-center mx-auto mb-5 text-emerald-400">
-                    <CheckCircle2 size={36} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentStatus('idle');
+                        setIsCheckoutOpen(false);
+                        setActiveOrderId(null);
+                      }}
+                      className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+                    >
+                      Concluir e Voltar ao Merch
+                    </button>
                   </div>
+                );
+              })()}
 
-                  <h3 className="text-2xl font-bold text-white mb-2">
-                    Encomenda Confirmada com Sucesso!
-                  </h3>
-                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    Muito obrigado, <strong className="text-white">{studentName}</strong>! O teu
-                    pagamento foi recebido e a tua sweat de tamanho{' '}
-                    <strong className="text-cyan-300">{selectedSize}</strong> já está reservada para
-                    produção.
-                  </p>
-
-                  <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 text-left mb-6 space-y-2">
-                    <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>Nº de Encomenda:</span>
-                      <button
-                        type="button"
-                        onClick={copyOrderId}
-                        className="font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold cursor-pointer"
-                      >
-                        {activeOrderId}
-                        {copiedOrderId ? <Check size={13} /> : <Copy size={13} />}
-                      </button>
+                {paymentStatus === 'expired' && (
+                  <div>
+                    <div className="w-16 h-16 bg-amber-500/20 border-2 border-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 text-amber-400">
+                      <Clock size={36} />
                     </div>
-                    <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>Email de Confirmação:</span>
-                      <span className="text-slate-200 font-medium">{studentEmail}</span>
+                    <h3 className="text-2xl font-bold text-white mb-2">Tempo Limite Expirado</h3>
+                    <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                      O pedido de pagamento de 5 minutos expirou sem aprovação. Não te
+                      preocupes, podes tentar de novo!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatus('idle')}
+                      className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                )}
+
+                {paymentStatus === 'failed' && (
+                  <div>
+                    <div className="w-16 h-16 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center mx-auto mb-5 text-red-400">
+                      <AlertCircle size={36} />
                     </div>
-                    <div className="flex justify-between items-center text-xs text-slate-400">
-                      <span>Modalidade de Entrega:</span>
-                      <span className="text-slate-200 font-medium">
-                        {deliveryType === 'shipping'
-                          ? 'Envio CTT Nacional'
-                          : 'Levantamento no Gabinete NEEI'}
-                      </span>
-                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Pagamento Não Concluído</h3>
+                    <p className="text-slate-300 text-sm mb-6 leading-relaxed">
+                      A transação foi recusada ou cancelada na aplicação MB WAY.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentStatus('idle')}
+                      className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+                    >
+                      Tentar Novamente
+                    </button>
                   </div>
-
-                  <div className="p-3 bg-cyan-950/50 border border-cyan-800/60 rounded-xl text-left text-xs text-cyan-300 mb-6 flex items-start gap-2">
-                    <Info size={16} className="text-cyan-400 flex-shrink-0 mt-0.5" />
-                    <span>
-                      Enviámos um email com todos os detalhes e instruções para{' '}
-                      <strong>{studentEmail}</strong>. Assim que a sweat estiver pronta na fábrica,
-                      avisaremos por email!
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTrackerInitialId(activeOrderId || '');
-                      setIsTrackerOpen(true);
-                      setPaymentStatus('idle');
-                      setIsCheckoutOpen(false);
-                    }}
-                    className="w-full py-2.5 px-4 mb-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <PackageSearch size={16} />
-                    <span>Acompanhar Estado Desta Encomenda</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentStatus('idle');
-                      setIsCheckoutOpen(false);
-                      setActiveOrderId(null);
-                    }}
-                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
-                  >
-                    Concluir e Voltar ao Merch
-                  </button>
-                </div>
-              )}
-
-              {paymentStatus === 'expired' && (
-                <div>
-                  <div className="w-16 h-16 bg-amber-500/20 border-2 border-amber-500 rounded-full flex items-center justify-center mx-auto mb-5 text-amber-400">
-                    <Clock size={36} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Tempo Limite Expirado</h3>
-                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    O pedido de pagamento de 5 minutos expirou sem aprovação. Não te
-                    preocupes, podes tentar de novo!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentStatus('idle')}
-                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
-                  >
-                    Tentar Novamente
-                  </button>
-                </div>
-              )}
-
-              {paymentStatus === 'failed' && (
-                <div>
-                  <div className="w-16 h-16 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center mx-auto mb-5 text-red-400">
-                    <AlertCircle size={36} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Pagamento Não Concluído</h3>
-                  <p className="text-slate-300 text-sm mb-6 leading-relaxed">
-                    A transação foi recusada ou cancelada na aplicação MB WAY.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentStatus('idle')}
-                    className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
-                  >
-                    Tentar Novamente
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
           </Portal>
         )}
 
