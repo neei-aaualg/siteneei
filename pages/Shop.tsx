@@ -205,7 +205,7 @@ export const Shop: React.FC = () => {
             setConfirmedOrderDetails(parsed);
           }
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // 2. Confirma e regista a encomenda na BD caso o webhook ainda não tenha chegado
       confirmPayment({
@@ -243,7 +243,7 @@ export const Shop: React.FC = () => {
                 totalAmount: st.totalAmount || prev?.totalAmount,
               }));
             })
-            .catch(() => {});
+            .catch(() => { });
         });
 
       // Limpa os parâmetros da URL sem recarregar
@@ -481,7 +481,7 @@ export const Shop: React.FC = () => {
       setConfirmedOrderDetails(orderDataToSave);
       try {
         sessionStorage.setItem('neei_last_order', JSON.stringify(orderDataToSave));
-      } catch (_) {}
+      } catch (_) { }
 
       setActiveOrderId(res.orderId);
       setStripeClientSecret(res.clientSecret);
@@ -1147,9 +1147,6 @@ export const Shop: React.FC = () => {
                           placeholder="912345678"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
                         />
-                        <span className="text-[10px] text-slate-500 block mt-1">
-                          Apenas números. Se pagares por MB WAY, a notificação será enviada para este número.
-                        </span>
                       </div>
                     </div>
 
@@ -1513,34 +1510,34 @@ export const Shop: React.FC = () => {
                         </span>
                       </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTrackerInitialId(activeOrderId || '');
-                        setIsTrackerOpen(true);
-                        setPaymentStatus('idle');
-                        setIsCheckoutOpen(false);
-                      }}
-                      className="w-full py-2.5 px-4 mb-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                    >
-                      <PackageSearch size={16} />
-                      <span>Acompanhar Estado Desta Encomenda</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTrackerInitialId(activeOrderId || '');
+                          setIsTrackerOpen(true);
+                          setPaymentStatus('idle');
+                          setIsCheckoutOpen(false);
+                        }}
+                        className="w-full py-2.5 px-4 mb-2.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                      >
+                        <PackageSearch size={16} />
+                        <span>Acompanhar Estado Desta Encomenda</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentStatus('idle');
-                        setIsCheckoutOpen(false);
-                        setActiveOrderId(null);
-                      }}
-                      className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
-                    >
-                      Concluir e Voltar ao Merch
-                    </button>
-                  </div>
-                );
-              })()}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPaymentStatus('idle');
+                          setIsCheckoutOpen(false);
+                          setActiveOrderId(null);
+                        }}
+                        className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-all shadow-md cursor-pointer"
+                      >
+                        Concluir e Voltar ao Merch
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {paymentStatus === 'expired' && (
                   <div>
