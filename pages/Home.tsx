@@ -191,6 +191,18 @@ const InteractiveTerminal: React.FC = () => {
 const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
+      icon: <Calendar className="text-accent-200" size={32} />,
+      title: 'Apresentação do Calendário de Atividades',
+      desc: 'Apresentação oficial do calendário de atividades, workshops e convívios planeados para os estudantes.',
+      date: 'Set 2026',
+    },
+    {
+      icon: <Shirt className="text-accent-200" size={32} />,
+      title: 'Apresentação do Calendário de Sweats',
+      desc: 'Apresentação do calendário de pré-encomenda e fases de entrega das sweats oficiais do curso.',
+      date: 'Set 2026',
+    },
+    {
       icon: <Code className="text-accent-200" size={32} />,
       title: 'Apresentação do NEEI-Box e update do site',
       desc: 'A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.',
