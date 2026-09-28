@@ -38,6 +38,7 @@ import { AdminShopPanel } from '../components/admin/AdminShopPanel';
 import { AdminActivityWithRegistrations, ActivityStatus } from '../types/activities';
 import { CollaboratorApplication, CollaboratorStatus } from '../types/collaborators';
 import { JobOffer, JobStatus } from '../types/jobs';
+import { Portal } from '../components/Portal';
 import { formatDateDDMMAAAA, formatDateTimeDDMMAAAA } from '../utils/dateHelpers';
 import {
   adminLogin,
@@ -736,11 +737,10 @@ export const Admin: React.FC = () => {
               setActiveTab('activities');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'activities'
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'activities'
                 ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
                 : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             <Calendar size={18} />
             <span>Atividades & Inscrições ({activities.length})</span>
@@ -751,11 +751,10 @@ export const Admin: React.FC = () => {
               setActiveTab('collaborators');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'collaborators'
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'collaborators'
                 ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
                 : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             <UserPlus size={18} />
             <span>Pedidos de Colaborador</span>
@@ -775,11 +774,10 @@ export const Admin: React.FC = () => {
               setActiveTab('jobs');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'jobs'
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'jobs'
                 ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
                 : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             <Briefcase size={18} />
             <span>Vagas & Oportunidades</span>
@@ -799,11 +797,10 @@ export const Admin: React.FC = () => {
               setActiveTab('shop');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'shop'
+            className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'shop'
                 ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
                 : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
-            }`}
+              }`}
           >
             <ShoppingBag size={18} />
             <span>Sweats & Loja</span>
@@ -900,11 +897,10 @@ export const Admin: React.FC = () => {
                   return (
                     <div
                       key={activity.id}
-                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
-                        activity.status === 'ongoing'
+                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
                           ? 'border-emerald-500/40 dark:border-emerald-500/30'
                           : 'border-gray-200 dark:border-cyan-950/60'
-                      }`}
+                        }`}
                     >
                       {/* Cabeçalho do Card da Atividade */}
                       <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -914,13 +910,12 @@ export const Admin: React.FC = () => {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                                activity.status === 'ongoing'
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                                   : activity.status === 'upcoming'
                                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
                                     : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
-                              }`}
+                                }`}
                             >
                               {activity.status === 'ongoing'
                                 ? '● A Decorrer'
@@ -967,21 +962,19 @@ export const Admin: React.FC = () => {
                           <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                             <button
                               onClick={() => handleToggleStatus(activity, 'ongoing')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                                activity.status === 'ongoing'
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
                                   ? 'bg-emerald-600 text-white shadow-sm'
                                   : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                              }`}
+                                }`}
                             >
                               A Decorrer
                             </button>
                             <button
                               onClick={() => handleToggleStatus(activity, 'upcoming')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                                activity.status === 'upcoming'
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
                                   ? 'bg-blue-600 text-white shadow-sm'
                                   : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                              }`}
+                                }`}
                             >
                               Futura
                             </button>
@@ -1234,11 +1227,10 @@ export const Admin: React.FC = () => {
                       <button
                         key={st}
                         onClick={() => setCollabFilterStatus(st)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                          isSelected
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
                             ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
                             : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                        }`}
+                          }`}
                       >
                         {label} ({count})
                       </button>
@@ -1298,9 +1290,9 @@ export const Admin: React.FC = () => {
                   const isUpdating = updatingCollabId === collab.id;
                   const areasList = collab.areas_of_interest
                     ? collab.areas_of_interest
-                        .split(',')
-                        .map((s) => s.trim())
-                        .filter(Boolean)
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
                     : [];
 
                   return (
@@ -1339,11 +1331,10 @@ export const Admin: React.FC = () => {
                                     key={st}
                                     disabled={isUpdating}
                                     onClick={() => handleUpdateCollabStatus(collab.id, st)}
-                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${
-                                      isCurrent
+                                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
                                         ? getCollabStatusBadgeClass(st)
                                         : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
-                                    }`}
+                                      }`}
                                   >
                                     {isCurrent && isUpdating ? (
                                       <Loader2 size={12} className="animate-spin inline mr-1" />
@@ -1498,11 +1489,10 @@ export const Admin: React.FC = () => {
                     <button
                       key={st}
                       onClick={() => setJobFilterStatus(st as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                        isSelected
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
                           ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
                           : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                      }`}
+                        }`}
                     >
                       {label} ({count})
                     </button>
@@ -1605,11 +1595,10 @@ export const Admin: React.FC = () => {
                                   key={st}
                                   disabled={isUpdating}
                                   onClick={() => handleUpdateJobStatus(job.id, st)}
-                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${
-                                    isCurrent
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
                                       ? getJobStatusBadgeClass(st)
                                       : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
-                                  }`}
+                                    }`}
                                 >
                                   {isCurrent && isUpdating ? (
                                     <Loader2 size={12} className="animate-spin inline mr-1" />
@@ -1725,7 +1714,8 @@ export const Admin: React.FC = () => {
 
       {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO DE INSCRIÇÃO */}
       {confirmDeleteReg && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-amber-500">
               <AlertCircle size={24} />
@@ -1758,11 +1748,13 @@ export const Admin: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO DE ATIVIDADE */}
       {confirmDeleteAct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
@@ -1790,11 +1782,13 @@ export const Admin: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO DE CANDIDATURA DE COLABORADOR */}
       {confirmDeleteCollab && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
@@ -1823,11 +1817,13 @@ export const Admin: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL DE CONFIRMAÇÃO DE ELIMINAÇÃO DE OFERTA DE VAGA */}
       {confirmDeleteJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-red-500">
               <AlertCircle size={24} />
@@ -1858,11 +1854,13 @@ export const Admin: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
 
       {/* MODAL DE CRIAR/EDITAR ATIVIDADE (SEM TAGS) */}
       {isActivityModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+        <Portal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
           <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-cyan-900/60 p-6 sm:p-8 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
               <h3 className="text-xl font-bold text-text-100 dark:text-white">
@@ -2026,6 +2024,7 @@ export const Admin: React.FC = () => {
             </form>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

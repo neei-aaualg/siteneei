@@ -22,6 +22,7 @@ import {
 import { OrderStatusResponse, OrderStatus, DeliveryType } from '../types/shop';
 import { fetchOrderStatus } from '../services/shopService';
 import { formatDateTimeDDMMAAAA } from '../utils/dateHelpers';
+import { Portal } from './Portal';
 
 interface OrderTrackerModalProps {
   isOpen: boolean;
@@ -233,7 +234,8 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
   const badge = order ? getStatusBadge(order.orderStatus, order.paymentStatus) : null;
 
   return (
-    <div
+    <Portal>
+      <div
       id="order-tracker-modal"
       className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200"
       onClick={(e) => {
@@ -510,5 +512,6 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
         )}
       </div>
     </div>
+    </Portal>
   );
 };

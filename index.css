@@ -3,15 +3,18 @@
 
 /* Print Optimization */
 @media print {
+
   header,
   footer,
   .print\:hidden {
     display: none !important;
   }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
   }
+
   @page {
     margin: 1cm;
     size: auto;
@@ -24,6 +27,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -135,24 +139,26 @@ html.theme-transition *::after {
     opacity: 0;
     transform: translateY(8px);
   }
+
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .page-transition {
-  animation: pageEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  animation: pageEnter 0.26s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes routeProgress {
   0% {
     transform: translateX(-100%);
   }
+
   60% {
     transform: translateX(-15%);
   }
+
   100% {
     transform: translateX(0%);
     opacity: 0;
@@ -164,6 +170,7 @@ html.theme-transition *::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .page-transition,
   .animate-route-progress {
     animation: none !important;

@@ -28,6 +28,7 @@ import {
   getCalendarDayMonth,
 } from '../utils/dateHelpers';
 import CalendarDropdown from '../components/CalendarDropdown';
+import { Portal } from '../components/Portal';
 
 export const Events: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -405,11 +406,10 @@ export const Events: React.FC = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedCategory('all')}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                        selectedCategory === 'all'
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === 'all'
                           ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
                           : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                      }`}
+                        }`}
                     >
                       Todas ({upcomingActivities.length})
                     </button>
@@ -417,11 +417,10 @@ export const Events: React.FC = () => {
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                          selectedCategory === cat
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${selectedCategory === cat
                             ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 shadow-sm'
                             : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
-                        }`}
+                          }`}
                       >
                         {cat}
                       </button>
@@ -530,15 +529,17 @@ export const Events: React.FC = () => {
 
       {/* MODAL DE INSCRIÇÃO */}
       {selectedActivity && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
-          role="dialog"
-          aria-modal="true"
-        >
+        <Portal>
           <div
-            className="bg-white dark:bg-[#0c1724] rounded-3xl border border-gray-200 dark:border-cyan-900/60 shadow-2xl w-full max-w-lg overflow-hidden transition-all transform animate-scaleUp"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            onClick={closeRegisterModal}
           >
+            <div
+              className="bg-white dark:bg-[#0c1724] rounded-3xl border border-gray-200 dark:border-cyan-900/60 shadow-2xl w-full max-w-lg my-auto max-h-[90vh] overflow-y-auto transition-all transform animate-scaleUp"
+              onClick={(e) => e.stopPropagation()}
+            >
             {/* Modal Header */}
             <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-start justify-between gap-4">
               <div>
@@ -645,13 +646,12 @@ export const Events: React.FC = () => {
                           setStudentNumber(e.target.value);
                           if (formError) setFormError(null);
                         }}
-                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
-                          studentNumber && !isStudentNumberValid(studentNumber)
+                        className={`w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border text-sm text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${studentNumber && !isStudentNumberValid(studentNumber)
                             ? 'border-amber-400 focus:ring-amber-400/20'
                             : studentNumber && isStudentNumberValid(studentNumber)
                               ? 'border-emerald-500 focus:ring-emerald-500/20'
                               : 'border-gray-200 dark:border-slate-700 focus:ring-accent-200/30 dark:focus:ring-cyan-500/30'
-                        }`}
+                          }`}
                         required
                       />
                       {studentNumber && isStudentNumberValid(studentNumber) && (
@@ -704,6 +704,7 @@ export const Events: React.FC = () => {
             </div>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

@@ -41,6 +41,7 @@ import {
 import { getStoredAdminToken, setStoredAdminToken } from '../services/activitiesService';
 import { StripePaymentWidget } from '../components/StripePaymentWidget';
 import { OrderTrackerModal } from '../components/OrderTrackerModal';
+import { Portal } from '../components/Portal';
 
 // Tabela do Guia de Medidas (em centímetros)
 const SIZE_GUIDE: Record<
@@ -175,7 +176,7 @@ export const Shop: React.FC = () => {
       confirmPayment({
         orderId,
         paymentIntentId: paymentIntentId || undefined,
-      }).catch(() => {});
+      }).catch(() => { });
       // Limpa os parâmetros da URL sem recarregar
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
@@ -722,7 +723,8 @@ export const Shop: React.FC = () => {
 
         {/* Modal / Ecrã de Checkout (Pré-encomenda da Sweat) */}
         {isCheckoutOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <Portal>
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
             <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200">
               {/* Botão Fechar */}
               <button
@@ -1043,12 +1045,14 @@ export const Shop: React.FC = () => {
               )}
             </div>
           </div>
+          </Portal>
         )}
 
         {/* Modal Guia de Medidas */}
         {isSizeGuideOpen && (
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+          <Portal>
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
               <button
                 type="button"
                 onClick={() => setIsSizeGuideOpen(false)}
@@ -1113,12 +1117,14 @@ export const Shop: React.FC = () => {
               </div>
             </div>
           </div>
+          </Portal>
         )}
 
         {/* Ecrã de Pagamento Ativo (Modal / Overlay em foco) */}
         {paymentStatus !== 'idle' && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl shadow-cyan-950/50 text-center relative animate-in fade-in zoom-in-95 duration-200">
+          <Portal>
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-slate-900 border border-cyan-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl shadow-cyan-950/50 text-center relative my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
               {paymentStatus === 'waiting_payment' && (
                 <div>
                   <div className="w-16 h-16 bg-cyan-500/20 border-2 border-cyan-500 rounded-full flex items-center justify-center mx-auto mb-5 text-cyan-400 animate-pulse">
@@ -1318,6 +1324,7 @@ export const Shop: React.FC = () => {
               )}
             </div>
           </div>
+          </Portal>
         )}
 
         {/* Ferramenta Modal de Rastreio de Encomenda */}
