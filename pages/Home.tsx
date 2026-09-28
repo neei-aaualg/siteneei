@@ -191,15 +191,15 @@ const InteractiveTerminal: React.FC = () => {
 const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
-      icon: <Calendar className="text-accent-200" size={32} />,
-      title: 'Apresentação do Calendário de Atividades',
-      desc: 'Apresentação oficial do calendário de atividades, workshops e convívios planeados para os estudantes.',
+      icon: <Shirt className="text-accent-200" size={32} />,
+      title: 'Apresentação do Calendário de Sweats',
+      desc: 'Apresentação do calendário de concurso e encomenda das sweats do curso.',
       date: 'Set 2026',
     },
     {
-      icon: <Shirt className="text-accent-200" size={32} />,
-      title: 'Apresentação do Calendário de Sweats',
-      desc: 'Apresentação do calendário de pré-encomenda e fases de entrega das sweats oficiais do curso.',
+      icon: <Calendar className="text-accent-200" size={32} />,
+      title: 'Apresentação do Calendário de Atividades',
+      desc: 'Apresentação do calendário oficial de atividades planeados para os estudantes.',
       date: 'Set 2026',
     },
     {
@@ -529,9 +529,8 @@ const HighlightsCarousel: React.FC = () => {
                 <div
                   key={pageIdx}
                   style={{ width: containerWidth > 0 ? `${containerWidth}px` : '100%' }}
-                  className={`flex-shrink-0 px-1 sm:px-1 ${
-                    isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
-                  }`}
+                  className={`flex-shrink-0 px-1 sm:px-1 ${isMobile ? 'flex justify-center' : 'grid grid-cols-3 gap-6'
+                    }`}
                 >
                   {pageItems.map((item, i) => (
                     <div
@@ -570,11 +569,10 @@ const HighlightsCarousel: React.FC = () => {
             <button
               key={idx}
               onClick={() => goToPage(idx)}
-              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                currentPage === idx
-                  ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
-                  : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
-              }`}
+              className={`h-2 sm:h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentPage === idx
+                ? 'w-6 sm:w-8 bg-accent-200 dark:bg-cyan-400'
+                : 'w-2 sm:w-2.5 bg-primary-200 dark:bg-slate-700 hover:bg-accent-100 dark:hover:bg-cyan-600'
+                }`}
               aria-label={`Ir para página ${idx + 1}`}
             />
           ))}
