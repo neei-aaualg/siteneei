@@ -490,31 +490,68 @@ export function isDateInCurrentWeek(dateStr) {
 }
 
 /**
- * Sincroniza automaticamente para 'ongoing' quaisquer atividades agendadas para a semana corrente
+ * Verifica se já passou 1 dia em relação ao dia de execução da atividade.
+ * Considera-se que passou 1 dia a partir do início do dia seguinte à execução
+ * (ex.: evento a 2026-09-28 -> passa a concluída a 2026-09-29 às 00:00:00).
  */
-export function syncActivitiesWeeklyStatus() {
+export function hasPassedOneDayAfterExecution(dateStr, referenceDate = new Date()) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const cleanDate = dateStr.trim();
+  let isoDate = cleanDate;
+  if (/^\d{2}-\d{2}-\d{4}$/.test(cleanDate)) {
+    const [d, m, y] = cleanDate.split('-');
+    isoDate = `${y}-${m}-${d}`;
+  }
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+
+  const year = parseInt(match[1], 10);
+  const monthIndex = parseInt(match[2], 10) - 1;
+  const day = parseInt(match[3], 10);
+
+  // Início do dia seguinte ao dia de execução
+  const nextDayStart = new Date(year, monthIndex, day + 1, 0, 0, 0, 0);
+  if (isNaN(nextDayStart.getTime())) return false;
+
+  const ref = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+  return ref >= nextDayStart;
+}
+
+/**
+ * Sincroniza automaticamente os estados das atividades:
+ * - Passa para 'completed' se já tiver passado 1 dia do dia de execução
+ * - Passa para 'ongoing' se estiver como 'upcoming' e agendada para a semana corrente (sem ter passado 1 dia)
+ */
+export function syncActivitiesWeeklyStatus(referenceDate = new Date()) {
   try {
-    const upcoming = db.prepare("SELECT id, date FROM activities WHERE status = 'upcoming'").all();
-    const updateStmt = db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?");
+    const active = db
+      .prepare("SELECT id, date, status FROM activities WHERE status IN ('ongoing', 'upcoming')")
+      .all();
+    const updateCompletedStmt = db.prepare("UPDATE activities SET status = 'completed' WHERE id = ?");
+    const updateOngoingStmt = db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?");
+
     let changed = 0;
-    for (const act of upcoming) {
-      if (isDateInCurrentWeek(act.date)) {
-        updateStmt.run(act.id);
+    for (const act of active) {
+      if (hasPassedOneDayAfterExecution(act.date, referenceDate)) {
+        updateCompletedStmt.run(act.id);
+        changed++;
+      } else if (act.status === 'upcoming' && isDateInCurrentWeek(act.date)) {
+        updateOngoingStmt.run(act.id);
         changed++;
       }
     }
     return changed;
   } catch (err) {
-    console.error('Error syncing weekly activities status:', err);
+    console.error('Error syncing activities status:', err);
     return 0;
   }
 }
 
 /**
- * Retorna atividades públicas (ongoing e upcoming) com a contagem de inscrições
+ * Retorna atividades públicas (ongoing, upcoming e completed) com a contagem de inscrições
  */
 export function getPublicActivities() {
-  // Sincroniza automaticamente eventos da semana corrente para 'ongoing'
+  // Sincroniza automaticamente eventos concluídos e eventos da semana corrente
   syncActivitiesWeeklyStatus();
 
   const stmt = db.prepare(`
@@ -523,13 +560,14 @@ export function getPublicActivities() {
       COUNT(r.id) as registrations_count
     FROM activities a
     LEFT JOIN registrations r ON a.id = r.activity_id
-    WHERE a.status IN ('ongoing', 'upcoming')
+    WHERE a.status IN ('ongoing', 'upcoming', 'completed')
     GROUP BY a.id
     ORDER BY 
       CASE a.status
         WHEN 'ongoing' THEN 1
         WHEN 'upcoming' THEN 2
-        ELSE 3
+        WHEN 'completed' THEN 3
+        ELSE 4
       END,
       a.date ASC
   `);
@@ -582,6 +620,17 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
   if (!activity) {
     const err = new Error('Atividade não encontrada');
     err.statusCode = 404;
+    throw err;
+  }
+
+  // Se a atividade já tiver sido realizada (passou 1 dia da execução ou concluída manualmente), atualiza e recusa
+  if (activity.status === 'completed' || hasPassedOneDayAfterExecution(activity.date)) {
+    if (activity.status !== 'completed') {
+      db.prepare("UPDATE activities SET status = 'completed' WHERE id = ?").run(activityId);
+      activity.status = 'completed';
+    }
+    const err = new Error('Esta atividade já foi concluída e não aceita mais inscrições');
+    err.statusCode = 400;
     throw err;
   }
 
@@ -692,8 +741,14 @@ export function saveActivity(data) {
   const existing = existingStmt.get(id);
 
   let finalStatus = data.status || 'upcoming';
-  if (finalStatus === 'upcoming' && isDateInCurrentWeek(data.date)) {
-    finalStatus = 'ongoing';
+  if (!data.status && hasPassedOneDayAfterExecution(data.date)) {
+    finalStatus = 'completed';
+  } else if (finalStatus === 'upcoming') {
+    if (hasPassedOneDayAfterExecution(data.date)) {
+      finalStatus = 'completed';
+    } else if (isDateInCurrentWeek(data.date)) {
+      finalStatus = 'ongoing';
+    }
   }
 
   const openSoon = data.open_soon ? 1 : 0;
@@ -741,7 +796,7 @@ export function saveActivity(data) {
     );
   }
 
-  return { id, ...data, open_soon: openSoon, registration_opens_at: regOpensAt };
+  return { id, ...data, status: finalStatus, open_soon: openSoon, registration_opens_at: regOpensAt };
 }
 
 /**

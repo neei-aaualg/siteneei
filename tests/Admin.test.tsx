@@ -95,4 +95,35 @@ describe('Admin', () => {
     expect(await screen.findByText('Painel de Administração')).toBeInTheDocument();
     expect(fetchAdminActivities).toHaveBeenCalledWith('tok-guardado');
   });
+
+  it('permite alterar o estado de uma atividade para concluída manualmente', async () => {
+    const user = userEvent.setup();
+    (getStoredAdminToken as ReturnType<typeof vi.fn>).mockReturnValue('tok-guardado');
+    (fetchAdminActivities as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'act-1',
+        title: 'Workshop AED',
+        description: 'Algoritmos',
+        category: 'Workshop',
+        status: 'ongoing',
+        date: '2026-10-10',
+        time: '14:00',
+        location: 'Lab 1',
+        registrations: [],
+      },
+    ]);
+
+    const { updateActivityStatus } = await import('../services/activitiesService');
+    (updateActivityStatus as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+    render(<Admin />);
+
+    expect(await screen.findByText('Workshop AED')).toBeInTheDocument();
+    expect(screen.getByText('Atividades Concluídas')).toBeInTheDocument();
+
+    const completedBtn = screen.getByRole('button', { name: 'Concluída' });
+    await user.click(completedBtn);
+
+    expect(updateActivityStatus).toHaveBeenCalledWith('tok-guardado', 'act-1', 'completed');
+  });
 });

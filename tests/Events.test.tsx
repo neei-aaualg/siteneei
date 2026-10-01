@@ -46,6 +46,17 @@ const upcomingActivity: Activity = {
   location: 'Anfiteatro',
 };
 
+const completedActivity: Activity = {
+  id: 'act-3',
+  title: 'Workshop Python',
+  description: 'Introdução prática à linguagem Python.',
+  category: 'Workshop',
+  status: 'completed',
+  date: '2026-09-20',
+  time: '14:30 - 17:00',
+  location: 'Laboratório 1.1',
+};
+
 describe('Events', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -75,6 +86,21 @@ describe('Events', () => {
     await screen.findByText('Workshop AED');
     expect(screen.getByText('A Decorrer')).toBeInTheDocument();
     expect(screen.getByText('Agendadas')).toBeInTheDocument();
+  });
+
+  it('apresenta secção de atividades concluídas quando existem', async () => {
+    (fetchPublicActivities as ReturnType<typeof vi.fn>).mockResolvedValue([
+      ongoingActivity,
+      upcomingActivity,
+      completedActivity,
+    ]);
+
+    render(<Events />);
+
+    expect(await screen.findByText('Workshop Python')).toBeInTheDocument();
+    expect(screen.getByText('Atividades Concluídas')).toBeInTheDocument();
+    expect(screen.getByText('Concluídas')).toBeInTheDocument();
+    expect(screen.getByText('Inscrições encerradas')).toBeInTheDocument();
   });
 
   it('mostra ecrã "brevemente" quando o calendário está oculto', async () => {

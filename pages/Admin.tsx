@@ -9,6 +9,7 @@ import {
   Copy,
   Download,
   Check,
+  CheckCircle,
   AlertCircle,
   Loader2,
   Plus,
@@ -103,6 +104,10 @@ export const Admin: React.FC = () => {
   const [formMaxCapacity, setFormMaxCapacity] = useState<number>(0);
   const [formSpeaker, setFormSpeaker] = useState('');
   const [formRegistrationOpensAt, setFormRegistrationOpensAt] = useState('');
+
+  // Filtros de Atividades
+  const [activitySearch, setActivitySearch] = useState('');
+  const [activityFilterStatus, setActivityFilterStatus] = useState<'all' | ActivityStatus>('all');
 
   // Separador Ativo
   const [activeTab, setActiveTab] = useState<'activities' | 'collaborators' | 'jobs' | 'shop'>(
@@ -584,6 +589,20 @@ export const Admin: React.FC = () => {
   const totalRegistrations = activities.reduce((acc, a) => acc + (a.registrations?.length || 0), 0);
   const ongoingCount = activities.filter((a) => a.status === 'ongoing').length;
   const upcomingCount = activities.filter((a) => a.status === 'upcoming').length;
+  const completedCount = activities.filter((a) => a.status === 'completed').length;
+
+  const filteredActivities = activities.filter((a) => {
+    const matchesStatus = activityFilterStatus === 'all' || a.status === activityFilterStatus;
+    const q = activitySearch.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      a.title.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      a.category.toLowerCase().includes(q) ||
+      a.location.toLowerCase().includes(q) ||
+      (a.speaker && a.speaker.toLowerCase().includes(q));
+    return matchesStatus && matchesSearch;
+  });
 
   // Se não estiver autenticado, exibe o ecrã de Login
   if (!token) {
@@ -810,7 +829,7 @@ export const Admin: React.FC = () => {
         {activeTab === 'activities' ? (
           <>
             {/* Resumo Métricas Atividades */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
                 <div>
                   <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
@@ -852,17 +871,100 @@ export const Admin: React.FC = () => {
                   <Clock size={24} />
                 </div>
               </div>
+
+              <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-text-200 dark:text-slate-400 uppercase tracking-wider">
+                    Atividades Concluídas
+                  </span>
+                  <div className="text-3xl font-extrabold text-gray-600 dark:text-slate-300 mt-1">
+                    {completedCount}
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 flex items-center justify-center">
+                  <CheckCircle size={24} />
+                </div>
+              </div>
             </div>
 
             {/* Lista de Atividades & Inscrições */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg sm:text-xl font-bold text-text-100 dark:text-white">
-                  Atividades Registadas ({activities.length})
-                </h2>
-                <span className="text-xs text-text-200 dark:text-slate-400">
-                  Clica numa atividade para ver os alunos inscritos
-                </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-text-100 dark:text-white">
+                    Atividades Registadas ({activities.length})
+                  </h2>
+                  <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
+                    Clica numa atividade para ver os inscritos ou altera o estado manualmente
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={openCreateModal}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950 rounded-xl text-xs font-bold hover:brightness-110 shadow-sm transition"
+                  >
+                    <Plus size={15} />
+                    <span>Nova Atividade</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Filtros de Estado e Pesquisa de Atividades */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#0c1724] p-3 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => setActivityFilterStatus('all')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                      activityFilterStatus === 'all'
+                        ? 'bg-accent-200 text-white shadow-sm dark:bg-cyan-500 dark:text-slate-950'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                    }`}
+                  >
+                    Todas ({activities.length})
+                  </button>
+                  <button
+                    onClick={() => setActivityFilterStatus('ongoing')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                      activityFilterStatus === 'ongoing'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                    }`}
+                  >
+                    A Decorrer ({ongoingCount})
+                  </button>
+                  <button
+                    onClick={() => setActivityFilterStatus('upcoming')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                      activityFilterStatus === 'upcoming'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                    }`}
+                  >
+                    Futuras ({upcomingCount})
+                  </button>
+                  <button
+                    onClick={() => setActivityFilterStatus('completed')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                      activityFilterStatus === 'completed'
+                        ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                    }`}
+                  >
+                    Concluídas ({completedCount})
+                  </button>
+                </div>
+
+                <div className="relative min-w-[200px] sm:w-64">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar atividade..."
+                    value={activitySearch}
+                    onChange={(e) => setActivitySearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-accent-200/50 dark:focus:ring-cyan-500/50"
+                  />
+                </div>
               </div>
 
               {loading && activities.length === 0 ? (
@@ -879,28 +981,33 @@ export const Admin: React.FC = () => {
                 <div className="p-6 bg-red-50 dark:bg-red-950/30 border border-red-200 rounded-2xl text-center text-red-600">
                   {error}
                 </div>
-              ) : activities.length === 0 ? (
+              ) : filteredActivities.length === 0 ? (
                 <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-300 dark:border-slate-800">
-                  <p className="text-text-200 dark:text-slate-400">Nenhuma atividade registada.</p>
-                  <button
-                    onClick={openCreateModal}
-                    className="mt-3 px-4 py-2 bg-accent-200 text-white rounded-xl text-sm font-semibold"
-                  >
-                    Criar Primeira Atividade
-                  </button>
+                  <p className="text-text-200 dark:text-slate-400">Nenhuma atividade encontrada com os filtros atuais.</p>
+                  {activities.length === 0 && (
+                    <button
+                      onClick={openCreateModal}
+                      className="mt-3 px-4 py-2 bg-accent-200 text-white rounded-xl text-sm font-semibold"
+                    >
+                      Criar Primeira Atividade
+                    </button>
+                  )}
                 </div>
               ) : (
-                activities.map((activity) => {
+                filteredActivities.map((activity) => {
                   const isExpanded = expandedActivityId === activity.id;
                   const registrations = activity.registrations || [];
 
                   return (
                     <div
                       key={activity.id}
-                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
+                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
+                        activity.status === 'ongoing'
                           ? 'border-emerald-500/40 dark:border-emerald-500/30'
-                          : 'border-gray-200 dark:border-cyan-950/60'
-                        }`}
+                          : activity.status === 'upcoming'
+                            ? 'border-blue-400/40 dark:border-blue-500/30'
+                            : 'border-gray-200 dark:border-slate-800 opacity-90'
+                      }`}
                     >
                       {/* Cabeçalho do Card da Atividade */}
                       <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -910,18 +1017,19 @@ export const Admin: React.FC = () => {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                                activity.status === 'ongoing'
                                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                                   : activity.status === 'upcoming'
                                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-                                    : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-400'
-                                }`}
+                                    : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300'
+                              }`}
                             >
                               {activity.status === 'ongoing'
                                 ? '● A Decorrer'
                                 : activity.status === 'upcoming'
                                   ? '○ Futura'
-                                  : 'Concluída'}
+                                  : '✓ Concluída'}
                             </span>
                             <span className="text-xs font-semibold text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                               {activity.category}
@@ -962,21 +1070,33 @@ export const Admin: React.FC = () => {
                           <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                             <button
                               onClick={() => handleToggleStatus(activity, 'ongoing')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                                activity.status === 'ongoing'
                                   ? 'bg-emerald-600 text-white shadow-sm'
                                   : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                                }`}
+                              }`}
                             >
                               A Decorrer
                             </button>
                             <button
                               onClick={() => handleToggleStatus(activity, 'upcoming')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                                activity.status === 'upcoming'
                                   ? 'bg-blue-600 text-white shadow-sm'
                                   : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                                }`}
+                              }`}
                             >
                               Futura
+                            </button>
+                            <button
+                              onClick={() => handleToggleStatus(activity, 'completed')}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
+                                activity.status === 'completed'
+                                  ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-sm'
+                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                              }`}
+                            >
+                              Concluída
                             </button>
                           </div>
 

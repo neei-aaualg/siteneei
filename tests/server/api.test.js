@@ -24,6 +24,17 @@ async function boot() {
   delete process.env.VITE_SHOW_CALENDAR;
 
   api = await import('../../server/api.js');
+  const db = await import('../../server/db.js');
+  db.saveActivity({
+    id: 'act-workshop-intro-prog-1',
+    title: 'Workshop: Introdução à Programação',
+    description: 'Workshop de testes de introdução',
+    category: 'Workshop',
+    status: 'ongoing',
+    date: new Date().toISOString().split('T')[0],
+    time: '14:30 - 17:00',
+    location: 'Campus de Gambelas',
+  });
 
   server = createServer((req, res) => {
     api
@@ -281,7 +292,7 @@ describe('server/api - administração', () => {
     const loginRes = await post('/api/admin/login', { password: 'senha-teste' });
     const { token } = await loginRes.json();
 
-    // Cria atividade concluída (não deve aparecer publicamente)
+    // Cria atividade concluída (aparece no histórico da lista pública)
     const createRes = await post(
       '/api/admin/activities',
       {
@@ -299,7 +310,7 @@ describe('server/api - administração', () => {
     expect(createRes.status).toBe(200);
 
     const publics = await getJson('/api/activities');
-    expect(publics.body.some((a) => a.id === 'act-api-teste')).toBe(false);
+    expect(publics.body.some((a) => a.id === 'act-api-teste')).toBe(true);
 
     // Inscreve um aluno e remove a inscrição pelo admin
     const regRes = await post('/api/activities/register', {

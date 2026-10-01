@@ -67,6 +67,9 @@ export const Events: React.FC = () => {
 
   const ongoingActivities = activities.filter((a) => a.status === 'ongoing');
   const upcomingActivities = activities.filter((a) => a.status === 'upcoming');
+  const completedActivities = activities
+    .filter((a) => a.status === 'completed')
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const categories = Array.from(new Set(upcomingActivities.map((a) => a.category)));
   const filteredUpcoming =
@@ -206,6 +209,19 @@ export const Events: React.FC = () => {
                     Agendadas
                   </div>
                 </div>
+                {completedActivities.length > 0 && (
+                  <>
+                    <div className="w-px bg-gray-200 dark:bg-slate-800" />
+                    <div className="text-center px-3">
+                      <div className="text-2xl sm:text-3xl font-bold text-gray-500 dark:text-slate-400">
+                        {completedActivities.length}
+                      </div>
+                      <div className="text-xs font-medium text-text-200 dark:text-slate-400 uppercase tracking-wider mt-0.5">
+                        Concluídas
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -522,6 +538,120 @@ export const Events: React.FC = () => {
                 </div>
               )}
             </section>
+
+            {/* SECÇÃO 3: Atividades Concluídas */}
+            {completedActivities.length > 0 && (
+              <section
+                aria-labelledby="completed-activities-title"
+                className="pt-8 border-t border-gray-200 dark:border-slate-800"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle2 size={22} className="text-gray-500 dark:text-slate-400" />
+                      <h2
+                        id="completed-activities-title"
+                        className="text-2xl sm:text-3xl font-bold tracking-tight text-text-100 dark:text-white"
+                      >
+                        Atividades Concluídas
+                      </h2>
+                    </div>
+                    <p className="text-sm text-text-200 dark:text-slate-400">
+                      Histórico de workshops, palestras e convívios já realizados pelo NEEI.
+                    </p>
+                  </div>
+
+                  <span className="text-xs font-semibold px-3 py-1 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-700 rounded-full">
+                    {completedActivities.length}{' '}
+                    {completedActivities.length === 1 ? 'atividade realizada' : 'atividades realizadas'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {completedActivities.map((activity) => {
+                    const dateInfo = formatDisplayDate(activity.date);
+                    return (
+                      <div
+                        key={activity.id}
+                        className="bg-white/80 dark:bg-[#0c1724]/80 rounded-2xl border border-gray-200/80 dark:border-slate-800 p-6 flex flex-col justify-between hover:border-gray-300 dark:hover:border-slate-700 transition-all duration-200 opacity-90 hover:opacity-100"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-3 mb-4">
+                            {/* Bloco de Data Visual */}
+                            <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gray-100 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-center shrink-0">
+                              <span className="text-lg font-black text-gray-600 dark:text-slate-300 leading-none">
+                                {dateInfo.day}
+                              </span>
+                              <span className="text-[10px] font-bold text-text-200 dark:text-slate-400 uppercase tracking-tight mt-0.5">
+                                {dateInfo.month}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 flex items-center gap-1">
+                                <CheckCircle2 size={12} className="text-emerald-500" />
+                                Concluída
+                              </span>
+                              <span className="text-[11px] font-mono font-medium text-text-200 dark:text-slate-400">
+                                {formatDateWithMonthSigla(activity.date)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <h3 className="text-lg font-bold text-text-100 dark:text-white mb-2 line-clamp-2">
+                            {activity.title}
+                          </h3>
+
+                          <p className="text-sm text-text-200 dark:text-slate-400 line-clamp-3 mb-4 leading-relaxed">
+                            {activity.description}
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-slate-800/80 text-xs text-text-200 dark:text-slate-400">
+                          <div className="flex items-center gap-2">
+                            <Clock
+                              size={14}
+                              className="text-gray-400 dark:text-slate-500 shrink-0"
+                            />
+                            <span>{activity.time}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin
+                              size={14}
+                              className="text-gray-400 dark:text-slate-500 shrink-0"
+                            />
+                            <span className="truncate">{activity.location}</span>
+                          </div>
+                          {activity.speaker && (
+                            <div className="flex items-center gap-2">
+                              <User
+                                size={14}
+                                className="text-gray-400 dark:text-slate-500 shrink-0"
+                              />
+                              <span className="truncate">{activity.speaker}</span>
+                            </div>
+                          )}
+
+                          <div className="pt-2 flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-gray-500 dark:text-slate-400 font-medium bg-gray-100 dark:bg-slate-800/70 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-slate-700 inline-flex items-center gap-1.5">
+                              <span>Inscrições encerradas</span>
+                            </span>
+
+                            <CalendarDropdown
+                              activity={activity}
+                              variant="icon"
+                              align="right"
+                              direction="up"
+                              className="ml-auto"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </>
         )}
       </div>

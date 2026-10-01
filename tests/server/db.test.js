@@ -16,6 +16,12 @@ beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neei-db-test-'));
   process.env.DATABASE_PATH = path.join(tmpDir, 'test.db');
   db = await import('../../server/db.js');
+  db.saveActivity({
+    ...sampleActivity,
+    id: 'act-workshop-intro-prog-1',
+    date: new Date().toISOString().split('T')[0],
+    status: 'ongoing',
+  });
 });
 
 afterEach(() => {
@@ -45,7 +51,7 @@ const sampleActivity = {
   description: 'Atividade criada para testes.',
   category: 'Workshop',
   status: 'ongoing',
-  date: '2026-06-15',
+  date: new Date().toISOString().split('T')[0],
   time: '10:00 - 12:00',
   location: 'Sala de Testes',
   max_capacity: 0,
@@ -179,10 +185,59 @@ describe('server/db - atividades públicas', () => {
     expect(subset.every((a) => a.status !== 'completed')).toBe(true);
   });
 
-  it('exclui atividades concluídas da lista pública', () => {
+  it('inclui atividades concluídas na lista pública (para apresentação no histórico)', () => {
     db.saveActivity({ ...sampleActivity, id: 'act-done', status: 'completed' });
     const list = db.getPublicActivities();
-    expect(list.some((a) => a.id === 'act-done')).toBe(false);
+    expect(list.some((a) => a.id === 'act-done')).toBe(true);
+  });
+});
+
+describe('server/db - transição automática de estado para concluída', () => {
+  it('hasPassedOneDayAfterExecution calcula corretamente se passou 1 dia da data', () => {
+    const eventDate = '2026-09-28';
+
+    // No próprio dia às 15h -> não passou 1 dia
+    const sameDay = new Date('2026-09-28T15:00:00');
+    expect(db.hasPassedOneDayAfterExecution(eventDate, sameDay)).toBe(false);
+
+    // No dia seguinte às 00:00:00 -> passou 1 dia
+    const nextDayStart = new Date('2026-09-29T00:00:00');
+    expect(db.hasPassedOneDayAfterExecution(eventDate, nextDayStart)).toBe(true);
+
+    // No dia seguinte às 18:00:00 -> passou 1 dia
+    const nextDayEvening = new Date('2026-09-29T18:00:00');
+    expect(db.hasPassedOneDayAfterExecution(eventDate, nextDayEvening)).toBe(true);
+  });
+
+  it('sincroniza automaticamente para completed atividades com 1 dia passado da data de execução', () => {
+    db.saveActivity({
+      ...sampleActivity,
+      id: 'act-auto-concluida',
+      date: '2026-09-20',
+      status: 'ongoing',
+    });
+
+    const ref = new Date('2026-09-22T10:00:00');
+    db.syncActivitiesWeeklyStatus(ref);
+
+    const all = db.getAllActivitiesWithRegistrations();
+    const act = all.find((a) => a.id === 'act-auto-concluida');
+    expect(act.status).toBe('completed');
+  });
+
+  it('não passa para completed atividades agendadas para o futuro', () => {
+    db.saveActivity({
+      ...sampleActivity,
+      id: 'act-futura-teste',
+      date: '2099-10-10',
+      status: 'upcoming',
+    });
+
+    db.syncActivitiesWeeklyStatus(new Date('2026-09-30T10:00:00'));
+
+    const all = db.getAllActivitiesWithRegistrations();
+    const act = all.find((a) => a.id === 'act-futura-teste');
+    expect(act.status).toBe('upcoming');
   });
 });
 
