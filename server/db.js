@@ -461,9 +461,9 @@ if (count === 0) {
 }
 
 /**
- * Verifica se uma data (YYYY-MM-DD) ocorre na mesma semana da data atual (segunda-feira a domingo)
+ * Verifica se uma data (YYYY-MM-DD ou DD-MM-YYYY) ocorre na mesma semana da data de referência (segunda-feira a domingo)
  */
-export function isDateInCurrentWeek(dateStr) {
+export function isDateInCurrentWeek(dateStr, referenceDate = new Date()) {
   if (!dateStr || typeof dateStr !== 'string') return false;
   const cleanDate = dateStr.trim();
   let isoDate = cleanDate;
@@ -471,10 +471,12 @@ export function isDateInCurrentWeek(dateStr) {
     const [d, m, y] = cleanDate.split('-');
     isoDate = `${y}-${m}-${d}`;
   }
-  const target = new Date(isoDate + 'T00:00:00');
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return false;
+  const target = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00`);
   if (isNaN(target.getTime())) return false;
 
-  const now = new Date();
+  const now = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
   const dayOfWeek = now.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
   const distanceToMonday = (dayOfWeek + 6) % 7;
 
@@ -518,14 +520,76 @@ export function hasPassedOneDayAfterExecution(dateStr, referenceDate = new Date(
 }
 
 /**
+ * Verifica se uma data (YYYY-MM-DD ou DD-MM-YYYY) já chegou / foi atingida em relação à data de referência.
+ * Retorna true se a data de referência já for igual ou posterior ao início do dia especificado (00:00:00).
+ */
+export function hasReachedDate(dateStr, referenceDate = new Date()) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const cleanDate = dateStr.trim();
+  let isoDate = cleanDate;
+  if (/^\d{2}-\d{2}-\d{4}$/.test(cleanDate)) {
+    const [d, m, y] = cleanDate.split('-');
+    isoDate = `${y}-${m}-${d}`;
+  }
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return false;
+
+  const year = parseInt(match[1], 10);
+  const monthIndex = parseInt(match[2], 10) - 1;
+  const day = parseInt(match[3], 10);
+
+  const dayStart = new Date(year, monthIndex, day, 0, 0, 0, 0);
+  if (isNaN(dayStart.getTime())) return false;
+
+  const ref = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+  return ref >= dayStart;
+}
+
+/**
+ * Determina se uma atividade deve estar no estado 'ongoing' (a decorrer / inscrições abertas):
+ * - Falso se já tiver passado mais de 1 dia após a realização do evento (deve ser 'completed')
+ * - Verdadeiro se a data de abertura de inscrições já tiver sido atingida (registration_opens_at <= refDate)
+ * - Verdadeiro se o evento ocorre na semana corrente
+ * - Verdadeiro se a data do evento já tiver chegado (refDate >= eventDate)
+ */
+export function shouldActivityBeOngoing(activity, referenceDate = new Date()) {
+  if (!activity) return false;
+  const { date, registration_opens_at } = activity;
+
+  // Se já passou 1 dia após a execução, passa a concluída e não a decorrer
+  if (hasPassedOneDayAfterExecution(date, referenceDate)) {
+    return false;
+  }
+
+  // 1. Data de abertura de inscrições atingida
+  if (registration_opens_at && hasReachedDate(registration_opens_at, referenceDate)) {
+    return true;
+  }
+
+  // 2. Data do evento na mesma semana
+  if (isDateInCurrentWeek(date, referenceDate)) {
+    return true;
+  }
+
+  // 3. Data do evento já chegou (e ainda não passou 1 dia)
+  if (hasReachedDate(date, referenceDate)) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Sincroniza automaticamente os estados das atividades:
  * - Passa para 'completed' se já tiver passado 1 dia do dia de execução
- * - Passa para 'ongoing' se estiver como 'upcoming' e agendada para a semana corrente (sem ter passado 1 dia)
+ * - Passa para 'ongoing' se estiver como 'upcoming' e tiver chegado o momento de estar a decorrer
  */
 export function syncActivitiesWeeklyStatus(referenceDate = new Date()) {
   try {
     const active = db
-      .prepare("SELECT id, date, status FROM activities WHERE status IN ('ongoing', 'upcoming')")
+      .prepare(
+        "SELECT id, date, status, registration_opens_at FROM activities WHERE status IN ('ongoing', 'upcoming')"
+      )
       .all();
     const updateCompletedStmt = db.prepare("UPDATE activities SET status = 'completed' WHERE id = ?");
     const updateOngoingStmt = db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?");
@@ -535,7 +599,7 @@ export function syncActivitiesWeeklyStatus(referenceDate = new Date()) {
       if (hasPassedOneDayAfterExecution(act.date, referenceDate)) {
         updateCompletedStmt.run(act.id);
         changed++;
-      } else if (act.status === 'upcoming' && isDateInCurrentWeek(act.date)) {
+      } else if (act.status === 'upcoming' && shouldActivityBeOngoing(act, referenceDate)) {
         updateOngoingStmt.run(act.id);
         changed++;
       }
@@ -634,8 +698,8 @@ export function registerStudent(activityId, rawName, rawStudentNumber) {
     throw err;
   }
 
-  // Se a atividade estiver como 'upcoming' mas acontecer nesta semana, atualiza para 'ongoing'
-  if (activity.status === 'upcoming' && isDateInCurrentWeek(activity.date)) {
+  // Se a atividade estiver como 'upcoming' mas tiver chegado o momento de estar a decorrer, atualiza para 'ongoing'
+  if (activity.status === 'upcoming' && shouldActivityBeOngoing(activity)) {
     db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?").run(activityId);
     activity.status = 'ongoing';
   }
@@ -740,19 +804,19 @@ export function saveActivity(data) {
   const existingStmt = db.prepare('SELECT id FROM activities WHERE id = ?');
   const existing = existingStmt.get(id);
 
+  const openSoon = data.open_soon ? 1 : 0;
+  const regOpensAt = data.registration_opens_at ? String(data.registration_opens_at).trim() : null;
+
   let finalStatus = data.status || 'upcoming';
-  if (!data.status && hasPassedOneDayAfterExecution(data.date)) {
-    finalStatus = 'completed';
-  } else if (finalStatus === 'upcoming') {
-    if (hasPassedOneDayAfterExecution(data.date)) {
+  if (hasPassedOneDayAfterExecution(data.date)) {
+    if (!data.status || finalStatus === 'upcoming') {
       finalStatus = 'completed';
-    } else if (isDateInCurrentWeek(data.date)) {
+    }
+  } else if (finalStatus === 'upcoming') {
+    if (shouldActivityBeOngoing({ date: data.date, registration_opens_at: regOpensAt })) {
       finalStatus = 'ongoing';
     }
   }
-
-  const openSoon = data.open_soon ? 1 : 0;
-  const regOpensAt = data.registration_opens_at ? String(data.registration_opens_at).trim() : null;
 
   if (existing) {
     const updateStmt = db.prepare(`

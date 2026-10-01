@@ -241,6 +241,67 @@ describe('server/db - transição automática de estado para concluída', () => 
   });
 });
 
+describe('server/db - transição automática de estado para a decorrer', () => {
+  it('hasReachedDate verifica corretamente se a data indicada já foi alcançada', () => {
+    const ref = new Date('2026-10-01T12:00:00');
+    expect(db.hasReachedDate('2026-09-30', ref)).toBe(true);
+    expect(db.hasReachedDate('2026-10-01', ref)).toBe(true);
+    expect(db.hasReachedDate('2026-10-02', ref)).toBe(false);
+  });
+
+  it('shouldActivityBeOngoing ativa atividade quando a data de abertura de inscrições já chegou', () => {
+    const ref = new Date('2026-10-01T12:00:00');
+    const act = {
+      date: '2026-11-20',
+      registration_opens_at: '2026-10-01',
+    };
+    expect(db.shouldActivityBeOngoing(act, ref)).toBe(true);
+  });
+
+  it('shouldActivityBeOngoing não ativa atividade se a data de abertura estiver no futuro', () => {
+    const ref = new Date('2026-10-01T12:00:00');
+    const act = {
+      date: '2026-11-20',
+      registration_opens_at: '2026-10-05',
+    };
+    expect(db.shouldActivityBeOngoing(act, ref)).toBe(false);
+  });
+
+  it('sincroniza automaticamente para ongoing atividades cuja abertura de inscrições chegou', () => {
+    db.saveActivity({
+      ...sampleActivity,
+      id: 'act-auto-decorrer-reg',
+      date: '2026-11-15',
+      registration_opens_at: '2026-10-01',
+      status: 'upcoming',
+    });
+
+    const ref = new Date('2026-10-02T10:00:00');
+    db.syncActivitiesWeeklyStatus(ref);
+
+    const all = db.getAllActivitiesWithRegistrations();
+    const act = all.find((a) => a.id === 'act-auto-decorrer-reg');
+    expect(act.status).toBe('ongoing');
+  });
+
+  it('permite inscrição automática em atividade upcoming se data de abertura já tiver chegado', () => {
+    db.saveActivity({
+      ...sampleActivity,
+      id: 'act-reg-auto-open',
+      date: '2026-11-15',
+      registration_opens_at: new Date().toISOString().split('T')[0],
+      status: 'upcoming',
+    });
+
+    const reg = db.registerStudent('act-reg-auto-open', 'Joana Teste', 'a71234');
+    expect(reg.studentName).toBe('Joana Teste');
+
+    const all = db.getAllActivitiesWithRegistrations();
+    const act = all.find((a) => a.id === 'act-reg-auto-open');
+    expect(act.status).toBe('ongoing');
+  });
+});
+
 describe('server/db - saveActivity e administração', () => {
   it('cria e atualiza atividades', () => {
     const created = db.saveActivity({ ...sampleActivity, id: 'act-nova' });

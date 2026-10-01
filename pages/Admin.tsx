@@ -74,11 +74,25 @@ export const Admin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados de Interação
-  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
+  // Estados de Interação (permite múltiplas atividades expandidas em simultâneo)
+  const [expandedActivityIds, setExpandedActivityIds] = useState<string[]>([]);
   const [actionFeedback, setActionFeedback] = useState<{ id: string; message: string } | null>(
     null
   );
+
+  const toggleActivityExpanded = (id: string) => {
+    setExpandedActivityIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const expandAllActivities = () => {
+    setExpandedActivityIds(filteredActivities.map((a) => a.id));
+  };
+
+  const collapseAllActivities = () => {
+    setExpandedActivityIds([]);
+  };
   const [confirmDeleteReg, setConfirmDeleteReg] = useState<{
     regId: string;
     studentName: string;
@@ -153,10 +167,10 @@ export const Admin: React.FC = () => {
       setActivities(actData);
       setCollaborators(collabData);
       setJobs(jobData);
-      // Expande por padrão a primeira atividade a decorrer se existir
-      const ongoing = actData.find((a) => a.status === 'ongoing');
-      if (ongoing && !expandedActivityId) {
-        setExpandedActivityId(ongoing.id);
+      // Expande por padrão as atividades a decorrer se existirem
+      const ongoingIds = actData.filter((a) => a.status === 'ongoing').map((a) => a.id);
+      if (ongoingIds.length > 0) {
+        setExpandedActivityIds((prev) => (prev.length === 0 ? ongoingIds : prev));
       }
     } catch (err: any) {
       setError(err.message || 'Erro ao carregar dados do painel');
@@ -298,18 +312,60 @@ export const Admin: React.FC = () => {
   };
 
   const openCreateModal = () => {
+    const today = new Date().toISOString().split('T')[0];
     setEditingActivity(null);
     setFormTitle('');
     setFormDescription('');
     setFormCategory('Workshop');
-    setFormStatus('upcoming');
-    setFormDate(new Date().toISOString().split('T')[0]);
+    // Uma atividade agendada para hoje ou semana atual começa logo como 'ongoing' (a decorrer)
+    setFormStatus('ongoing');
+    setFormDate(today);
     setFormTime('14:30 - 17:00');
     setFormLocation('Laboratório 1.15, Edifício 1, Gambelas');
     setFormMaxCapacity(35);
     setFormSpeaker('Equipa NEEI');
     setFormRegistrationOpensAt('');
     setIsActivityModalOpen(true);
+  };
+
+  const handleFormDateChange = (newDate: string) => {
+    setFormDate(newDate);
+    // Transição automática no formulário: se a data for na semana atual ou hoje, passa logo para ongoing
+    if (!editingActivity || editingActivity.status !== 'completed') {
+      const target = new Date(newDate + 'T00:00:00');
+      if (!isNaN(target.getTime())) {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const distanceToMonday = (dayOfWeek + 6) % 7;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - distanceToMonday);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        if (target >= monday && target <= sunday) {
+          setFormStatus('ongoing');
+        } else if (
+          target > sunday &&
+          (!formRegistrationOpensAt || new Date(formRegistrationOpensAt + 'T00:00:00') > now)
+        ) {
+          setFormStatus('upcoming');
+        }
+      }
+    }
+  };
+
+  const handleFormRegistrationOpensAtChange = (newRegDate: string) => {
+    setFormRegistrationOpensAt(newRegDate);
+    if (!editingActivity || editingActivity.status !== 'completed') {
+      if (newRegDate) {
+        const regTarget = new Date(newRegDate + 'T00:00:00');
+        const now = new Date();
+        if (!isNaN(regTarget.getTime()) && regTarget <= now) {
+          setFormStatus('ongoing');
+        }
+      }
+    }
   };
 
   const openEditModal = (activity: AdminActivityWithRegistrations) => {
@@ -955,15 +1011,40 @@ export const Admin: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="relative min-w-[200px] sm:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar atividade..."
-                    value={activitySearch}
-                    onChange={(e) => setActivitySearch(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-accent-200/50 dark:focus:ring-cyan-500/50"
-                  />
+                <div className="flex flex-wrap items-center gap-2">
+                  {filteredActivities.length > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={expandAllActivities}
+                        className="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-[11px] font-semibold text-text-200 dark:text-slate-300 hover:text-text-100 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                        title="Expandir todas as atividades em simultâneo para ver os participantes"
+                      >
+                        Expandir todas
+                      </button>
+                      {expandedActivityIds.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={collapseAllActivities}
+                          className="px-2.5 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-[11px] font-semibold text-text-200 dark:text-slate-300 hover:text-text-100 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
+                          title="Recolher todas as atividades"
+                        >
+                          Recolher todas ({expandedActivityIds.length})
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="relative min-w-[180px] sm:w-60">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar atividade..."
+                      value={activitySearch}
+                      onChange={(e) => setActivitySearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-1 focus:ring-accent-200/50 dark:focus:ring-cyan-500/50"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -995,7 +1076,7 @@ export const Admin: React.FC = () => {
                 </div>
               ) : (
                 filteredActivities.map((activity) => {
-                  const isExpanded = expandedActivityId === activity.id;
+                  const isExpanded = expandedActivityIds.includes(activity.id);
                   const registrations = activity.registrations || [];
 
                   return (
@@ -1013,7 +1094,7 @@ export const Admin: React.FC = () => {
                       <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
                         <div
                           className="flex-1 min-w-[260px] cursor-pointer"
-                          onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
+                          onClick={() => toggleActivityExpanded(activity.id)}
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span
@@ -1059,7 +1140,7 @@ export const Admin: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                           {/* Badge de Inscritos */}
                           <button
-                            onClick={() => setExpandedActivityId(isExpanded ? null : activity.id)}
+                            onClick={() => toggleActivityExpanded(activity.id)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-800 text-xs font-semibold text-text-100 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700 transition"
                           >
                             <Users size={14} className="text-accent-200 dark:text-cyan-400" />
@@ -2041,7 +2122,7 @@ export const Admin: React.FC = () => {
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   >
                     <option value="ongoing">A Decorrer (Inscrições Abertas)</option>
-                    <option value="upcoming">Futura (No Calendário)</option>
+                    <option value="upcoming">Futura (Passa a Decorrer automaticamente na data/semana)</option>
                     <option value="completed">Concluída</option>
                   </select>
                 </div>
@@ -2054,7 +2135,7 @@ export const Admin: React.FC = () => {
                     type="date"
                     required
                     value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
+                    onChange={(e) => handleFormDateChange(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
                 </div>
@@ -2115,12 +2196,12 @@ export const Admin: React.FC = () => {
                 <input
                   type="date"
                   value={formRegistrationOpensAt}
-                  onChange={(e) => setFormRegistrationOpensAt(e.target.value)}
+                  onChange={(e) => handleFormRegistrationOpensAtChange(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                 />
                 <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
-                  Se preenchida, é exibido a todos os utilizadores a data em que as inscrições abrem
-                  (ex.: "Inscrições abrem a 28-09-2026").
+                  Quando esta data for atingida, a atividade passa automaticamente para{' '}
+                  <strong>A Decorrer</strong> (inscrições abertas).
                 </span>
               </div>
 

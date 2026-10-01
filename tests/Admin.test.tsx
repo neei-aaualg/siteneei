@@ -126,4 +126,64 @@ describe('Admin', () => {
 
     expect(updateActivityStatus).toHaveBeenCalledWith('tok-guardado', 'act-1', 'completed');
   });
+
+  it('permite ter mais que uma atividade expandida em simultâneo com os participantes de ambas visíveis', async () => {
+    const user = userEvent.setup();
+    (getStoredAdminToken as ReturnType<typeof vi.fn>).mockReturnValue('tok-guardado');
+    (fetchAdminActivities as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'act-1',
+        title: 'Workshop AED',
+        description: 'Algoritmos',
+        category: 'Workshop',
+        status: 'upcoming',
+        date: '2026-10-10',
+        time: '14:00',
+        location: 'Lab 1',
+        registrations: [
+          {
+            id: 'reg-1',
+            student_name: 'Carlos Silva',
+            student_number: 'a71111',
+            registered_at: '2026-10-01',
+          },
+        ],
+      },
+      {
+        id: 'act-2',
+        title: 'Torneio FIFA',
+        description: 'Competição',
+        category: 'Torneio',
+        status: 'upcoming',
+        date: '2026-10-15',
+        time: '15:00',
+        location: 'Sala Convívio',
+        registrations: [
+          {
+            id: 'reg-2',
+            student_name: 'Beatriz Costa',
+            student_number: 'a72222',
+            registered_at: '2026-10-01',
+          },
+        ],
+      },
+    ]);
+
+    render(<Admin />);
+
+    expect(await screen.findByText('Workshop AED')).toBeInTheDocument();
+    expect(screen.getByText('Torneio FIFA')).toBeInTheDocument();
+
+    // Clica na primeira atividade para expandir
+    await user.click(screen.getByText('Workshop AED'));
+    expect(await screen.findByText('Carlos Silva')).toBeInTheDocument();
+
+    // Clica na segunda atividade para expandir
+    await user.click(screen.getByText('Torneio FIFA'));
+    expect(await screen.findByText('Beatriz Costa')).toBeInTheDocument();
+
+    // Ambas as listas de inscritos devem estar no ecrã simultaneamente
+    expect(screen.getByText('Carlos Silva')).toBeInTheDocument();
+    expect(screen.getByText('Beatriz Costa')).toBeInTheDocument();
+  });
 });
