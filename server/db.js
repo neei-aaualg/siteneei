@@ -163,6 +163,7 @@ db.exec(`
     shipping_city TEXT,
     item_price REAL NOT NULL,
     shipping_fee REAL NOT NULL,
+    payment_fee REAL NOT NULL DEFAULT 0,
     total_amount REAL NOT NULL,
     payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'expired', 'failed')),
     payment_provider TEXT NOT NULL DEFAULT 'ifthenpay',
@@ -241,6 +242,11 @@ try {
 }
 try {
   db.exec('ALTER TABLE shop_orders ADD COLUMN admin_notes TEXT;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_orders ADD COLUMN payment_fee REAL NOT NULL DEFAULT 0;');
 } catch (_) {
   // Já existe
 }
@@ -1307,6 +1313,15 @@ export function updateShopCampaign(id, data) {
   return getActiveShopCampaign(data.isAdminPreview);
 }
 
+/**
+ * Calcula a taxa de processamento / pagamento: 0.25€ fixos + 1.5% sobre o subtotal
+ */
+export function calculatePaymentFee(subtotal) {
+  const amount = Number(subtotal) || 0;
+  if (amount <= 0) return 0;
+  return Math.round((0.25 + amount * 0.015) * 100) / 100;
+}
+
 // Cache em memória de encomendas pendentes de pagamento (não inseridas na BD até confirmação)
 export const pendingOrdersCache = new Map();
 
@@ -1397,7 +1412,9 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
   }
 
   const itemPrice = campaign.item_price;
-  const totalAmount = Number((itemPrice + shippingFee).toFixed(2));
+  const subtotal = Number((itemPrice + shippingFee).toFixed(2));
+  const paymentFee = calculatePaymentFee(subtotal);
+  const totalAmount = Number((subtotal + paymentFee).toFixed(2));
 
   // NIF (opcional, por omissão Consumidor Final)
   const nif = (orderData.nif || '').replace(/\s+/g, '') || 'Consumidor Final';
@@ -1424,6 +1441,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     shipping_city: shippingCity,
     item_price: itemPrice,
     shipping_fee: shippingFee,
+    payment_fee: paymentFee,
     total_amount: totalAmount,
     payment_status: 'pending',
     payment_provider: 'stripe',
@@ -1495,12 +1513,12 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
     INSERT INTO shop_orders (
       id, campaign_id, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
-      item_price, shipping_fee, total_amount, payment_status, payment_provider,
+      item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
       payment_ref, order_status, email_sent, moloni_status, created_at, paid_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, 'paid', ?,
+      ?, ?, ?, ?, 'paid', ?,
       ?, ?, 0, 'none', ?, ?
     )
   `);
@@ -1520,6 +1538,7 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
     orderData.shipping_city || null,
     Number(orderData.item_price),
     Number(orderData.shipping_fee || 0),
+    Number(orderData.payment_fee || 0),
     Number(orderData.total_amount),
     orderData.payment_provider || 'stripe',
     actualPaymentRef,
@@ -1568,6 +1587,7 @@ export function getShopOrderById(orderId) {
     shipping_city: row.shipping_city,
     item_price: Number(row.item_price),
     shipping_fee: Number(row.shipping_fee),
+    payment_fee: Number(row.payment_fee || 0),
     total_amount: Number(row.total_amount),
     payment_status: row.payment_status,
     payment_provider: row.payment_provider,
@@ -1768,6 +1788,7 @@ export function getAllShopOrders(filters = {}) {
     ...row,
     item_price: Number(row.item_price),
     shipping_fee: Number(row.shipping_fee),
+    payment_fee: Number(row.payment_fee || 0),
     total_amount: Number(row.total_amount),
     email_sent: Boolean(row.email_sent),
     is_admin_created: Boolean(row.is_admin_created),
@@ -1888,10 +1909,14 @@ export function createAdminManualOrder(orderData) {
         ? Number(orderData.shipping_fee)
         : campaign?.shipping_fee || 3.5
       : 0;
+  const paymentFee =
+    orderData.payment_fee !== undefined
+      ? Number(orderData.payment_fee)
+      : 0;
   const totalAmount =
     orderData.total_amount !== undefined
       ? Number(orderData.total_amount)
-      : Number((itemPrice + shippingFee).toFixed(2));
+      : Number((itemPrice + shippingFee + paymentFee).toFixed(2));
   const paymentStatus = orderData.payment_status === 'paid' ? 'paid' : 'pending';
   const orderStatus =
     orderData.order_status || (paymentStatus === 'paid' ? 'confirmed' : 'pending_payment');
@@ -1902,13 +1927,13 @@ export function createAdminManualOrder(orderData) {
     INSERT INTO shop_orders (
       id, campaign_id, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
-      item_price, shipping_fee, total_amount, payment_status, payment_provider,
+      item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
       payment_ref, order_status, email_sent, moloni_status, created_at, paid_at,
       is_admin_created, admin_notes
     ) VALUES (
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, 'manual_admin',
+      ?, ?, ?, ?, ?, 'manual_admin',
       'admin-manual', ?, 0, 'none', ?, ?,
       1, ?
     )
@@ -1929,6 +1954,7 @@ export function createAdminManualOrder(orderData) {
     deliveryType === 'shipping' ? orderData.shipping_city || null : null,
     itemPrice,
     shippingFee,
+    paymentFee,
     totalAmount,
     paymentStatus,
     orderStatus,

@@ -98,6 +98,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           shipping_city: order.shipping_city || '',
           item_price: String(order.item_price),
           shipping_fee: String(order.shipping_fee),
+          payment_fee: String(order.payment_fee || 0),
           total_amount: String(order.total_amount),
           is_admin_preview: isAdminPreview ? '1' : '0',
         },
@@ -115,6 +116,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       return sendJson(res, 201, {
         success: true,
         orderId: order.id,
+        itemPrice: order.item_price,
+        shippingFee: order.shipping_fee,
+        paymentFee: order.payment_fee || 0,
         totalAmount: order.total_amount,
         clientSecret: paymentResult.clientSecret,
         publishableKey: paymentResult.publishableKey,
@@ -157,6 +161,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           shipping_city: order.shipping_city || '',
           item_price: String(order.item_price),
           shipping_fee: String(order.shipping_fee),
+          payment_fee: String(order.payment_fee || 0),
           total_amount: String(order.total_amount),
           is_admin_preview: isAdminPreview ? '1' : '0',
         },
@@ -175,6 +180,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       return sendJson(res, 201, {
         success: true,
         orderId: order.id,
+        itemPrice: order.item_price,
+        shippingFee: order.shipping_fee,
+        paymentFee: order.payment_fee || 0,
         totalAmount: order.total_amount,
         phoneNumber: order.phone_number,
         expiresInSeconds: paymentResult.expiresInSeconds || 300,
@@ -248,6 +256,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         studentName: order.student_name,
         size: order.size,
         color: order.color || 'Preto',
+        itemPrice: order.item_price,
+        shippingFee: order.shipping_fee,
+        paymentFee: order.payment_fee || 0,
         totalAmount: order.total_amount,
         deliveryType: order.delivery_type,
         shippingAddress: order.shipping_address || null,
@@ -369,6 +380,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
               shipping_city: paymentIntent.metadata?.shipping_city,
               item_price: Number(paymentIntent.metadata?.item_price || 0),
               shipping_fee: Number(paymentIntent.metadata?.shipping_fee || 0),
+              payment_fee: Number(paymentIntent.metadata?.payment_fee || 0),
               total_amount: Number(paymentIntent.metadata?.total_amount || (paymentIntent.amount ? paymentIntent.amount / 100 : 0)),
               isAdminPreview: paymentIntent.metadata?.is_admin_preview === '1',
             };
@@ -416,6 +428,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
               shipping_city: session.metadata?.shipping_city || null,
               item_price: Number(session.metadata?.item_price || (session.amount_total ? session.amount_total / 100 : 25)),
               shipping_fee: Number(session.metadata?.shipping_fee || 0),
+              payment_fee: Number(session.metadata?.payment_fee || 0),
               total_amount: Number(session.metadata?.total_amount || (session.amount_total ? session.amount_total / 100 : 25)),
             };
             order = recordPaidShopOrder(pendingOrder, session.payment_intent || session.id, new Date().toISOString());

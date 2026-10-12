@@ -62,6 +62,7 @@ export interface ShopOrder {
   shipping_city?: string | null;
   item_price: number;
   shipping_fee: number;
+  payment_fee?: number;
   total_amount: number;
   payment_status: PaymentStatus;
   payment_provider: string;
@@ -88,6 +89,7 @@ export interface AdminCreateOrderPayload {
   shipping_city?: string;
   item_price?: number;
   shipping_fee?: number;
+  payment_fee?: number;
   total_amount?: number;
   payment_status: 'paid' | 'pending';
   order_status?: OrderStatus;
@@ -110,6 +112,9 @@ export interface CheckoutPayload {
 export interface CheckoutResponse {
   success: boolean;
   orderId: string;
+  itemPrice?: number;
+  shippingFee?: number;
+  paymentFee?: number;
   totalAmount: number;
   phoneNumber: string;
   expiresInSeconds: number;
@@ -127,6 +132,9 @@ export interface OrderStatusResponse {
   phoneNumber?: string;
   size: SweatSize;
   color?: string;
+  itemPrice?: number;
+  shippingFee?: number;
+  paymentFee?: number;
   totalAmount: number;
   deliveryType: DeliveryType;
   shippingAddress?: string | null;

@@ -131,6 +131,7 @@ export const Shop: React.FC = () => {
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [stripePublishableKey, setStripePublishableKey] = useState<string | null>(null);
   const [stripeTotalAmount, setStripeTotalAmount] = useState(0);
+  const [stripePaymentFee, setStripePaymentFee] = useState(0);
   const [stripeIsSandbox, setStripeIsSandbox] = useState(false);
 
   // Atualiza o título da página
@@ -313,12 +314,21 @@ export const Shop: React.FC = () => {
     return diffDays > 0 ? diffDays : 0;
   }, [campaign?.deadline_date]);
 
-  // Cálculo do total da encomenda
-  const totalPrice = useMemo(() => {
+  // Cálculo do subtotal, taxa de pagamento (0,25€ + 1,5%) e total final da encomenda
+  const subtotalPrice = useMemo(() => {
     if (!campaign) return 0;
     const shipping = deliveryType === 'shipping' ? campaign.shipping_fee : 0;
     return Number((campaign.item_price + shipping).toFixed(2));
   }, [campaign, deliveryType]);
+
+  const paymentFee = useMemo(() => {
+    if (!subtotalPrice || subtotalPrice <= 0) return 0;
+    return Math.round((0.25 + subtotalPrice * 0.015) * 100) / 100;
+  }, [subtotalPrice]);
+
+  const totalPrice = useMemo(() => {
+    return Number((subtotalPrice + paymentFee).toFixed(2));
+  }, [subtotalPrice, paymentFee]);
 
   // Polling de estado de pagamento quando activeOrderId está à espera
   useEffect(() => {
@@ -487,6 +497,7 @@ export const Shop: React.FC = () => {
       setStripeClientSecret(res.clientSecret);
       setStripePublishableKey(res.publishableKey);
       setStripeTotalAmount(res.totalAmount);
+      setStripePaymentFee(res.paymentFee ?? paymentFee);
       setStripeIsSandbox(res.isSandbox ?? false);
       // Avança para o passo 2 — janela exclusiva de pagamento
       setCheckoutStep(2);
@@ -1154,7 +1165,7 @@ export const Shop: React.FC = () => {
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>Sweat Oficial ({selectedSize})</span>
-                        <span>{campaign.item_price.toFixed(2)}€</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{campaign.item_price.toFixed(2)}€</span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>
@@ -1163,10 +1174,18 @@ export const Shop: React.FC = () => {
                             ? `Envio CTT Nacional (${shippingCounty}, ${shippingDistrict})`
                             : 'Levantamento no Gabinete NEEI'}
                         </span>
-                        <span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
                           {deliveryType === 'shipping'
                             ? `${campaign.shipping_fee.toFixed(2)}€`
                             : 'Grátis'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
+                        <span className="flex items-center gap-1">
+                          Taxa de processamento / pagamento (0,25€ + 1,5%)
+                        </span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          +{paymentFee.toFixed(2)}€
                         </span>
                       </div>
                       <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
@@ -1226,15 +1245,50 @@ export const Shop: React.FC = () => {
                       </span>
                     </div>
 
-                    {/* Resumo compacto e detalhado da encomenda */}
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                      <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-sm">
-                        <span>Sweat Oficial NEEI ({selectedSize})</span>
-                        <span className="text-cyan-600 dark:text-cyan-400 font-black text-base">
+                    {/* Resumo discriminado e detalhado da encomenda */}
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+                      <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-sm pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+                        <span>Resumo do Pagamento</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-black text-lg">
                           {stripeTotalAmount.toFixed(2)}€
                         </span>
                       </div>
-                      <div className="text-slate-600 dark:text-slate-400 flex flex-col gap-1 pt-1 border-t border-slate-200/60 dark:border-slate-800/60">
+
+                      <div className="space-y-1.5 text-slate-600 dark:text-slate-400">
+                        <div className="flex justify-between">
+                          <span>Sweat Oficial ({selectedSize})</span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {campaign.item_price.toFixed(2)}€
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>
+                            {deliveryType === 'shipping'
+                              ? 'Portes de Envio (CTT Nacional)'
+                              : 'Portes (Levantamento no Gabinete)'}
+                          </span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {deliveryType === 'shipping'
+                              ? `${campaign.shipping_fee.toFixed(2)}€`
+                              : 'Grátis'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 px-2.5 py-1.5 rounded-lg border border-cyan-200 dark:border-cyan-800/60">
+                          <span className="font-medium">Taxa de processamento / pagamento (0,25€ + 1,5%)</span>
+                          <span className="font-bold text-cyan-600 dark:text-cyan-400">
+                            +{((stripePaymentFee || paymentFee)).toFixed(2)}€
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between items-center font-bold text-slate-900 dark:text-white">
+                        <span className="text-xs">Total final a debitar:</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 text-base font-black">
+                          {stripeTotalAmount.toFixed(2)}€
+                        </span>
+                      </div>
+
+                      <div className="text-slate-500 dark:text-slate-400 flex flex-col gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px]">
                         <div>
                           <strong className="text-slate-700 dark:text-slate-300">Aluno:</strong> {studentName} ({studentEmail}) · {phoneNumber}
                         </div>

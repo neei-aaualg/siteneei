@@ -251,6 +251,7 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
         shipping_city: order.shipping_city || '',
         item_price: String(order.item_price),
         shipping_fee: String(order.shipping_fee),
+        payment_fee: String(order.payment_fee || 0),
         total_amount: String(order.total_amount),
         student_name: order.student_name,
         student_email: order.student_email,

@@ -2,7 +2,9 @@
 
 ## Ambiente & Execução de Comandos (Windows/PowerShell)
 
-- **Execução do NPM:** No PowerShell do Windows, `npm` pode falhar devido à ExecutionPolicy (`npm.ps1`). Utilize sempre `npm.cmd` para executar comandos de build, testes e instalação de pacotes (ex.: `npm.cmd run build`, `npm.cmd install`).
+- **Execução do NPM:** No PowerShell do Windows, `npm` pode falhar devido à ExecutionPolicy (`npm.ps1`). Utilize sempre `npm.cmd` para executar comandos de build, testes e instalação de pacotes (ex.: `npm.cmd run build`, `npm.cmd install`). 
+
+- **Nova feature:** Sempre que fores criar uma nova feature, cria um branch especifico para essa feature.
 
 ## Dados Institucionais & Redes Sociais Oficiais
 

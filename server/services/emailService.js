@@ -69,6 +69,7 @@ export async function sendOrderConfirmationEmail(order) {
   const formattedAmount = Number(order.total_amount || 0).toFixed(2);
   const formattedItemPrice = Number(order.item_price || 0).toFixed(2);
   const formattedShipping = Number(order.shipping_fee || 0).toFixed(2);
+  const formattedPaymentFee = Number(order.payment_fee || 0).toFixed(2);
   const orderColor = order.color || 'Preto';
   const orderSize = order.size || 'M';
 
@@ -95,7 +96,7 @@ DETALHES DA ENCOMENDA:
 - Cor:                ${orderColor}
 - Subtotal Sweat:     ${formattedItemPrice}€
 - Portes de Envio:    ${Number(formattedShipping) > 0 ? `${formattedShipping}€` : 'Grátis (Levantamento no Gabinete)'}
-- TOTAL PAGO:         ${formattedAmount}€
+${Number(formattedPaymentFee) > 0 ? `- Taxa de Pagamento:  ${formattedPaymentFee}€ (0,25€ + 1,5%)\n` : ''}- TOTAL PAGO:         ${formattedAmount}€
 
 MODALIDADE DE ENTREGA:
 ------------------------------------------------------------
@@ -197,6 +198,11 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
                     ${Number(formattedShipping) > 0 ? `${formattedShipping}€ (Envio CTT)` : 'Grátis (Gabinete)'}
                   </td>
                 </tr>
+                ${Number(formattedPaymentFee) > 0 ? `
+                <tr>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Taxa de Processamento (0,25€ + 1,5%):</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">${formattedPaymentFee}€</td>
+                </tr>` : ''}
                 <tr>
                   <td bgcolor="#0b192c" style="padding: 16px; font-size: 15px; color: #ffffff; font-weight: 700; background-color: #0b192c; border-bottom-left-radius: 12px;">Total Pago:</td>
                   <td bgcolor="#0b192c" style="padding: 16px; font-size: 20px; color: #38bdf8; font-weight: 900; background-color: #0b192c; text-align: right; border-bottom-right-radius: 12px;">${formattedAmount}€</td>

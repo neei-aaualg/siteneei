@@ -77,7 +77,8 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(order.id).toMatch(/^SW-\d{4}-\d{4}$/);
     expect(order.item_price).toBe(25.0);
     expect(order.shipping_fee).toBe(0);
-    expect(order.total_amount).toBe(25.0);
+    expect(order.payment_fee).toBe(0.63);
+    expect(order.total_amount).toBe(25.63);
     expect(order.payment_status).toBe('pending');
     expect(order.delivery_type).toBe('pickup');
     expect(order.size).toBe('L');
@@ -97,9 +98,17 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
 
     expect(order).toBeTruthy();
     expect(order.shipping_fee).toBe(3.5);
-    expect(order.total_amount).toBe(28.5);
+    expect(order.payment_fee).toBe(0.68);
+    expect(order.total_amount).toBe(29.18);
     expect(order.delivery_type).toBe('shipping');
     expect(order.shipping_city).toBe('Faro');
+  });
+
+  it('calcula corretamente a taxa de pagamento de 0.25€ + 1.5% sobre compras', () => {
+    expect(db.calculatePaymentFee(0)).toBe(0);
+    expect(db.calculatePaymentFee(25)).toBe(0.63);
+    expect(db.calculatePaymentFee(28.50)).toBe(0.68);
+    expect(db.calculatePaymentFee(0.50)).toBe(0.26);
   });
 
   it('rejeita encomendas com tamanho inválido ou campos em falta', () => {
@@ -166,7 +175,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
 
     const stats = db.getShopSummaryStats();
     expect(stats.totalPaidOrders).toBe(2);
-    expect(stats.totalRevenue).toBe(53.5); // 25.0 + 28.5
+    expect(stats.totalRevenue).toBe(54.81); // 25.63 + 29.18
     expect(stats.sizeCounts.L).toBe(1);
     expect(stats.sizeCounts.M).toBe(1);
     expect(stats.sizeCounts.S).toBe(0);
@@ -233,7 +242,8 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
       true
     );
     expect(order.item_price).toBe(0.50);
-    expect(order.total_amount).toBe(0.50);
+    expect(order.payment_fee).toBe(0.26);
+    expect(order.total_amount).toBe(0.76);
 
     delete process.env.SHOW_TEST_SHOP;
     delete process.env.SWEATS_AVAILABLE;

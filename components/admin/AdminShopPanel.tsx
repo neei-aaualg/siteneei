@@ -975,7 +975,12 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
                     {/* Valor */}
                     <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
-                      {o.total_amount.toFixed(2)}€
+                      <div>{o.total_amount.toFixed(2)}€</div>
+                      {Boolean(o.payment_fee) && (
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                          taxa: {Number(o.payment_fee).toFixed(2)}€
+                        </div>
+                      )}
                     </td>
 
                     {/* Estado */}
