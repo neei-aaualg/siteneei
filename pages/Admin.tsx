@@ -330,6 +330,7 @@ export const Admin: React.FC = () => {
 
   const handleFormDateChange = (newDate: string) => {
     setFormDate(newDate);
+    if (!newDate) return;
     // Transição automática no formulário: se a data for na semana atual ou hoje, passa logo para ongoing
     if (!editingActivity || editingActivity.status !== 'completed') {
       const target = new Date(newDate + 'T00:00:00');
@@ -374,7 +375,7 @@ export const Admin: React.FC = () => {
     setFormDescription(activity.description);
     setFormCategory(activity.category);
     setFormStatus(activity.status);
-    setFormDate(activity.date);
+    setFormDate(activity.date || '');
     setFormTime(activity.time);
     setFormLocation(activity.location);
     setFormMaxCapacity(activity.max_capacity || 0);
@@ -396,7 +397,7 @@ export const Admin: React.FC = () => {
         description: formDescription.trim(),
         category: formCategory.trim(),
         status: formStatus,
-        date: formDate.trim(),
+        date: formDate ? formDate.trim() : '',
         time: formTime.trim(),
         location: formLocation.trim(),
         max_capacity: Number(formMaxCapacity) || 0,
@@ -1110,7 +1111,12 @@ export const Admin: React.FC = () => {
                               {activity.category}
                             </span>
                             <span className="text-xs text-text-200 dark:text-slate-400 flex items-center gap-1">
-                              <Calendar size={12} /> {formatDateDDMMAAAA(activity.date)}
+                              <Calendar size={12} />{' '}
+                              {activity.date ? (
+                                formatDateDDMMAAAA(activity.date)
+                              ) : (
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">Por definir</span>
+                              )}
                             </span>
                             {activity.registration_opens_at && (
                               <span className="text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/80 border border-teal-300 dark:border-teal-800 px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -2122,14 +2128,29 @@ export const Admin: React.FC = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-semibold mb-1">Data (DD-MM-AAAA)</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-semibold">Data (DD-MM-AAAA)</label>
+                      {formDate && (
+                        <button
+                          type="button"
+                          onClick={() => handleFormDateChange('')}
+                          className="text-xs text-amber-600 dark:text-amber-400 hover:underline font-medium cursor-pointer"
+                        >
+                          Limpar data (Por definir)
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="date"
-                      required
                       value={formDate}
                       onChange={(e) => handleFormDateChange(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                     />
+                    {!formDate && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center gap-1">
+                        <span>ℹ️</span> Data vazia: surgirá como &quot;Por definir&quot;.
+                      </p>
+                    )}
                   </div>
 
                   <div>

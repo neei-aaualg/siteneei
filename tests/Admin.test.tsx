@@ -186,4 +186,61 @@ describe('Admin', () => {
     expect(screen.getByText('Carlos Silva')).toBeInTheDocument();
     expect(screen.getByText('Beatriz Costa')).toBeInTheDocument();
   });
+
+  it('apresenta "Por definir" na lista e permite limpar a data ao editar atividade', async () => {
+    const user = userEvent.setup();
+    (getStoredAdminToken as ReturnType<typeof vi.fn>).mockReturnValue('tok-guardado');
+    (fetchAdminActivities as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'act-sem-data',
+        title: 'Tertúlia Gamer',
+        description: 'Conversa informal',
+        category: 'Tertúlia',
+        status: 'upcoming',
+        date: '',
+        time: '17:00',
+        location: 'Sala B',
+        registrations: [],
+      },
+    ]);
+
+    const { saveActivity } = await import('../services/activitiesService');
+    (saveActivity as ReturnType<typeof vi.fn>).mockResolvedValue({ success: true });
+
+    render(<Admin />);
+
+    expect(await screen.findByText('Tertúlia Gamer')).toBeInTheDocument();
+    expect(screen.getByText('Por definir')).toBeInTheDocument();
+
+    // Clica em Editar
+    const editBtn = screen.getByRole('button', { name: 'Editar' });
+    await user.click(editBtn);
+
+    // Modal aberto: insere uma data e depois clica em "Limpar data (Por definir)"
+    const modalHeading = screen.getByText('Editar Atividade');
+    expect(modalHeading).toBeInTheDocument();
+    expect(screen.getByText(/Data vazia: surgirá como "Por definir"/)).toBeInTheDocument();
+
+    const dateInputs = screen.getAllByDisplayValue('');
+    const dateInput = dateInputs.find((el) => (el as HTMLInputElement).type === 'date') as HTMLInputElement;
+    expect(dateInput).toBeInTheDocument();
+
+    await user.type(dateInput, '2026-11-20');
+    expect(screen.getByRole('button', { name: /Limpar data \(Por definir\)/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Limpar data \(Por definir\)/ }));
+    expect(dateInput.value).toBe('');
+
+    // Submete o formulário com a data vazia
+    await user.click(screen.getByRole('button', { name: 'Guardar Atividade' }));
+
+    expect(saveActivity).toHaveBeenCalledWith(
+      'tok-guardado',
+      expect.objectContaining({
+        id: 'act-sem-data',
+        date: '',
+      })
+    );
+  });
 });
+

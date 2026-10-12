@@ -54,6 +54,10 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   direction = 'up',
   className = '',
 }) => {
+  if (!activity || !activity.date || !activity.date.trim()) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 

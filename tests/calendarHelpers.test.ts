@@ -108,5 +108,14 @@ describe('calendarHelpers', () => {
       } as Activity;
       expect(() => downloadIcsCalendarFile(activity)).not.toThrow();
     });
+
+    it('ignora silenciosamente quando a data está vazia', () => {
+      const actSemData = { ...baseActivity, date: '' };
+      expect(createGoogleCalendarUrl(actSemData)).toBe('#');
+      expect(createOutlookCalendarUrl(actSemData)).toBe('#');
+      expect(generateIcsContent(actSemData)).toBe('');
+      expect(() => downloadIcsCalendarFile(actSemData)).not.toThrow();
+    });
   });
 });
+

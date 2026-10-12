@@ -633,6 +633,7 @@ export function getPublicActivities() {
         WHEN 'completed' THEN 3
         ELSE 4
       END,
+      CASE WHEN a.date IS NULL OR a.date = '' THEN 1 ELSE 0 END,
       a.date ASC
   `);
 
@@ -764,7 +765,13 @@ export function getAllActivitiesWithRegistrations() {
   // Sincroniza automaticamente eventos da semana corrente para 'ongoing'
   syncActivitiesWeeklyStatus();
 
-  const activitiesStmt = db.prepare('SELECT * FROM activities ORDER BY date DESC, created_at DESC');
+  const activitiesStmt = db.prepare(`
+    SELECT * FROM activities 
+    ORDER BY 
+      CASE WHEN date IS NULL OR date = '' THEN 1 ELSE 0 END, 
+      date DESC, 
+      created_at DESC
+  `);
   const activities = activitiesStmt.all();
 
   const registrationsStmt = db.prepare('SELECT * FROM registrations ORDER BY registered_at ASC');
@@ -806,14 +813,15 @@ export function saveActivity(data) {
 
   const openSoon = data.open_soon ? 1 : 0;
   const regOpensAt = data.registration_opens_at ? String(data.registration_opens_at).trim() : null;
+  const actDate = data.date ? String(data.date).trim() : '';
 
   let finalStatus = data.status || 'upcoming';
-  if (hasPassedOneDayAfterExecution(data.date)) {
+  if (actDate && hasPassedOneDayAfterExecution(actDate)) {
     if (!data.status || finalStatus === 'upcoming') {
       finalStatus = 'completed';
     }
   } else if (finalStatus === 'upcoming') {
-    if (shouldActivityBeOngoing({ date: data.date, registration_opens_at: regOpensAt })) {
+    if (shouldActivityBeOngoing({ date: actDate, registration_opens_at: regOpensAt })) {
       finalStatus = 'ongoing';
     }
   }
@@ -829,7 +837,7 @@ export function saveActivity(data) {
       data.description,
       data.category,
       finalStatus,
-      data.date,
+      actDate,
       data.time,
       data.location,
       data.max_capacity || 0,
@@ -849,7 +857,7 @@ export function saveActivity(data) {
       data.description,
       data.category,
       finalStatus,
-      data.date,
+      actDate,
       data.time,
       data.location,
       data.max_capacity || 0,
@@ -860,7 +868,7 @@ export function saveActivity(data) {
     );
   }
 
-  return { id, ...data, status: finalStatus, open_soon: openSoon, registration_opens_at: regOpensAt };
+  return { id, ...data, date: actDate, status: finalStatus, open_soon: openSoon, registration_opens_at: regOpensAt };
 }
 
 /**

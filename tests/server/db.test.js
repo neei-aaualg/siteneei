@@ -317,6 +317,39 @@ describe('server/db - saveActivity e administração', () => {
     expect(updated.title).toBe('Título Novo');
   });
 
+  it('permite criar e atualizar atividade com data vazia ("Por definir")', () => {
+    const actSemData = db.saveActivity({
+      ...sampleActivity,
+      id: 'act-por-definir',
+      date: '',
+    });
+    expect(actSemData.date).toBe('');
+
+    // Atualiza com uma data e depois limpa novamente
+    db.saveActivity({
+      ...sampleActivity,
+      id: 'act-por-definir',
+      date: '2026-12-01',
+    });
+    const reCleared = db.saveActivity({
+      ...sampleActivity,
+      id: 'act-por-definir',
+      date: '',
+    });
+    expect(reCleared.date).toBe('');
+
+    // Confirma que é devolvida na lista de administração e pública
+    const all = db.getAllActivitiesWithRegistrations();
+    const found = all.find((a) => a.id === 'act-por-definir');
+    expect(found).toBeDefined();
+    expect(found.date).toBe('');
+
+    const publicList = db.getPublicActivities();
+    const foundPublic = publicList.find((a) => a.id === 'act-por-definir');
+    expect(foundPublic).toBeDefined();
+    expect(foundPublic.date).toBe('');
+  });
+
   it('lista inscrições de cada atividade', () => {
     const reg = db.registerStudent('act-workshop-intro-prog-1', 'Maria', '74123');
     const all = db.getAllActivitiesWithRegistrations();

@@ -69,7 +69,7 @@ export const Events: React.FC = () => {
   const upcomingActivities = activities.filter((a) => a.status === 'upcoming');
   const completedActivities = activities
     .filter((a) => a.status === 'completed')
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   const categories = Array.from(new Set(upcomingActivities.map((a) => a.category)));
   const filteredUpcoming =
@@ -151,13 +151,21 @@ export const Events: React.FC = () => {
     }
   };
 
-  const formatDisplayDate = (dateStr: string) => {
+  const formatDisplayDate = (dateStr?: string | null) => {
+    if (!dateStr || !dateStr.trim()) {
+      return {
+        day: '--',
+        month: 'MÊS',
+        year: '',
+        full: 'Por definir',
+      };
+    }
     const { day, month, year } = getCalendarDayMonth(dateStr);
     return {
       day,
       month,
       year,
-      full: formatDateWithMonthSigla(dateStr),
+      full: formatDateWithMonthSigla(dateStr) || 'Por definir',
     };
   };
 
@@ -466,21 +474,39 @@ export const Events: React.FC = () => {
                         <div>
                           <div className="flex items-start justify-between gap-3 mb-4">
                             {/* Bloco de Data Visual */}
-                            <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-primary-100/60 dark:bg-cyan-950/50 border border-primary-200 dark:border-cyan-800/60 text-center shrink-0">
-                              <span className="text-lg font-black text-accent-200 dark:text-cyan-400 leading-none">
-                                {dateInfo.day}
-                              </span>
-                              <span className="text-[10px] font-bold text-text-200 dark:text-slate-300 uppercase tracking-tight mt-0.5">
-                                {dateInfo.month}
-                              </span>
-                            </div>
+                            {activity.date ? (
+                              <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-primary-100/60 dark:bg-cyan-950/50 border border-primary-200 dark:border-cyan-800/60 text-center shrink-0">
+                                <span className="text-lg font-black text-accent-200 dark:text-cyan-400 leading-none">
+                                  {dateInfo.day}
+                                </span>
+                                <span className="text-[10px] font-bold text-text-200 dark:text-slate-300 uppercase tracking-tight mt-0.5">
+                                  {dateInfo.month}
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 text-center shrink-0"
+                                title="Data por definir"
+                              >
+                                <CalendarIcon size={16} className="text-amber-600 dark:text-amber-400 mb-0.5" />
+                                <span className="text-[8px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-tight leading-tight">
+                                  Por definir
+                                </span>
+                              </div>
+                            )}
 
                             <div className="flex flex-col items-end gap-1">
                               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-primary-100/80 dark:bg-slate-800 text-primary-300 dark:text-cyan-300 border border-transparent dark:border-slate-700">
                                 {activity.category}
                               </span>
-                              <span className="text-[11px] font-mono font-medium text-text-200 dark:text-slate-400">
-                                {formatDateWithMonthSigla(activity.date)}
+                              <span
+                                className={`text-[11px] font-mono font-medium ${
+                                  activity.date
+                                    ? 'text-text-200 dark:text-slate-400'
+                                    : 'text-amber-600 dark:text-amber-400'
+                                }`}
+                              >
+                                {activity.date ? formatDateWithMonthSigla(activity.date) : 'Por definir'}
                               </span>
                             </div>
                           </div>
@@ -578,14 +604,23 @@ export const Events: React.FC = () => {
                         <div>
                           <div className="flex items-start justify-between gap-3 mb-4">
                             {/* Bloco de Data Visual */}
-                            <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gray-100 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-center shrink-0">
-                              <span className="text-lg font-black text-gray-600 dark:text-slate-300 leading-none">
-                                {dateInfo.day}
-                              </span>
-                              <span className="text-[10px] font-bold text-text-200 dark:text-slate-400 uppercase tracking-tight mt-0.5">
-                                {dateInfo.month}
-                              </span>
-                            </div>
+                            {activity.date ? (
+                              <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gray-100 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-center shrink-0">
+                                <span className="text-lg font-black text-gray-600 dark:text-slate-300 leading-none">
+                                  {dateInfo.day}
+                                </span>
+                                <span className="text-[10px] font-bold text-text-200 dark:text-slate-400 uppercase tracking-tight mt-0.5">
+                                  {dateInfo.month}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gray-100 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 text-center shrink-0">
+                                <CalendarIcon size={16} className="text-gray-400 mb-0.5" />
+                                <span className="text-[8px] font-bold text-gray-500 uppercase tracking-tight leading-tight">
+                                  Por definir
+                                </span>
+                              </div>
+                            )}
 
                             <div className="flex flex-col items-end gap-1">
                               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 border border-gray-200 dark:border-slate-700 flex items-center gap-1">
@@ -593,7 +628,7 @@ export const Events: React.FC = () => {
                                 Concluída
                               </span>
                               <span className="text-[11px] font-mono font-medium text-text-200 dark:text-slate-400">
-                                {formatDateWithMonthSigla(activity.date)}
+                                {activity.date ? formatDateWithMonthSigla(activity.date) : 'Por definir'}
                               </span>
                             </div>
                           </div>
@@ -700,8 +735,12 @@ export const Events: React.FC = () => {
                       Inscrição Confirmada!
                     </h4>
                     <p className="text-sm text-text-200 dark:text-slate-300 max-w-sm mx-auto">
-                      O teu lugar para esta atividade está reservado. Vemo-nos no dia{' '}
-                      {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.
+                      O teu lugar para esta atividade está reservado. Vemo-nos{' '}
+                      {selectedActivity.date ? (
+                        <>no dia {formatDateDDMMAAAA(selectedActivity.date)} no {selectedActivity.location}.</>
+                      ) : (
+                        <>(data por definir) no {selectedActivity.location}.</>
+                      )}
                     </p>
                     <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                       <CalendarDropdown

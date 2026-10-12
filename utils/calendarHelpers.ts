@@ -4,6 +4,7 @@ import { Activity } from '../types/activities';
  * Gera URL para adicionar o evento ao Google Calendar
  */
 export function createGoogleCalendarUrl(activity: Activity): string {
+  if (!activity?.date) return '#';
   const title = encodeURIComponent(activity.title);
   const details = encodeURIComponent(
     `${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`
@@ -20,6 +21,7 @@ export function createGoogleCalendarUrl(activity: Activity): string {
  * Gera URL para adicionar o evento ao Microsoft Outlook (Web / 365)
  */
 export function createOutlookCalendarUrl(activity: Activity): string {
+  if (!activity?.date) return '#';
   const title = encodeURIComponent(activity.title);
   const details = encodeURIComponent(
     `${activity.description}\n\nOrganizado pelo NEEI UAlg\nLocal: ${activity.location}`
@@ -36,6 +38,7 @@ export function createOutlookCalendarUrl(activity: Activity): string {
  * Gera o conteúdo no formato padrão iCalendar (.ics) compatível com Apple Calendar (iPhone / Mac)
  */
 export function generateIcsContent(activity: Activity): string {
+  if (!activity?.date) return '';
   const dateClean = activity.date.replace(/-/g, '');
   const dtStart = `${dateClean}T090000Z`;
   const dtEnd = `${dateClean}T180000Z`;
@@ -80,6 +83,7 @@ export function generateIcsContent(activity: Activity): string {
  * Descarrega o ficheiro .ics que o iPhone (iOS), macOS e Outlook abrem nativamente
  */
 export function downloadIcsCalendarFile(activity: Activity): void {
+  if (!activity?.date) return;
   const icsData = generateIcsContent(activity);
   const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);

@@ -204,4 +204,22 @@ describe('Events', () => {
     await user.click(screen.getByLabelText('Fechar modal'));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
+
+  it('apresenta "Por definir" quando a atividade tem data vazia', async () => {
+    (fetchPublicActivities as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        ...upcomingActivity,
+        id: 'act-sem-data',
+        title: 'Torneio Gamer',
+        date: '',
+      },
+    ]);
+
+    render(<Events />);
+
+    expect(await screen.findByText('Torneio Gamer')).toBeInTheDocument();
+    const porDefinirBadges = screen.getAllByText('Por definir');
+    expect(porDefinirBadges.length).toBeGreaterThan(0);
+  });
 });
+

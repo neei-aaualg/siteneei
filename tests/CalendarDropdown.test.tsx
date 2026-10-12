@@ -61,4 +61,10 @@ describe('CalendarDropdown', () => {
     await user.click(iconButton);
     expect(iconButton).toHaveAttribute('aria-expanded', 'true');
   });
+
+  it('não renderiza nada se a atividade não tiver data definida', () => {
+    const { container } = render(<CalendarDropdown activity={{ ...activity, date: '' }} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });
+
