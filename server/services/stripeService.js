@@ -51,6 +51,70 @@ export function getStripeClient() {
 }
 
 /**
+ * Procura um cliente existente no Stripe por email ou cria um novo com o nome do comprador
+ */
+export async function getOrCreateStripeCustomer(
+  stripe,
+  { email, name, phoneNumber, orderId }
+) {
+  if (!stripe) return null;
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (name || '').trim();
+  const cleanPhone = (phoneNumber || '').replace(/\s+/g, '');
+  const formattedPhone = cleanPhone
+    ? cleanPhone.startsWith('+')
+      ? cleanPhone
+      : `+351${cleanPhone.replace(/\D/g, '')}`
+    : undefined;
+
+  try {
+    // 1. Procurar por cliente existente com o mesmo email
+    if (cleanEmail) {
+      const search = await stripe.customers.list({
+        email: cleanEmail,
+        limit: 1,
+      });
+
+      if (search.data && search.data.length > 0) {
+        const existingCustomer = search.data[0];
+        // Se o nome tiver sido fornecido e for diferente do que está no Stripe, atualiza o nome
+        if (cleanName && existingCustomer.name !== cleanName) {
+          try {
+            await stripe.customers.update(existingCustomer.id, {
+              name: cleanName,
+              ...(formattedPhone ? { phone: formattedPhone } : {}),
+            });
+          } catch (updateErr) {
+            console.warn(
+              '[STRIPE] Aviso ao atualizar dados do cliente existente:',
+              updateErr.message
+            );
+          }
+        }
+        return existingCustomer.id;
+      }
+    }
+
+    // 2. Se não existir, criar novo cliente no Stripe
+    const newCustomer = await stripe.customers.create({
+      email: cleanEmail || undefined,
+      name: cleanName || undefined,
+      phone: formattedPhone || undefined,
+      metadata: {
+        source: 'neei_portal',
+        last_order_id: orderId || '',
+      },
+    });
+
+    console.log(`[STRIPE] Cliente criado com sucesso: ${newCustomer.id} (${cleanName})`);
+    return newCustomer.id;
+  } catch (error) {
+    console.error('[STRIPE ERROR] Falha ao obter/criar Customer no Stripe:', error.message);
+    return null;
+  }
+}
+
+/**
  * Dispara um pedido direto de pagamento através de um PaymentIntent da Stripe
  */
 export async function createStripeMbWayPaymentIntent({
@@ -90,7 +154,18 @@ export async function createStripeMbWayPaymentIntent({
   // Modo Real com Stripe API
   try {
     const stripe = getStripeClient();
-    const paymentIntent = await stripe.paymentIntents.create({
+
+    let customerId = null;
+    if (studentEmail || studentName) {
+      customerId = await getOrCreateStripeCustomer(stripe, {
+        email: studentEmail,
+        name: studentName,
+        phoneNumber: cleanMobile,
+        orderId,
+      });
+    }
+
+    const paymentIntentPayload = {
       amount: amountInCents,
       currency: 'eur',
       payment_method_types: ['mb_way'],
@@ -111,7 +186,25 @@ export async function createStripeMbWayPaymentIntent({
         student_name: studentName || '',
         ...metadata,
       },
-    });
+    };
+
+    if (customerId) {
+      paymentIntentPayload.customer = customerId;
+    }
+
+    if (studentName) {
+      paymentIntentPayload.shipping = {
+        name: studentName.trim(),
+        address: {
+          line1: (metadata.shipping_address || 'Recolha Campus de Gambelas').trim(),
+          postal_code: (metadata.shipping_postal_code || '8005-139').trim(),
+          city: (metadata.shipping_city || 'Faro').trim(),
+          country: 'PT',
+        },
+      };
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentPayload);
 
     console.log(
       `[STRIPE] PaymentIntent criado: ${paymentIntent.id} (Estado: ${paymentIntent.status})`
@@ -153,6 +246,10 @@ export async function createStripePaymentIntentAutomatic({
   amount,
   studentEmail,
   studentName,
+  phoneNumber,
+  shippingAddress,
+  shippingPostalCode,
+  shippingCity,
   description,
   metadata = {},
 }) {
@@ -171,7 +268,19 @@ export async function createStripePaymentIntentAutomatic({
 
   try {
     const stripe = getStripeClient();
-    const paymentIntent = await stripe.paymentIntents.create({
+
+    // Obtém ou cria o cliente na Stripe para associar o nome e email diretamente
+    let customerId = null;
+    if (studentEmail || studentName) {
+      customerId = await getOrCreateStripeCustomer(stripe, {
+        email: studentEmail,
+        name: studentName,
+        phoneNumber: phoneNumber || metadata.phone_number,
+        orderId,
+      });
+    }
+
+    const paymentIntentPayload = {
       amount: amountInCents,
       currency: 'eur',
       automatic_payment_methods: { enabled: true },
@@ -183,7 +292,33 @@ export async function createStripePaymentIntentAutomatic({
         student_name: studentName || '',
         ...metadata,
       },
-    });
+    };
+
+    if (customerId) {
+      paymentIntentPayload.customer = customerId;
+    }
+
+    if (studentName) {
+      paymentIntentPayload.shipping = {
+        name: studentName.trim(),
+        address: {
+          line1: (
+            shippingAddress ||
+            metadata.shipping_address ||
+            'Recolha Campus de Gambelas'
+          ).trim(),
+          postal_code: (
+            shippingPostalCode ||
+            metadata.shipping_postal_code ||
+            '8005-139'
+          ).trim(),
+          city: (shippingCity || metadata.shipping_city || 'Faro').trim(),
+          country: 'PT',
+        },
+      };
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentPayload);
 
     console.log(
       `[STRIPE] PaymentIntent automático criado: ${paymentIntent.id} (${amountInCents} cêntimos)`
@@ -222,7 +357,17 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
     const stripe = getStripeClient();
     const amountInCents = Math.round(Number(order.total_amount) * 100);
 
-    const session = await stripe.checkout.sessions.create({
+    let customerId = null;
+    if (order.student_email || order.student_name) {
+      customerId = await getOrCreateStripeCustomer(stripe, {
+        email: order.student_email,
+        name: order.student_name,
+        phoneNumber: order.phone_number,
+        orderId: order.id,
+      });
+    }
+
+    const sessionPayload = {
       payment_method_types: ['card', 'mb_way'],
       line_items: [
         {
@@ -230,8 +375,9 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
             currency: 'eur',
             product_data: {
               name: `Sweat Oficial Engenharia Informática 2026 (${order.size})`,
-              description: `Tamanho: ${order.size} | Cor: ${order.color || 'Preto'} | Entrega: ${order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
-                }`,
+              description: `Tamanho: ${order.size} | Cor: ${order.color || 'Preto'} | Entrega: ${
+                order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
+              }`,
             },
             unit_amount: amountInCents,
           },
@@ -239,7 +385,6 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
         },
       ],
       mode: 'payment',
-      customer_email: order.student_email,
       client_reference_id: order.id,
       metadata: {
         order_id: order.id,
@@ -259,7 +404,16 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
       },
       success_url: successUrl,
       cancel_url: cancelUrl,
-    });
+    };
+
+    if (customerId) {
+      sessionPayload.customer = customerId;
+      sessionPayload.customer_update = { name: 'auto', address: 'auto' };
+    } else if (order.student_email) {
+      sessionPayload.customer_email = order.student_email;
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionPayload);
 
     return {
       success: true,

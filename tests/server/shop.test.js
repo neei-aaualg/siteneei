@@ -912,5 +912,89 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     const updatedInDb = db.getShopCampaignById(prodId);
     expect(updatedInDb.category).toBe('Material Escolar');
   });
+
+  it('cria ou atualiza o Customer no Stripe com o nome da pessoa que comprou e associa ao PaymentIntent', async () => {
+    const stripeService = await import('../../server/services/stripeService.js');
+
+    const mockCustomers = [];
+    const mockPaymentIntents = [];
+
+    const mockStripe = {
+      customers: {
+        list: vi.fn(async ({ email }) => ({
+          data: mockCustomers.filter((c) => c.email === email),
+        })),
+        create: vi.fn(async ({ email, name, phone, metadata }) => {
+          const newCust = {
+            id: `cus_test_${mockCustomers.length + 1}`,
+            email,
+            name,
+            phone,
+            metadata,
+          };
+          mockCustomers.push(newCust);
+          return newCust;
+        }),
+        update: vi.fn(async (id, data) => {
+          const cust = mockCustomers.find((c) => c.id === id);
+          if (cust) Object.assign(cust, data);
+          return cust;
+        }),
+      },
+      paymentIntents: {
+        create: vi.fn(async (payload) => {
+          const pi = { id: `pi_test_${Date.now()}`, client_secret: 'pi_test_secret', ...payload };
+          mockPaymentIntents.push(pi);
+          return pi;
+        }),
+      },
+    };
+
+    // 1. Criação de novo cliente quando não existe
+    const customerId = await stripeService.getOrCreateStripeCustomer(mockStripe, {
+      email: 'maria.santos@ualg.pt',
+      name: 'Maria Santos',
+      phoneNumber: '912345678',
+      orderId: 'SW-1234-5678',
+    });
+
+    expect(customerId).toBe('cus_test_1');
+    expect(mockStripe.customers.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'maria.santos@ualg.pt',
+        name: 'Maria Santos',
+        phone: '+351912345678',
+      })
+    );
+
+    // 2. Reutilização de cliente existente e atualização de nome se modificado
+    const customerId2 = await stripeService.getOrCreateStripeCustomer(mockStripe, {
+      email: 'maria.santos@ualg.pt',
+      name: 'Maria Santos Atualizada',
+      phoneNumber: '912345678',
+      orderId: 'SW-1234-5679',
+    });
+
+    expect(customerId2).toBe('cus_test_1');
+    expect(mockStripe.customers.update).toHaveBeenCalledWith('cus_test_1', {
+      name: 'Maria Santos Atualizada',
+      phone: '+351912345678',
+    });
+
+    // 3. Tolerância a falhas na API do Stripe
+    const errorStripe = {
+      customers: {
+        list: vi.fn(async () => {
+          throw new Error('Stripe API temporariamente indisponível');
+        }),
+      },
+    };
+    const fallbackId = await stripeService.getOrCreateStripeCustomer(errorStripe, {
+      email: 'erro@ualg.pt',
+      name: 'Erro Teste',
+    });
+    expect(fallbackId).toBeNull();
+  });
 });
+
 

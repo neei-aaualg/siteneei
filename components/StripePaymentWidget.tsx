@@ -15,6 +15,9 @@ interface StripePaymentWidgetProps {
   orderId: string;
   totalAmount: number;
   isSandbox: boolean;
+  studentName?: string;
+  studentEmail?: string;
+  phoneNumber?: string;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }
@@ -26,12 +29,18 @@ function PaymentForm({
   orderId,
   totalAmount,
   isSandbox,
+  studentName,
+  studentEmail,
+  phoneNumber,
   onSuccess,
   onError,
 }: {
   orderId: string;
   totalAmount: number;
   isSandbox: boolean;
+  studentName?: string;
+  studentEmail?: string;
+  phoneNumber?: string;
   onSuccess: () => void;
   onError: (msg: string) => void;
 }) {
@@ -39,6 +48,13 @@ function PaymentForm({
   const elements = useElements();
   const [confirming, setConfirming] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  const cleanPhone = (phoneNumber || '').replace(/\D/g, '');
+  const formattedPhone = cleanPhone
+    ? phoneNumber?.startsWith('+')
+      ? phoneNumber
+      : `+351${cleanPhone}`
+    : undefined;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +69,13 @@ function PaymentForm({
       elements,
       confirmParams: {
         return_url: returnUrl,
+        payment_method_data: {
+          billing_details: {
+            name: studentName ? studentName.trim() : undefined,
+            email: studentEmail ? studentEmail.trim() : undefined,
+            phone: formattedPhone,
+          },
+        },
       },
     });
 
@@ -75,6 +98,13 @@ function PaymentForm({
         options={{
           layout: 'tabs',
           wallets: { applePay: 'auto', googlePay: 'auto' },
+          defaultValues: {
+            billingDetails: {
+              name: studentName || '',
+              email: studentEmail || '',
+              phone: formattedPhone || '',
+            },
+          },
         }}
       />
 
@@ -131,6 +161,9 @@ export function StripePaymentWidget({
   orderId,
   totalAmount,
   isSandbox,
+  studentName,
+  studentEmail,
+  phoneNumber,
   onSuccess,
   onError,
 }: StripePaymentWidgetProps) {
@@ -320,6 +353,9 @@ export function StripePaymentWidget({
         orderId={orderId}
         totalAmount={totalAmount}
         isSandbox={isSandbox}
+        studentName={studentName}
+        studentEmail={studentEmail}
+        phoneNumber={phoneNumber}
         onSuccess={onSuccess}
         onError={onError}
       />

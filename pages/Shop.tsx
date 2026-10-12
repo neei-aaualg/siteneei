@@ -1365,6 +1365,9 @@ export const Shop: React.FC = () => {
                         orderId={activeOrderId}
                         totalAmount={stripeTotalAmount}
                         isSandbox={stripeIsSandbox}
+                        studentName={studentName}
+                        studentEmail={studentEmail}
+                        phoneNumber={phoneNumber}
                         onSuccess={handlePaymentSuccess}
                         onError={handlePaymentError}
                       />

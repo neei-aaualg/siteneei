@@ -103,6 +103,10 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         amount: order.total_amount,
         studentEmail: order.student_email,
         studentName: order.student_name,
+        phoneNumber: order.phone_number,
+        shippingAddress: order.shipping_address,
+        shippingPostalCode: order.shipping_postal_code,
+        shippingCity: order.shipping_city,
         description: isAdminPreview
           ? `NEEI - ${order.item_name} ${order.size} (Modo Teste 50c)`
           : `NEEI - ${order.item_name} ${order.size}`,

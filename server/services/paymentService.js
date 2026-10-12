@@ -43,6 +43,10 @@ export async function createAutomaticPaymentIntent({
   amount,
   studentEmail,
   studentName,
+  phoneNumber,
+  shippingAddress,
+  shippingPostalCode,
+  shippingCity,
   description,
   metadata,
 }) {
@@ -51,6 +55,10 @@ export async function createAutomaticPaymentIntent({
     amount,
     studentEmail,
     studentName,
+    phoneNumber,
+    shippingAddress,
+    shippingPostalCode,
+    shippingCity,
     description,
     metadata,
   });
