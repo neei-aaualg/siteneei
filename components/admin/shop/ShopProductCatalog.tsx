@@ -99,6 +99,9 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                 {/* Detalhes do Produto */}
                 <div className="p-4 space-y-3">
                   <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block mb-0.5">
+                      {prod.category || 'Vestuário'}
+                    </span>
                     <h4 className="font-bold text-sm text-slate-900 dark:text-white">{prod.title}</h4>
                     {prod.description && (
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">

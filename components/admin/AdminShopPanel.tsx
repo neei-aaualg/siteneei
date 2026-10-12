@@ -77,6 +77,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       'Bordado de alta definição NEEI · Engenharia Informática',
       'Edição Oficial Limitada 2026',
     ],
+    category: 'Vestuário',
   };
   const [productForm, setProductForm] = useState<ProductFormData>(defaultProductForm);
 
@@ -493,6 +494,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       allow_shipping: Boolean(prod.allow_shipping),
       pickup_location: prod.pickup_location || '',
       sizes_available: prod.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      category: prod.category || 'Vestuário',
       features:
         prod.features && prod.features.length > 0
           ? [...prod.features]
@@ -575,6 +577,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       ...productForm,
       title,
       item_name: itemName,
+      category: productForm.category?.trim() || 'Vestuário',
       features: cleanedFeatures,
     };
 

@@ -73,7 +73,7 @@ export const Shop: React.FC = () => {
   const activeCampaign = selectedProductCampaign || campaign;
 
   // Filtro de categoria no Merch
-  const [activeCategory, setActiveCategory] = useState<'all' | 'clothing' | 'accessories'>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   // Modal de Checkout / Encomenda
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -173,8 +173,8 @@ export const Shop: React.FC = () => {
             data.campaigns && data.campaigns.length > 0
               ? data.campaigns
               : data.campaign
-              ? [data.campaign]
-              : [];
+                ? [data.campaign]
+                : [];
           setCampaignsList(allCampaigns);
           const initialCamp = data.campaign || allCampaigns[0] || null;
           setSelectedProductCampaign(initialCamp);
@@ -290,7 +290,7 @@ export const Shop: React.FC = () => {
     return list.map((c) => ({
       id: c.id,
       name: c.title || c.item_name || 'Sweat Oficial Engenharia Informática',
-      category: 'clothing',
+      category: c.category || 'Vestuário',
       price: c.item_price,
       imageUrl: isAvailableToBuy ? c.image_url || '/assets/sweat_mockup.jpg' : '',
       badge: isAvailableToBuy
@@ -304,13 +304,13 @@ export const Shop: React.FC = () => {
         c.features && c.features.length > 0
           ? c.features
           : [
-              `Artigo: ${c.item_name}`,
-              '80% Algodão cardado / 20% Poliéster (320g/m²)',
-              'Bordado de alta definição NEEI · Engenharia Informática',
-              c.allow_shipping
-                ? 'Recolha no Campus de Gambelas ou Envio CTT'
-                : 'Recolha no Campus de Gambelas',
-            ],
+            `Artigo: ${c.item_name}`,
+            '80% Algodão cardado / 20% Poliéster (320g/m²)',
+            'Bordado de alta definição NEEI · Engenharia Informática',
+            c.allow_shipping
+              ? 'Recolha no Campus de Gambelas ou Envio CTT'
+              : 'Recolha no Campus de Gambelas',
+          ],
       available: isAvailableToBuy && Boolean(c.is_active),
       isPreorder: true,
       sizes: c.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
@@ -321,11 +321,22 @@ export const Shop: React.FC = () => {
     }));
   }, [campaignsList, campaign, sweatsAvailable, isAdminPreview]);
 
+  // Categorias disponíveis no catálogo com contagem
+  const availableCategories = useMemo(() => {
+    const map = new Map<string, number>();
+    products.forEach((p) => {
+      const cat = p.category || 'Vestuário';
+      map.set(cat, (map.get(cat) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [products]);
+
   // Produtos filtrados por categoria
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return products;
-    if (activeCategory === 'clothing') return products.filter((p) => p.category === 'clothing');
-    return [];
+    return products.filter(
+      (p) => (p.category || 'Vestuário').toLowerCase() === activeCategory.toLowerCase()
+    );
   }, [products, activeCategory]);
 
   // Cálculo de dias restantes até ao fim da campanha
@@ -691,26 +702,19 @@ export const Shop: React.FC = () => {
             >
               Todos os Artigos ({products.length})
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveCategory('clothing')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory === 'clothing'
-                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-                }`}
-            >
-              Vestuário ({products.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveCategory('accessories')}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory === 'accessories'
-                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
-                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
-                }`}
-            >
-              Acessórios (Brevemente)
-            </button>
+            {availableCategories.map((cat) => (
+              <button
+                key={cat.name}
+                type="button"
+                onClick={() => setActiveCategory(cat.name)}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${activeCategory.toLowerCase() === cat.name.toLowerCase()
+                  ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/20'
+                  : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-500/50'
+                  }`}
+              >
+                {cat.name} ({cat.count})
+              </button>
+            ))}
 
             {/* Divisor subtil */}
             <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800 mx-1" />
@@ -836,9 +840,8 @@ export const Shop: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
                         <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
-                          Vestuário
+                          {prod.category || 'Vestuário'}
                         </span>
-                        <span>Tamanhos XS ao 3XL</span>
                       </div>
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                         {prod.name}
@@ -889,7 +892,7 @@ export const Shop: React.FC = () => {
                     <div>
                       <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
                         <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
-                          Vestuário Oficial
+                          {prod.category || 'Vestuário'}
                         </span>
                         <span className="font-semibold text-cyan-600 dark:text-cyan-400">
                           Em Breve

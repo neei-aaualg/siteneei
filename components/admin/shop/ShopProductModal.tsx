@@ -11,7 +11,6 @@ import {
   Check,
   ListPlus,
   Trash2,
-  Sparkles,
 } from 'lucide-react';
 import { ShopCampaign, SweatSize, ProductFormData } from '../../../types/shop';
 import { Portal } from '../../Portal';
@@ -159,6 +158,46 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Este nome é o que aparece no ficheiro CSV da fábrica e nos recibos do cliente.
                 </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Categoria do Artigo (Ex: Vestuário, Acessórios) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={productForm.category}
+                  onChange={(e) =>
+                    setProductForm((prev) => ({ ...prev, category: e.target.value }))
+                  }
+                  placeholder="Ex: Vestuário"
+                  list="product-category-list"
+                  className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                />
+                <datalist id="product-category-list">
+                  <option value="Vestuário" />
+                  <option value="Acessórios" />
+                  <option value="Material Escolar" />
+                  <option value="Tecnologia" />
+                  <option value="Outros" />
+                </datalist>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {['Vestuário', 'Acessórios', 'Material Escolar', 'Outros'].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setProductForm((prev) => ({ ...prev, category: cat }))}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
+                        productForm.category === cat
+                          ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/50 font-bold'
+                          : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>

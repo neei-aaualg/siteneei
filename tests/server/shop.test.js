@@ -841,4 +841,76 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(Array.isArray(active.features)).toBe(true);
     expect(active.features.length).toBeGreaterThan(0);
   });
+
+  it('permite configurar e atualizar a categoria de um produto na BD e API', async () => {
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+    let statusCode = 200;
+    let jsonBody = null;
+    const fakeRes = () => ({
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = data ? JSON.parse(data) : null;
+      },
+    });
+
+    // 1. A campanha padrão tem a categoria 'Vestuário'
+    const defaultCamp = db.getActiveShopCampaign();
+    expect(defaultCamp.category).toBe('Vestuário');
+
+    // 2. Criar novo produto com categoria personalizada (ex: 'Acessórios')
+    let res = fakeRes();
+    let handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          title: 'Lanyard Oficial NEEI',
+          item_name: 'Lanyard NEEI',
+          category: 'Acessórios',
+          item_price: 3.5,
+          sizes_available: ['M'],
+        },
+      },
+      res,
+      '/api/admin/shop/products'
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.product.category).toBe('Acessórios');
+    const prodId = jsonBody.product.id;
+
+    // 3. Verificar na BD diretamente
+    const inDb = db.getShopCampaignById(prodId);
+    expect(inDb.category).toBe('Acessórios');
+
+    // 4. Atualizar a categoria para 'Material Escolar'
+    res = fakeRes();
+    handled = await shopApi.handleShopApi(
+      {
+        method: 'PUT',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          category: 'Material Escolar',
+        },
+      },
+      res,
+      `/api/admin/shop/products/${prodId}`
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(jsonBody.product.category).toBe('Material Escolar');
+
+    const updatedInDb = db.getShopCampaignById(prodId);
+    expect(updatedInDb.category).toBe('Material Escolar');
+  });
 });
+

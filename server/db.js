@@ -146,6 +146,7 @@ db.exec(`
     pickup_location TEXT NOT NULL,
     sizes_available TEXT NOT NULL,
     features TEXT,
+    category TEXT NOT NULL DEFAULT 'Vestuário',
     created_at TEXT NOT NULL
   );
 
@@ -262,6 +263,11 @@ try {
 } catch (_) {
   // Já existe
 }
+try {
+  db.exec("ALTER TABLE shop_campaigns ADD COLUMN category TEXT NOT NULL DEFAULT 'Vestuário';");
+} catch (_) {
+  // Já existe
+}
 
 // Limpeza de encomendas não confirmadas: encomendas pendentes web são limpas, mas encomendas criadas por admin são preservadas
 try {
@@ -279,9 +285,9 @@ try {
       `
       INSERT INTO shop_campaigns (
         id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, created_at
+        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, category, created_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `
     ).run(
@@ -304,6 +310,7 @@ try {
         'Corte unissexo confortável com cordões reforçados',
         'Recolha no Campus de Gambelas ou Envio CTT',
       ]),
+      'Vestuário',
       new Date().toISOString()
     );
   }
@@ -1283,6 +1290,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     pickup_location: row.pickup_location,
     sizes_available: sizes,
     features,
+    category: row.category || 'Vestuário',
     created_at: row.created_at,
     isAdminPreview: isTestingMode,
   };
@@ -1346,6 +1354,7 @@ export function createShopCampaign(data) {
   const sizes_available = Array.isArray(data.sizes_available)
     ? JSON.stringify(data.sizes_available)
     : (data.sizes_available || JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']));
+  const category = (data.category || 'Vestuário').trim();
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : JSON.stringify([
@@ -1358,9 +1367,9 @@ export function createShopCampaign(data) {
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, category, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1377,6 +1386,7 @@ export function createShopCampaign(data) {
     pickup_location,
     sizes_available,
     features,
+    category,
     now
   );
 
@@ -1414,12 +1424,13 @@ export function updateShopCampaign(id, data) {
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : current.features;
+  const category = data.category !== undefined ? data.category.trim() : (current.category || 'Vestuário');
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?, features = ?
+      pickup_location = ?, sizes_available = ?, features = ?, category = ?
     WHERE id = ?
   `);
 
@@ -1437,6 +1448,7 @@ export function updateShopCampaign(id, data) {
     pickup_location,
     sizes_available,
     features,
+    category,
     id
   );
 
