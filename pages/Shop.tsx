@@ -300,12 +300,17 @@ export const Shop: React.FC = () => {
         : 'Brevemente',
       description:
         c.description || 'Artigo oficial do Núcleo de Estudantes de Engenharia Informática da UAlg.',
-      features: [
-        `Artigo: ${c.item_name}`,
-        '80% Algodão cardado / 20% Poliéster (320g/m²)',
-        'Bordado de alta definição NEEI · Engenharia Informática',
-        c.allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
-      ],
+      features:
+        c.features && c.features.length > 0
+          ? c.features
+          : [
+              `Artigo: ${c.item_name}`,
+              '80% Algodão cardado / 20% Poliéster (320g/m²)',
+              'Bordado de alta definição NEEI · Engenharia Informática',
+              c.allow_shipping
+                ? 'Recolha no Campus de Gambelas ou Envio CTT'
+                : 'Recolha no Campus de Gambelas',
+            ],
       available: isAvailableToBuy && Boolean(c.is_active),
       isPreorder: true,
       sizes: c.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
@@ -804,8 +809,9 @@ export const Shop: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <div className="absolute bottom-3.5 right-3.5 bg-slate-950/85 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl shadow-lg">
-                    {prod.price.toFixed(2)}€
+                  <div className="absolute bottom-3.5 right-3.5 bg-slate-950/85 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl shadow-lg flex items-baseline gap-1">
+                    <span>{prod.price.toFixed(2)}€</span>
+                    <span className="text-[10px] font-semibold text-cyan-300 tracking-normal">(+ taxas)</span>
                   </div>
                 </div>
               ) : (
@@ -837,12 +843,9 @@ export const Shop: React.FC = () => {
                       <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                         {prod.name}
                       </h3>
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed line-clamp-3">
-                        {prod.description}
-                      </p>
 
                       <ul className="mt-4 space-y-2 text-xs text-slate-600 dark:text-slate-300">
-                        {prod.features.slice(0, 3).map((f, i) => (
+                        {prod.features.map((f, i) => (
                           <li key={i} className="flex items-center gap-2">
                             <CheckCircle2 size={14} className="text-cyan-500 flex-shrink-0" />
                             <span>{f}</span>
@@ -976,6 +979,19 @@ export const Shop: React.FC = () => {
                      PASSO 1: FORMULÁRIO DE DADOS & SELEÇÃO
                      ========================================================================= */
                   <form onSubmit={handleCheckout} className="space-y-6">
+                    {/* Descrição Detalhada do Artigo (apresentada ao clicar em Pré-encomendar) */}
+                    {activeCampaign?.description && (
+                      <div className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed shadow-sm">
+                        <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold mb-1.5 text-xs uppercase tracking-wider">
+                          <Info size={15} />
+                          <span>Descrição Detalhada do Artigo</span>
+                        </div>
+                        <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
+                          {activeCampaign.description}
+                        </p>
+                      </div>
+                    )}
+
                     {/* 1. Seleção de Tamanho */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
@@ -1202,7 +1218,7 @@ export const Shop: React.FC = () => {
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{(activeCampaign?.item_price ?? 0).toFixed(2)}€</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span></span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>
@@ -1295,7 +1311,7 @@ export const Shop: React.FC = () => {
                         <div className="flex justify-between">
                           <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
                           <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {(activeCampaign?.item_price ?? 0).toFixed(2)}€
+                            {(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span>
                           </span>
                         </div>
                         <div className="flex justify-between">

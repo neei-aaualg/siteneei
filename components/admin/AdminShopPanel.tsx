@@ -1,38 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingBag,
-  Download,
-  Search,
-  Filter,
-  RefreshCw,
-  Mail,
-  Truck,
-  MapPin,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  Smartphone,
-  ChevronDown,
-  Loader2,
-  FileSpreadsheet,
-  AlertCircle,
-  ExternalLink,
-  FlaskConical,
-  Copy,
-  Check,
-  Eye,
-  Plus,
   Tag,
-  X,
-  User,
-  CreditCard,
-  Edit,
-  Trash2,
-  Layers,
-  Package,
-  ToggleLeft,
-  ToggleRight,
-  Image as ImageIcon,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import {
   ShopOrder,
@@ -42,6 +13,8 @@ import {
   DeliveryType,
   AdminCreateOrderPayload,
   ShopCampaign,
+  ProductFormData,
+  AdminProductPayload,
 } from '../../types/shop';
 import {
   fetchAdminShopOrders,
@@ -56,9 +29,13 @@ import {
   updateAdminProduct,
   deleteAdminProduct,
 } from '../../services/shopService';
-import { formatDateTimeDDMMAAAA } from '../../utils/dateHelpers';
-import { Portal } from '../Portal';
 import { getPortugalDistricts, getCountiesForDistrict } from '../../constants/portugalDistricts';
+import { ShopTestModeBanner } from './shop/ShopTestModeBanner';
+import { ShopStatsCards } from './shop/ShopStatsCards';
+import { ShopOrdersTable } from './shop/ShopOrdersTable';
+import { ShopProductCatalog } from './shop/ShopProductCatalog';
+import { ShopProductModal } from './shop/ShopProductModal';
+import { ShopManualOrderModal } from './shop/ShopManualOrderModal';
 
 interface AdminShopPanelProps {
   token: string;
@@ -70,9 +47,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [products, setProducts] = useState<ShopCampaign[]>([]);
   const [stats, setStats] = useState<ShopSummaryStats | null>(null);
-  const [sweatsAvailable, setSweatsAvailable] = useState<boolean>(true);
   const [showTestShop, setShowTestShop] = useState<boolean>(true);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,7 +59,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const [savingProduct, setSavingProduct] = useState(false);
   const [productError, setProductError] = useState<string | null>(null);
 
-  const defaultProductForm = {
+  const defaultProductForm: ProductFormData = {
     title: '',
     description: '',
     item_name: '',
@@ -94,9 +71,14 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     allow_pickup: true,
     allow_shipping: true,
     pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
-    sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[],
+    sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    features: [
+      '80% Algodão cardado / 20% Poliéster (320g/m²)',
+      'Bordado de alta definição NEEI · Engenharia Informática',
+      'Edição Oficial Limitada 2026',
+    ],
   };
-  const [productForm, setProductForm] = useState(defaultProductForm);
+  const [productForm, setProductForm] = useState<ProductFormData>(defaultProductForm);
 
   // Seleção Múltipla / Bulk Actions
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -166,7 +148,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setProducts(prods);
 
       if (campaignData) {
-        setSweatsAvailable(Boolean(campaignData.sweatsAvailable));
         if (campaignData.showTestShop !== undefined) {
           setShowTestShop(Boolean(campaignData.showTestShop));
         }
@@ -210,8 +191,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     showFeedback('copy-preview-link', 'Link de teste copiado para a área de transferência!');
     setTimeout(() => setCopiedLink(false), 2500);
   };
-
-  const [showQrCode, setShowQrCode] = useState(false);
 
   // Encomendas filtradas
   const filteredOrders = useMemo(() => {
@@ -279,7 +258,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   // Descarregar CSV para a fábrica
   const handleDownloadCsv = () => {
     const url = `/api/admin/shop/export-factory`;
-    // Dispara o download com o token de autorização
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -339,7 +317,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       );
       showFeedback(
         'bulk-update-success',
-        `${selectedOrderIds.length} encomenda(s) atualizada(s) para "${getOrderStatusLabel(bulkStatus)}"!`
+        `${selectedOrderIds.length} encomenda(s) atualizada(s) com sucesso!`
       );
       setSelectedOrderIds([]);
     } catch (err: any) {
@@ -349,29 +327,6 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     }
   };
 
-  // Status helper
-  const getOrderStatusLabel = (st: OrderStatus) => {
-    switch (st) {
-      case 'pending_payment':
-        return 'Pendente Pagamento';
-      case 'confirmed':
-        return 'Confirmada / A Aguardar Fabrico';
-      case 'in_production':
-        return 'Em Produção (Fábrica)';
-      case 'ready_for_pickup':
-        return 'Pronta p/ Levantamento';
-      case 'shipped':
-        return 'Enviada via CTT';
-      case 'delivered':
-        return 'Entregue / Concluída';
-      case 'test':
-        return 'Teste';
-      default:
-        return st;
-    }
-  };
-
-  // Classes visuais harmoniosas para o selector de estado operacional (suporta light e dark mode sem bugs de contraste)
   const getOrderStatusSelectClasses = (status: OrderStatus) => {
     switch (status) {
       case 'test':
@@ -516,18 +471,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     setEditingProduct(null);
     setProductError(null);
     setProductForm({
-      title: '',
-      description: '',
-      item_name: '',
-      item_price: 25.0,
-      shipping_fee: 3.5,
-      image_url: '/assets/sweat_mockup.jpg',
+      ...defaultProductForm,
       deadline_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-      is_active: true,
-      allow_pickup: true,
-      allow_shipping: true,
-      pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
-      sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
     });
     setIsProductModalOpen(true);
   };
@@ -548,6 +493,14 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       allow_shipping: Boolean(prod.allow_shipping),
       pickup_location: prod.pickup_location || '',
       sizes_available: prod.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      features:
+        prod.features && prod.features.length > 0
+          ? [...prod.features]
+          : [
+              `Artigo: ${prod.item_name}`,
+              '80% Algodão cardado / 20% Poliéster (320g/m²)',
+              'Bordado de alta definição NEEI · Engenharia Informática',
+            ],
     });
     setIsProductModalOpen(true);
   };
@@ -614,16 +567,27 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       return;
     }
 
+    const cleanedFeatures = productForm.features
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+
+    const payload: AdminProductPayload = {
+      ...productForm,
+      title,
+      item_name: itemName,
+      features: cleanedFeatures,
+    };
+
     try {
       setSavingProduct(true);
       if (editingProduct) {
-        const res = await updateAdminProduct(token, editingProduct.id, productForm);
+        const res = await updateAdminProduct(token, editingProduct.id, payload);
         setProducts((prev) =>
           prev.map((p) => (p.id === editingProduct.id ? res.product : p))
         );
-        showFeedback(editingProduct.id, 'Produto atualizado com sucesso!');
+        showFeedback(editingProduct.id, 'Produto e características atualizados com sucesso!');
       } else {
-        const res = await createAdminProduct(token, productForm);
+        const res = await createAdminProduct(token, payload);
         setProducts((prev) => [res.product, ...prev]);
         showFeedback('product-created', 'Novo produto adicionado à loja com sucesso!');
       }
@@ -637,1618 +601,159 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {/* Secção de Modo de Teste da Loja (Checkout Real a 0.50€) - Dependente de SHOW_TEST_SHOP */}
-      {showTestShop && (
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-slate-900/60 border border-cyan-500/30 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/30">
-                <FlaskConical size={13} />
-                Modo de Teste da Loja
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/20">
-                Preço Especial: 0.50€
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Permite testar o fluxo de compra e pagamentos reais (MB WAY, Cartões, Apple Pay) com valor reduzido para apenas <strong>0.50€</strong> (mínimo Stripe) sem limitações de sandbox. Ativado via <code>SHOW_TEST_SHOP=true</code>.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer"
-            >
-              <Eye size={14} />
-              <span>Abrir Loja de Teste (0.50€)</span>
-              <ExternalLink size={13} />
-            </a>
-
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Copiar link com token para colar no telemóvel"
-            >
-              {copiedLink ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-              <span>{copiedLink ? 'Link Copiado!' : 'Copiar Link p/ Tele'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowQrCode(!showQrCode)}
-              className="px-3 py-2.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-              title="Mostrar QR Code para ler com a câmara do telemóvel"
-            >
-              <Smartphone size={14} className="text-cyan-400" />
-              <span>{showQrCode ? 'Ocultar QR' : 'QR Telemóvel'}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* QR Code Desdobrável para Testes Rápidos no Telemóvel */}
-      {showTestShop && showQrCode && (
-        <div className="p-6 rounded-2xl bg-slate-900/90 border border-cyan-500/30 max-w-sm mx-auto text-center space-y-3 animate-in fade-in zoom-in-95 duration-150">
-          <h4 className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
-            <Smartphone size={16} className="text-cyan-400" />
-            Aponta a câmara do telemóvel
-          </h4>
-          <p className="text-xs text-slate-400">
-            Abre a loja no teu telemóvel com sessão admin ativa e preço de 0.50€:
-          </p>
-          <div className="p-3 bg-white rounded-2xl inline-block shadow-lg mx-auto">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                previewUrl
-              )}`}
-              alt="QR Code de Teste"
-              className="w-44 h-44 mx-auto"
-            />
-          </div>
-          <p className="text-[11px] text-slate-400 font-mono break-all px-2">
-            {previewUrl}
-          </p>
-        </div>
-      )}
-
-      {/* 1. Cartões de Resumo e Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Faturado */}
-        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-text-200 dark:text-slate-400">
-              Total Faturado (Pago)
-            </span>
-            <span className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              €
-            </span>
-          </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white mt-2">
-            {stats ? `${stats.totalRevenue.toFixed(2)}€` : '0.00€'}
-          </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            Valor bruto recebido
-          </span>
-        </div>
-
-        {/* Total Sweats Pagas */}
-        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-text-200 dark:text-slate-400">
-              Sweats Confirmadas
-            </span>
-            <span className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-              <ShoppingBag size={16} />
-            </span>
-          </div>
-          <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 mt-2">
-            {stats ? stats.totalPaidOrders : 0}
-          </div>
-          <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            {stats?.totalPaidOrders || 0} encomendas pagas e confirmadas
-          </span>
-        </div>
-
-        {/* Levantamento Gabinete */}
-        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-text-200 dark:text-slate-400">
-              Levantamento Gabinete
-            </span>
-            <span className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <MapPin size={16} />
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {stats?.pickupCount || 0}
-          </div>
-        </div>
-
-        {/* Envio CTT */}
-        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase text-text-200 dark:text-slate-400">
-              Envio CTT Nacional
-            </span>
-            <span className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <Truck size={16} />
-            </span>
-          </div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">
-            {stats?.shippingCount || 0}
-          </div>
-        </div>
-      </div>
+      {/* Secção de Modo de Teste da Loja (Checkout Real a 0.50€) */}
+      <ShopTestModeBanner
+        showTestShop={showTestShop}
+        previewUrl={previewUrl}
+        copiedLink={copiedLink}
+        handleCopyLink={handleCopyLink}
+        showQrCode={showQrCode}
+        setShowQrCode={setShowQrCode}
+      />
 
       {/* Abas de Navegação: Encomendas vs Gerir Produtos */}
       <div className="flex items-center gap-3 border-b border-gray-200 dark:border-slate-800 pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('orders')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeTab === 'orders'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/25'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800'
+              ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <ShoppingBag size={16} />
-          <span>Encomendas & Produção ({orders.length})</span>
+          <span>Encomendas & Produção</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[11px] font-mono">
+            {orders.length}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('products')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
             activeTab === 'products'
-              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/25'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800'
+              ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
           }`}
         >
           <Tag size={16} />
-          <span>Gerir Produtos & Merch ({products.length})</span>
+          <span>Gerir Produtos no Catálogo</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-[11px] font-mono">
+            {products.length}
+          </span>
         </button>
       </div>
 
-      {/* Vista de Gestão de Produtos */}
-      {activeTab === 'products' && (
+      {/* Alerta de Erro Geral */}
+      {error && (
+        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-sm flex items-center gap-3">
+          <AlertCircle size={18} className="shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Loading Inicial */}
+      {loading && !orders.length && !products.length ? (
+        <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
+          <Loader2 size={32} className="animate-spin text-cyan-500" />
+          <p className="text-sm">A carregar dados da loja e catálogo...</p>
+        </div>
+      ) : activeTab === 'orders' ? (
+        /* Vista de Encomendas & Produção */
         <div className="space-y-6 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Tag className="text-cyan-500" size={18} />
-                Catálogo de Produtos à Venda ({products.length})
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-                Adiciona, edita preços, prazos e gere a visibilidade dos artigos.
-                <span className="block mt-0.5 text-cyan-600 dark:text-cyan-400 font-semibold">
-                  Garantia de integridade: Peças já vendidas mantêm permanentemente o nome histórico que tinham quando foram compradas, mesmo após alterações no catálogo.
-                </span>
-              </p>
-            </div>
+          <ShopStatsCards
+            stats={stats}
+            onDownloadCsv={handleDownloadCsv}
+            showSizeBreakdown={true}
+          />
 
-            <button
-              type="button"
-              onClick={handleOpenCreateProduct}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-cyan-600/30 transition-all cursor-pointer self-start sm:self-auto shrink-0"
-            >
-              <Plus size={16} />
-              <span>Novo Produto</span>
-            </button>
-          </div>
+          <ShopOrdersTable
+            orders={orders}
+            filteredOrders={filteredOrders}
+            selectedOrderIds={selectedOrderIds}
+            allFilteredSelected={allFilteredSelected}
+            someFilteredSelected={someFilteredSelected}
+            bulkStatus={bulkStatus}
+            isBulkUpdating={isBulkUpdating}
+            search={search}
+            originFilter={originFilter}
+            paymentFilter={paymentFilter}
+            orderStatusFilter={orderStatusFilter}
+            sizeFilter={sizeFilter}
+            deliveryFilter={deliveryFilter}
+            loading={loading}
+            updatingOrderId={updatingOrderId}
+            resendingEmailId={resendingEmailId}
+            setSearch={setSearch}
+            setOriginFilter={setOriginFilter}
+            setPaymentFilter={setPaymentFilter}
+            setOrderStatusFilter={setOrderStatusFilter}
+            setSizeFilter={setSizeFilter}
+            setDeliveryFilter={setDeliveryFilter}
+            setBulkStatus={setBulkStatus}
+            onToggleSelectOrder={handleToggleSelectOrder}
+            onToggleSelectAll={handleToggleSelectAll}
+            onBulkStatusChange={handleBulkStatusChange}
+            onStatusChange={handleStatusChange}
+            onResendEmail={handleResendEmail}
+            onOpenCreateManualOrder={() => {
+              setCreateError(null);
+              setIsCreateModalOpen(true);
+            }}
+            onRefresh={loadData}
+            getOrderStatusSelectClasses={getOrderStatusSelectClasses}
+          />
+        </div>
+      ) : (
+        /* Vista de Gestão de Produtos */
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <ShopStatsCards stats={stats} showSizeBreakdown={false} />
 
-          {/* Grelha de Produtos */}
-          {products.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
-              <Package size={36} className="text-slate-400 mx-auto mb-2 opacity-60" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhum produto registado</p>
-              <p className="text-xs text-slate-500 mt-1">Clica no botão "Novo Produto" para adicionar um artigo à loja.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((prod) => (
-                <div
-                  key={prod.id}
-                  className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-950/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Imagem do Produto */}
-                    <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center">
-                      {prod.image_url ? (
-                        <img
-                          src={prod.raw_image_url || prod.image_url}
-                          alt={prod.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon size={32} className="text-slate-600" />
-                      )}
-                      <div className="absolute top-2.5 right-2.5">
-                        {prod.is_active ? (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
-                            Ativo na Loja
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
-                            Oculto / Inativo
-                          </span>
-                        )}
-                      </div>
-                      <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 text-white font-black text-sm">
-                        {prod.item_price.toFixed(2)}€
-                      </div>
-                    </div>
-
-                    {/* Detalhes do Produto */}
-                    <div className="p-4 space-y-3">
-                      <div>
-                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{prod.title}</h4>
-                        {prod.description && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
-                            {prod.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Nome Gravado no Registo */}
-                      <div className="p-2.5 rounded-xl bg-cyan-500/5 dark:bg-cyan-950/30 border border-cyan-500/20 text-xs">
-                        <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block mb-0.5">
-                          Nome Gravado nas Encomendas
-                        </span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          {prod.item_name}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
-                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                          <span className="text-[10px] text-slate-400 block">Portes CTT</span>
-                          <span className="font-bold">{prod.shipping_fee.toFixed(2)}€</span>
-                        </div>
-                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-                          <span className="text-[10px] text-slate-400 block">Data Limite</span>
-                          <span className="font-bold">{prod.deadline_date || 'Sem prazo'}</span>
-                        </div>
-                      </div>
-
-                      {/* Tamanhos */}
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                          Tamanhos Disponíveis
-                        </span>
-                        <div className="flex flex-wrap gap-1">
-                          {prod.sizes_available?.map((sz) => (
-                            <span
-                              key={sz}
-                              className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"
-                            >
-                              {sz}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Ações */}
-                  <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/80 mt-3 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleProductActive(prod)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                        prod.is_active
-                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200'
-                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
-                      }`}
-                      title={prod.is_active ? 'Desativar na loja' : 'Ativar na loja'}
-                    >
-                      {prod.is_active ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
-                      <span>{prod.is_active ? 'Ocultar' : 'Ativar'}</span>
-                    </button>
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditProduct(prod)}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Edit size={13} />
-                        <span>Editar</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteProduct(prod)}
-                        className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
-                        title="Eliminar produto"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <ShopProductCatalog
+            products={products}
+            onOpenCreate={handleOpenCreateProduct}
+            onOpenEdit={handleOpenEditProduct}
+            onToggleActive={handleToggleProductActive}
+            onDelete={handleDeleteProduct}
+          />
         </div>
       )}
 
-      {/* Vista de Encomendas & Produção */}
-      {activeTab === 'orders' && (
-        <>
-          {/* 2. Distribuição por Tamanhos para a Fábrica & Botão de Exportação CSV */}
-      <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileSpreadsheet className="text-cyan-500" size={18} />
-              Contagem de Produção para a Fábrica
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Totais consolidados de sweats pagas e prontas a encomendar ao fornecedor.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleDownloadCsv}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-bold shadow-md transition-all self-start sm:self-auto cursor-pointer"
-          >
-            <Download size={16} />
-            <span>Exportar para CSV</span>
-          </button>
-        </div>
-
-        {/* Tabela de Tamanhos */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-4">
-          {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => {
-            const count = stats?.sizeCounts?.[sz] || 0;
-            return (
-              <div
-                key={sz}
-                className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center"
-              >
-                <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 block mb-1">
-                  Tamanho {sz}
-                </span>
-                <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">
-                  {count}
-                </span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">unidades</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Lista e Gestão de Encomendas */}
-      <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShoppingBag className="text-cyan-500" size={18} />
-              Lista Detalhada de Encomendas ({filteredOrders.length})
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Pesquisa, acompanhamento de pagamento e envio de encomendas.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                setCreateError(null);
-                setIsCreateModalOpen(true);
-              }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-md shadow-cyan-600/30 transition-all cursor-pointer"
-            >
-              <Plus size={15} />
-              <span>Nova Encomenda Manual</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={loading}
-              className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-gray-200 cursor-pointer"
-              title="Recarregar"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            </button>
-          </div>
-        </div>
-
-        {/* Barra de Filtros e Pesquisa */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-          {/* Pesquisa Livre */}
-          <div>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Pesquisar nome, email, tel..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-900 dark:text-white"
-            />
-            <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-          </div>
-
-          {/* Filtro Origem */}
-          <div>
-            <select
-              value={originFilter}
-              onChange={(e) => setOriginFilter(e.target.value as any)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
-            >
-              <option value="all">Origem: Todas</option>
-              <option value="admin">🏷️ Criadas por Admin</option>
-              <option value="web">🌐 Loja Web Pública</option>
-            </select>
-          </div>
-
-          {/* Filtro Pagamento */}
-          <div>
-            <select
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">Pagamento: Todos</option>
-              <option value="paid">Pago (Confirmado)</option>
-              <option value="pending">Pendente</option>
-              <option value="failed">Falhado / Expirado</option>
-            </select>
-          </div>
-
-          {/* Filtro Estado Operacional */}
-          <div>
-            <select
-              value={orderStatusFilter}
-              onChange={(e) => setOrderStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">Estado: Todos</option>
-              <option value="confirmed">Confirmada</option>
-              <option value="in_production">Em Produção</option>
-              <option value="ready_for_pickup">Pronta p/ Levantamento</option>
-              <option value="shipped">Enviada via CTT</option>
-              <option value="delivered">Entregue</option>
-              <option value="test">🧪 Teste</option>
-              <option value="pending_payment">Pendente Pagamento</option>
-            </select>
-          </div>
-
-          {/* Filtro Tamanho */}
-          <div>
-            <select
-              value={sizeFilter}
-              onChange={(e) => setSizeFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">Tamanho: Todos</option>
-              <option value="XS">XS</option>
-              <option value="S">S</option>
-              <option value="M">M</option>
-              <option value="L">L</option>
-              <option value="XL">XL</option>
-              <option value="XXL">XXL</option>
-              <option value="3XL">3XL</option>
-            </select>
-          </div>
-
-          {/* Filtro Entrega */}
-          <div>
-            <select
-              value={deliveryFilter}
-              onChange={(e) => setDeliveryFilter(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900 text-xs text-slate-700 dark:text-slate-300"
-            >
-              <option value="all">Entrega: Todas</option>
-              <option value="pickup">Gabinete NEEI</option>
-              <option value="shipping">Envio CTT</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Barra de Ações em Lote (Bulk Actions) */}
-        {selectedOrderIds.length > 0 && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-slate-900 border border-cyan-500/40 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 font-black flex items-center justify-center text-xs border border-cyan-500/30">
-                {selectedOrderIds.length}
-              </span>
-              <div>
-                <span className="text-xs font-bold text-white block">
-                  {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'encomenda selecionada' : 'encomendas selecionadas'}
-                </span>
-                <span className="text-[11px] text-slate-400">
-                  Altera o estado operacional dos pedidos marcados em simultâneo
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <label className="text-[11px] font-semibold text-slate-300 whitespace-nowrap">
-                  Novo Estado:
-                </label>
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value as OrderStatus)}
-                  className="px-3 py-1.5 rounded-xl border border-cyan-500/40 bg-slate-900 text-xs text-white font-medium focus:ring-1 focus:ring-cyan-500"
-                >
-                  <option className="bg-slate-900 text-white" value="confirmed">Confirmada</option>
-                  <option className="bg-slate-900 text-white" value="in_production">Em Produção</option>
-                  <option className="bg-slate-900 text-white" value="ready_for_pickup">Pronta p/ Levantamento</option>
-                  <option className="bg-slate-900 text-white" value="shipped">Enviada via CTT</option>
-                  <option className="bg-slate-900 text-white" value="delivered">Entregue</option>
-                  <option className="bg-slate-900 text-purple-300 font-bold" value="test">🧪 Teste</option>
-                  <option className="bg-slate-900 text-white" value="pending_payment">Pendente Pagamento</option>
-                </select>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleBulkStatusChange}
-                disabled={isBulkUpdating}
-                className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {isBulkUpdating ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <Check size={13} />
-                )}
-                <span>{isBulkUpdating ? 'A aplicar...' : 'Aplicar a Todos'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedOrderIds([])}
-                className="px-3 py-1.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Tabela de Encomendas */}
-        {filteredOrders.length === 0 ? (
-          <div className="py-12 text-center text-slate-400">
-            <ShoppingBag size={32} className="mx-auto mb-2 opacity-40" />
-            <p className="text-sm">Nenhuma encomenda encontrada com os filtros selecionados.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
-                  <th className="py-3 px-3 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={allFilteredSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someFilteredSelected;
-                      }}
-                      onChange={handleToggleSelectAll}
-                      className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 cursor-pointer accent-cyan-500"
-                      title="Selecionar / Desmarcar todos os visíveis"
-                    />
-                  </th>
-                  <th className="py-3 px-3">Encomenda</th>
-                  <th className="py-3 px-3">Artigo / Peça</th>
-                  <th className="py-3 px-3">Aluno</th>
-                  <th className="py-3 px-3">Contacto</th>
-                  <th className="py-3 px-3">Tamanho</th>
-                  <th className="py-3 px-3">Entrega</th>
-                  <th className="py-3 px-3">Valor</th>
-                  <th className="py-3 px-3">Pagamento</th>
-                  <th className="py-3 px-3">Estado Operacional</th>
-                  <th className="py-3 px-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
-                {filteredOrders.map((o) => (
-                  <tr
-                    key={o.id}
-                    className={`transition-colors ${
-                      selectedOrderIds.includes(o.id)
-                        ? 'bg-cyan-500/10 dark:bg-cyan-950/40'
-                        : o.order_status === 'test'
-                        ? 'bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50/70 dark:hover:bg-purple-950/30'
-                        : 'hover:bg-gray-50/60 dark:hover:bg-slate-900/40'
-                    }`}
-                  >
-                    {/* Checkbox de Seleção */}
-                    <td className="py-3 px-3 w-10 text-center">
-                      <input
-                        type="checkbox"
-                        checked={selectedOrderIds.includes(o.id)}
-                        onChange={() => handleToggleSelectOrder(o.id)}
-                        className="w-4 h-4 rounded border-slate-700 text-cyan-600 focus:ring-cyan-500 cursor-pointer accent-cyan-500"
-                      />
-                    </td>
-
-                    {/* ID & Data */}
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <span className="font-mono font-bold text-slate-900 dark:text-white block">
-                          {o.id}
-                        </span>
-                        {o.is_admin_created ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/40"
-                            title={o.admin_notes ? `Criada por Admin: ${o.admin_notes}` : 'Criada manualmente por um administrador'}
-                          >
-                            <Tag size={10} /> Criada por Admin
-                          </span>
-                        ) : null}
-                        {o.order_status === 'test' && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-300 dark:border-purple-700/60">
-                            <FlaskConical size={10} /> Teste
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-slate-400 block">
-                        {formatDateTimeDDMMAAAA(o.created_at)}
-                      </span>
-                      {o.admin_notes && (
-                        <span
-                          className="text-[10px] text-amber-600 dark:text-amber-400 italic block truncate max-w-[180px]"
-                          title={o.admin_notes}
-                        >
-                          Nota: {o.admin_notes}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Artigo / Peça - Mostra o nome que tinha quando foi vendida */}
-                    <td className="py-3 px-3">
-                      <span className="font-semibold text-slate-800 dark:text-slate-100 block">
-                        {o.item_name || 'Sweat Oficial Engenharia Informática'}
-                      </span>
-                      <span className="text-[10px] text-slate-400 block font-mono">
-                        {o.campaign_id}
-                      </span>
-                    </td>
-
-                    {/* Aluno */}
-                    <td className="py-3 px-3">
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                        {o.student_name}
-                      </span>
-                      <span className="text-[11px] text-slate-500">{o.student_email}</span>
-                    </td>
-
-                    {/* Contacto */}
-                    <td className="py-3 px-3">
-                      <span className="font-mono text-slate-700 dark:text-slate-300 block">
-                        {o.phone_number}
-                      </span>
-                    </td>
-
-                    {/* Tamanho */}
-                    <td className="py-3 px-3">
-                      <span className="px-2 py-1 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-black text-xs">
-                        {o.size}
-                      </span>
-                    </td>
-
-                    {/* Modalidade de Entrega */}
-                    <td className="py-3 px-3">
-                      {o.delivery_type === 'shipping' ? (
-                        <div>
-                          <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold">
-                            <Truck size={12} /> CTT
-                          </span>
-                          <span
-                            className="text-[10px] text-slate-400 block max-w-[140px] truncate"
-                            title={`${o.shipping_address}, ${o.shipping_postal_code} ${o.shipping_city}`}
-                          >
-                            {o.shipping_city || o.shipping_address}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
-                          <MapPin size={12} /> Gabinete
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Valor */}
-                    <td className="py-3 px-3 font-bold text-slate-900 dark:text-white">
-                      <div>{o.total_amount.toFixed(2)}€</div>
-                      {Boolean(o.payment_fee) && (
-                        <div className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
-                          taxa: {Number(o.payment_fee).toFixed(2)}€
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Estado */}
-                    <td className="py-3 px-3">
-                      {o.payment_status === 'paid' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-bold text-[10px]">
-                          <CheckCircle2 size={11} /> Pago
-                        </span>
-                      )}
-                      {o.payment_status === 'pending' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 font-medium text-[10px]">
-                          <Clock size={11} /> Pendente
-                        </span>
-                      )}
-                      {(o.payment_status === 'expired' || o.payment_status === 'failed') && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300 font-medium text-[10px]">
-                          <XCircle size={11} /> Cancelado
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Estado Operacional Selector */}
-                    <td className="py-3 px-3">
-                      <select
-                        value={o.order_status}
-                        disabled={updatingOrderId === o.id}
-                        onChange={(e) => handleStatusChange(o.id, e.target.value as OrderStatus)}
-                        className={`px-2.5 py-1.5 rounded-lg border text-[11px] transition-colors cursor-pointer outline-none focus:ring-2 ${getOrderStatusSelectClasses(
-                          o.order_status
-                        )}`}
-                      >
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="confirmed">Confirmada</option>
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="in_production">Em Produção</option>
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="ready_for_pickup">Pronta p/ Levantamento</option>
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="shipped">Enviada via CTT</option>
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="delivered">Entregue</option>
-                        <option className="bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 font-bold" value="test">🧪 Teste</option>
-                        <option className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100" value="pending_payment">Pendente Pagamento</option>
-                      </select>
-                    </td>
-
-                    {/* Ações (Reenviar Email) */}
-                    <td className="py-3 px-3 text-right">
-                      {o.payment_status === 'paid' && (
-                        <button
-                          type="button"
-                          onClick={() => handleResendEmail(o.id)}
-                          disabled={resendingEmailId === o.id}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-cyan-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                          title="Reenviar email de confirmação"
-                        >
-                          {resendingEmailId === o.id ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            <Mail size={14} />
-                          )}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-        </>
-      )}
-
-      {/* Modal para Adicionar Encomenda Manual (Criada por Admin) */}
-      {isCreateModalOpen && (
-        <Portal>
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
-                  <Plus size={22} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      Nova Encomenda Manual
-                    </h3>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40">
-                      <Tag size={10} /> Criada por Admin
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Regista manualmente encomendas efetuadas em numerário, gabinete ou atribuídas internamente.
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateManualOrderSubmit} className="space-y-5">
-                {/* 1. Dados Pessoais do Aluno */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <User size={13} className="text-cyan-500" />
-                    <span>1. Dados do Comprador / Aluno</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Nome Completo *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={manualForm.student_name}
-                        onChange={handleManualNameChange}
-                        placeholder="Ex: David Rodrigues"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Email Institucional ou Pessoal *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={manualForm.student_email}
-                        onChange={(e) =>
-                          setManualForm((prev) => ({ ...prev, student_email: e.target.value }))
-                        }
-                        placeholder="aXXXXX@ualg.pt"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Telemóvel (9 dígitos) *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        maxLength={9}
-                        value={manualForm.phone_number}
-                        onChange={handleManualPhoneChange}
-                        placeholder="912345678"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        NIF (Opcional)
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={9}
-                        value={manualForm.nif}
-                        onChange={handleManualNifChange}
-                        placeholder="123456789"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Seleção de Peça e Tamanho */}
-                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <ShoppingBag size={13} className="text-cyan-500" />
-                    <span>2. Artigo e Tamanho</span>
-                  </h4>
-
-                  {products.length > 0 && (
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Associar a Produto do Catálogo
-                      </label>
-                      <select
-                        value={manualForm.campaign_id}
-                        onChange={(e) => {
-                          const selectedId = e.target.value;
-                          const selectedProd = products.find((p) => p.id === selectedId);
-                          if (selectedProd) {
-                            setManualForm((prev) => ({
-                              ...prev,
-                              campaign_id: selectedProd.id,
-                              item_name: selectedProd.item_name,
-                              item_price: selectedProd.item_price,
-                              shipping_fee: selectedProd.shipping_fee,
-                            }));
-                          } else {
-                            setManualForm((prev) => ({
-                              ...prev,
-                              campaign_id: '',
-                            }));
-                          }
-                        }}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                      >
-                        <option value="">(Personalizado / Sem catálogo associado)</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.item_name} ({p.item_price.toFixed(2)}€) {!p.is_active ? '— [Inativo]' : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Nome do Artigo (gravado permanentemente na encomenda) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={manualForm.item_name}
-                      onChange={(e) =>
-                        setManualForm((prev) => ({ ...prev, item_name: e.target.value }))
-                      }
-                      placeholder="Sweat Oficial Engenharia Informática"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                      Este nome fica registado para a fábrica e histórico mesmo se o produto for alterado depois.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
-                      Tamanho da Peça *
-                    </label>
-                    <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                      {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => setManualForm((prev) => ({ ...prev, size: sz }))}
-                          className={`py-2 px-1 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                            manualForm.size === sz
-                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-md'
-                              : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
-                          }`}
-                        >
-                          {sz}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Preço da Peça (€)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={manualForm.item_price}
-                        onChange={(e) =>
-                          setManualForm((prev) => ({ ...prev, item_price: parseFloat(e.target.value) || 0 }))
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Cor
-                      </label>
-                      <input
-                        type="text"
-                        value={manualForm.color}
-                        onChange={(e) =>
-                          setManualForm((prev) => ({ ...prev, color: e.target.value }))
-                        }
-                        placeholder="Preto"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Modalidade de Entrega */}
-                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Truck size={13} className="text-cyan-500" />
-                    <span>3. Modalidade de Entrega</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setManualForm((prev) => ({ ...prev, delivery_type: 'pickup' }))}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        manualForm.delivery_type === 'pickup'
-                          ? 'bg-cyan-50/50 dark:bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500/50'
-                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <MapPin size={14} className="text-cyan-500" /> Gabinete NEEI
-                        </span>
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded-full">
-                          Grátis
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Levantamento presencial no Campus de Gambelas.
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setManualForm((prev) => ({ ...prev, delivery_type: 'shipping' }))}
-                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                        manualForm.delivery_type === 'shipping'
-                          ? 'bg-cyan-50/50 dark:bg-cyan-950/40 border-cyan-500 ring-1 ring-cyan-500/50'
-                          : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <Truck size={14} className="text-cyan-500" /> Envio CTT Nacional
-                        </span>
-                        <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-1.5 py-0.2 rounded-full">
-                          +{manualForm.shipping_fee.toFixed(2)}€
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                        Envio postal para morada do estudante.
-                      </p>
-                    </button>
-                  </div>
-
-                  {manualForm.delivery_type === 'shipping' && (
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5 animate-in fade-in duration-150">
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                          Morada Completa *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={manualForm.shipping_address}
-                          onChange={(e) =>
-                            setManualForm((prev) => ({ ...prev, shipping_address: e.target.value }))
-                          }
-                          placeholder="Rua, Número de Polícia, Andar/Porta"
-                          className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Código Postal *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            maxLength={8}
-                            value={manualForm.shipping_postal_code}
-                            onChange={handleManualPostalCodeChange}
-                            placeholder="8000-000"
-                            className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Distrito *
-                          </label>
-                          <select
-                            value={manualForm.shipping_district}
-                            onChange={handleManualDistrictChange}
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                          >
-                            {districtsList.map((d) => (
-                              <option key={d} value={d}>
-                                {d}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Concelho *
-                          </label>
-                          <select
-                            value={manualForm.shipping_county}
-                            onChange={(e) =>
-                              setManualForm((prev) => ({ ...prev, shipping_county: e.target.value }))
-                            }
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                          >
-                            {manualCounties.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. Estado & Pagamento */}
-                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <CreditCard size={13} className="text-cyan-500" />
-                    <span>4. Estado Financeiro e Operacional</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Estado do Pagamento
-                      </label>
-                      <select
-                        value={manualForm.payment_status}
-                        onChange={(e) =>
-                          setManualForm((prev) => ({
-                            ...prev,
-                            payment_status: e.target.value as 'paid' | 'pending',
-                          }))
-                        }
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                      >
-                        <option value="paid">Pago (Confirmado)</option>
-                        <option value="pending">Pendente Pagamento</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Estado Operacional
-                      </label>
-                      <select
-                        value={manualForm.order_status}
-                        onChange={(e) =>
-                          setManualForm((prev) => ({
-                            ...prev,
-                            order_status: e.target.value as OrderStatus,
-                          }))
-                        }
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                      >
-                        <option value="confirmed">Confirmada / Aguarda Fabrico</option>
-                        <option value="in_production">Em Produção (Fábrica)</option>
-                        <option value="ready_for_pickup">Pronta p/ Levantamento</option>
-                        <option value="shipped">Enviada via CTT</option>
-                        <option value="delivered">Entregue / Concluída</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Notas Internas do Administrador (opcional)
-                    </label>
-                    <input
-                      type="text"
-                      value={manualForm.admin_notes}
-                      onChange={(e) =>
-                        setManualForm((prev) => ({ ...prev, admin_notes: e.target.value }))
-                      }
-                      placeholder="Ex: Pago em dinheiro na sala 0.18 ao tesoureiro"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-
-                  <div className="pt-1 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="manual_send_email"
-                      checked={manualForm.send_email}
-                      onChange={(e) =>
-                        setManualForm((prev) => ({ ...prev, send_email: e.target.checked }))
-                      }
-                      className="w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
-                    />
-                    <label
-                      htmlFor="manual_send_email"
-                      className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none"
-                    >
-                      Enviar email de confirmação imediato para o comprador
-                    </label>
-                  </div>
-                </div>
-
-                {/* Resumo do Total */}
-                <div className="p-3.5 rounded-2xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-200/60 dark:border-cyan-900/60 flex items-center justify-between text-xs">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    Total Registado:
-                  </span>
-                  <span className="font-black text-cyan-600 dark:text-cyan-400 text-base">
-                    {(
-                      manualForm.item_price +
-                      (manualForm.delivery_type === 'shipping' ? manualForm.shipping_fee : 0)
-                    ).toFixed(2)}
-                    €
-                  </span>
-                </div>
-
-                {createError && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-                    <AlertCircle size={16} className="flex-shrink-0" />
-                    <span>{createError}</span>
-                  </div>
-                )}
-
-                {/* Botões do Modal */}
-                <div className="pt-2 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={creatingOrder}
-                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {creatingOrder ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>A criar encomenda...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus size={14} />
-                        <span>Criar Encomenda Manual</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </Portal>
-      )}
-
-      {/* Modal para Criar / Editar Produto */}
-      {isProductModalOpen && (
-        <Portal>
-          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-              <button
-                type="button"
-                onClick={() => setIsProductModalOpen(false)}
-                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
-                  {editingProduct ? <Edit size={22} /> : <Plus size={22} />}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                    {editingProduct ? 'Editar Produto do Catálogo' : 'Adicionar Novo Produto'}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Gere o merchandising disponível para compra pelos estudantes de Engenharia Informática.
-                  </p>
-                </div>
-              </div>
-
-              {/* Informação sobre snapshot de nome */}
-              <div className="mb-5 p-3.5 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-2.5">
-                <AlertCircle size={16} className="text-cyan-500 shrink-0 mt-0.5" />
-                <div className="space-y-0.5">
-                  <span className="font-bold">Histórico Permanente das Encomendas:</span>
-                  <p className="text-[11px] text-cyan-800/90 dark:text-cyan-300/80 leading-relaxed">
-                    O <strong>Nome da Peça</strong> configurado abaixo é guardado de forma imutável em cada encomenda no momento da compra. Mesmo que o produto venha a ser renomeado ou editado posteriormente, as encomendas já vendidas retêm o nome exato que tinham quando foram compradas.
-                  </p>
-                </div>
-              </div>
-
-              <form onSubmit={handleSaveProductSubmit} className="space-y-5">
-                {/* 1. Identificação do Produto */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Tag size={13} className="text-cyan-500" />
-                    <span>1. Informação Principal</span>
-                  </h4>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Título Comercial (Visível na Loja) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={productForm.title}
-                      onChange={(e) =>
-                        setProductForm((prev) => ({ ...prev, title: e.target.value }))
-                      }
-                      placeholder="Ex: Sweat Oficial Engenharia Informática 2026"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Nome da Peça / Artigo nas Encomendas (Gravado na Venda & Fábrica) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={productForm.item_name}
-                      onChange={(e) =>
-                        setProductForm((prev) => ({ ...prev, item_name: e.target.value }))
-                      }
-                      placeholder="Ex: Sweat Oficial Engenharia Informática"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                      Este nome é o que aparece no ficheiro CSV da fábrica e nos recibos do cliente.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      Descrição Detalhada
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={productForm.description}
-                      onChange={(e) =>
-                        setProductForm((prev) => ({ ...prev, description: e.target.value }))
-                      }
-                      placeholder="Detalhes sobre o material, corte, acabamentos ou mensagem da edição..."
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                      URL da Imagem / Mockup
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={productForm.image_url}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, image_url: e.target.value }))
-                        }
-                        placeholder="/assets/sweat_mockup.jpg ou https://..."
-                        className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. Preços e Prazos */}
-                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <CreditCard size={13} className="text-cyan-500" />
-                    <span>2. Valores e Prazos</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Preço Base (€) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                        value={productForm.item_price}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({
-                            ...prev,
-                            item_price: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Portes CTT (€) *
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        required
-                        value={productForm.shipping_fee}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({
-                            ...prev,
-                            shipping_fee: parseFloat(e.target.value) || 0,
-                          }))
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Data Limite (Opcional)
-                      </label>
-                      <input
-                        type="date"
-                        value={productForm.deadline_date}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, deadline_date: e.target.value }))
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. Tamanhos Disponíveis */}
-                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                    3. Tamanhos Disponíveis *
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => {
-                      const isSelected = productForm.sizes_available.includes(sz);
-                      return (
-                        <button
-                          key={sz}
-                          type="button"
-                          onClick={() => handleToggleSize(sz)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm'
-                              : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
-                          }`}
-                        >
-                          {sz} {isSelected && '✓'}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 4. Opções de Entrega & Visibilidade */}
-                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Truck size={13} className="text-cyan-500" />
-                    <span>4. Opções de Entrega & Visibilidade</span>
-                  </h4>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={productForm.allow_pickup}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, allow_pickup: e.target.checked }))
-                        }
-                        className="mt-0.5 w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
-                      />
-                      <div className="text-xs">
-                        <span className="font-semibold text-slate-900 dark:text-white block">
-                          Permitir Levantamento Presencial
-                        </span>
-                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                          Estudante levanta no gabinete NEEI sem custo de envio.
-                        </span>
-                      </div>
-                    </label>
-
-                    <label className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={productForm.allow_shipping}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, allow_shipping: e.target.checked }))
-                        }
-                        className="mt-0.5 w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
-                      />
-                      <div className="text-xs">
-                        <span className="font-semibold text-slate-900 dark:text-white block">
-                          Permitir Envio Postal CTT
-                        </span>
-                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                          Permite envio direto para morada com taxa de portes.
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-
-                  {productForm.allow_pickup && (
-                    <div>
-                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                        Local de Levantamento Presencial
-                      </label>
-                      <input
-                        type="text"
-                        value={productForm.pickup_location}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, pickup_location: e.target.value }))
-                        }
-                        placeholder="Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)"
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                      />
-                    </div>
-                  )}
-
-                  {/* Ativo na loja */}
-                  <div className="pt-2">
-                    <label className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20 flex items-center justify-between cursor-pointer">
-                      <div className="text-xs">
-                        <span className="font-bold text-slate-900 dark:text-white block">
-                          Disponível na Loja Pública
-                        </span>
-                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                          Se ativo, estudantes e público geral podem encomendar na página de Merch.
-                        </span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={productForm.is_active}
-                        onChange={(e) =>
-                          setProductForm((prev) => ({ ...prev, is_active: e.target.checked }))
-                        }
-                        className="w-5 h-5 rounded text-emerald-600 accent-emerald-500 cursor-pointer"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {productError && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-                    <AlertCircle size={16} className="flex-shrink-0" />
-                    <span>{productError}</span>
-                  </div>
-                )}
-
-                {/* Botões do Modal */}
-                <div className="pt-2 flex items-center justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsProductModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingProduct}
-                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    {savingProduct ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        <span>A guardar produto...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Check size={14} />
-                        <span>{editingProduct ? 'Guardar Alterações' : 'Criar Produto'}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </Portal>
-      )}
+      {/* Modal para Adicionar Encomenda Manual */}
+      <ShopManualOrderModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        manualForm={manualForm}
+        setManualForm={setManualForm}
+        products={products}
+        districtsList={districtsList}
+        manualCounties={manualCounties}
+        creatingOrder={creatingOrder}
+        createError={createError}
+        onSubmit={handleCreateManualOrderSubmit}
+        onNameChange={handleManualNameChange}
+        onPhoneChange={handleManualPhoneChange}
+        onNifChange={handleManualNifChange}
+        onPostalCodeChange={handleManualPostalCodeChange}
+        onDistrictChange={handleManualDistrictChange}
+      />
+
+      {/* Modal para Criar / Editar Produto (com Features Editor) */}
+      <ShopProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        editingProduct={editingProduct}
+        productForm={productForm}
+        setProductForm={setProductForm}
+        handleToggleSize={handleToggleSize}
+        onSubmit={handleSaveProductSubmit}
+        savingProduct={savingProduct}
+        productError={productError}
+      />
     </div>
   );
 };
+
 export default AdminShopPanel;

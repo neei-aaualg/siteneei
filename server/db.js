@@ -145,6 +145,7 @@ db.exec(`
     allow_shipping INTEGER NOT NULL DEFAULT 1,
     pickup_location TEXT NOT NULL,
     sizes_available TEXT NOT NULL,
+    features TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -256,6 +257,11 @@ try {
 } catch (_) {
   // Já existe
 }
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN features TEXT;');
+} catch (_) {
+  // Já existe
+}
 
 // Limpeza de encomendas não confirmadas: encomendas pendentes web são limpas, mas encomendas criadas por admin são preservadas
 try {
@@ -273,9 +279,9 @@ try {
       `
       INSERT INTO shop_campaigns (
         id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, created_at
+        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, created_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `
     ).run(
@@ -292,6 +298,12 @@ try {
       1,
       'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
       JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']),
+      JSON.stringify([
+        '80% Algodão cardado / 20% Poliéster (320g/m²)',
+        'Bordado de alta definição NEEI · Engenharia Informática',
+        'Corte unissexo confortável com cordões reforçados',
+        'Recolha no Campus de Gambelas ou Envio CTT',
+      ]),
       new Date().toISOString()
     );
   }
@@ -1230,6 +1242,23 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     // fallback
   }
 
+  let features = [
+    '80% Algodão cardado / 20% Poliéster (320g/m²)',
+    'Bordado de alta definição NEEI · Engenharia Informática',
+    'Corte unissexo confortável com cordões reforçados',
+    Boolean(row.allow_shipping) ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+  ];
+  if (row.features) {
+    try {
+      const parsed = typeof row.features === 'string' ? JSON.parse(row.features) : row.features;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        features = parsed.map((f) => String(f).trim()).filter(Boolean);
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
   const isSweatsAvailable = isSweatsAvailableEnv();
   const isTestShopAllowed = isShowTestShopEnv();
   const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
@@ -1253,6 +1282,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     allow_shipping: Boolean(row.allow_shipping),
     pickup_location: row.pickup_location,
     sizes_available: sizes,
+    features,
     created_at: row.created_at,
     isAdminPreview: isTestingMode,
   };
@@ -1316,13 +1346,21 @@ export function createShopCampaign(data) {
   const sizes_available = Array.isArray(data.sizes_available)
     ? JSON.stringify(data.sizes_available)
     : (data.sizes_available || JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']));
+  const features = data.features !== undefined
+    ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
+    : JSON.stringify([
+        '80% Algodão cardado / 20% Poliéster (320g/m²)',
+        'Bordado de alta definição NEEI · Engenharia Informática',
+        'Corte unissexo confortável com cordões reforçados',
+        allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+      ]);
 
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1338,6 +1376,7 @@ export function createShopCampaign(data) {
     allow_shipping,
     pickup_location,
     sizes_available,
+    features,
     now
   );
 
@@ -1372,12 +1411,15 @@ export function updateShopCampaign(id, data) {
   const sizes_available = data.sizes_available
     ? (Array.isArray(data.sizes_available) ? JSON.stringify(data.sizes_available) : data.sizes_available)
     : current.sizes_available;
+  const features = data.features !== undefined
+    ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
+    : current.features;
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?
+      pickup_location = ?, sizes_available = ?, features = ?
     WHERE id = ?
   `);
 
@@ -1394,6 +1436,7 @@ export function updateShopCampaign(id, data) {
     allow_shipping,
     pickup_location,
     sizes_available,
+    features,
     id
   );
 

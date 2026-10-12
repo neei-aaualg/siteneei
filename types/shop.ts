@@ -29,6 +29,7 @@ export interface ShopCampaign {
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+  features?: string[];
   created_at?: string;
   isAdminPreview?: boolean;
 }
@@ -47,6 +48,22 @@ export interface AdminProductPayload {
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+}
+
+export interface ProductFormData {
+  title: string;
+  description: string;
+  item_name: string;
+  item_price: number;
+  shipping_fee: number;
+  image_url: string;
+  deadline_date: string;
+  is_active: boolean;
+  allow_pickup: boolean;
+  allow_shipping: boolean;
+  pickup_location: string;
+  sizes_available: SweatSize[];
+  features: string[];
 }
 
 export interface MerchProduct {

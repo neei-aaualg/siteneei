@@ -1,0 +1,215 @@
+import React from 'react';
+import {
+  Tag,
+  Plus,
+  Package,
+  Image as ImageIcon,
+  Edit,
+  Trash2,
+  ToggleLeft,
+  ToggleRight,
+  ListPlus,
+} from 'lucide-react';
+import { ShopCampaign } from '../../../types/shop';
+
+interface ShopProductCatalogProps {
+  products: ShopCampaign[];
+  onOpenCreate: () => void;
+  onOpenEdit: (prod: ShopCampaign) => void;
+  onToggleActive: (prod: ShopCampaign) => void;
+  onDelete: (prod: ShopCampaign) => void;
+}
+
+export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
+  products,
+  onOpenCreate,
+  onOpenEdit,
+  onToggleActive,
+  onDelete,
+}) => {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Tag className="text-cyan-500" size={18} />
+            Catálogo de Produtos à Venda ({products.length})
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            Adiciona, edita preços, características/features e gere a visibilidade dos artigos.
+            <span className="block mt-0.5 text-cyan-600 dark:text-cyan-400 font-semibold">
+              Garantia de integridade: Peças já vendidas mantêm permanentemente o nome histórico que tinham quando foram compradas, mesmo após alterações no catálogo.
+            </span>
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenCreate}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-cyan-600/30 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+        >
+          <Plus size={16} />
+          <span>Novo Produto</span>
+        </button>
+      </div>
+
+      {/* Grelha de Produtos */}
+      {products.length === 0 ? (
+        <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+          <Package size={36} className="text-slate-400 mx-auto mb-2 opacity-60" />
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhum produto registado</p>
+          <p className="text-xs text-slate-500 mt-1">Clica no botão "Novo Produto" para adicionar um artigo à loja.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((prod) => (
+            <div
+              key={prod.id}
+              className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-950/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
+            >
+              <div>
+                {/* Imagem do Produto */}
+                <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center">
+                  {prod.image_url ? (
+                    <img
+                      src={prod.raw_image_url || prod.image_url}
+                      alt={prod.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImageIcon size={32} className="text-slate-600" />
+                  )}
+                  <div className="absolute top-2.5 right-2.5">
+                    {prod.is_active ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
+                        Ativo na Loja
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
+                        Oculto / Inativo
+                      </span>
+                    )}
+                  </div>
+                  <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 text-white font-black text-sm flex items-baseline gap-1">
+                    <span>{prod.item_price.toFixed(2)}€</span>
+                    <span className="text-[10px] font-normal text-cyan-300">(+ taxas)</span>
+                  </div>
+                </div>
+
+                {/* Detalhes do Produto */}
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white">{prod.title}</h4>
+                    {prod.description && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                        {prod.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Nome Gravado no Registo */}
+                  <div className="p-2.5 rounded-xl bg-cyan-50/5 dark:bg-cyan-950/30 border border-cyan-500/20 text-xs">
+                    <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block mb-0.5">
+                      Nome Gravado nas Encomendas
+                    </span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {prod.item_name}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Portes CTT</span>
+                      <span className="font-bold">{prod.shipping_fee.toFixed(2)}€</span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Data Limite</span>
+                      <span className="font-bold">{prod.deadline_date || 'Sem prazo'}</span>
+                    </div>
+                  </div>
+
+                  {/* Features / Pontos Fortes */}
+                  {prod.features && prod.features.length > 0 && (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-xs">
+                      <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1 mb-1">
+                        <ListPlus size={11} />
+                        Features / Destaques ({prod.features.length})
+                      </span>
+                      <ul className="space-y-1">
+                        {prod.features.slice(0, 4).map((f, i) => (
+                          <li key={i} className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
+                            <span className="line-clamp-1">{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {prod.features.length > 4 && (
+                        <span className="text-[10px] text-slate-400 block mt-1">
+                          +{prod.features.length - 4} mais
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tamanhos */}
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                      Tamanhos Disponíveis
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {prod.sizes_available?.map((sz) => (
+                        <span
+                          key={sz}
+                          className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                        >
+                          {sz}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Ações */}
+              <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/80 mt-3 flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => onToggleActive(prod)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    prod.is_active
+                      ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200'
+                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
+                  }`}
+                  title={prod.is_active ? 'Desativar na loja' : 'Ativar na loja'}
+                >
+                  {prod.is_active ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                  <span>{prod.is_active ? 'Ocultar' : 'Ativar'}</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onOpenEdit(prod)}
+                    className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Edit size={13} />
+                    <span>Editar</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onDelete(prod)}
+                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                    title="Eliminar produto"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

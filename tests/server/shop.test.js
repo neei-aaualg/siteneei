@@ -753,4 +753,92 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(statusCode).toBe(200);
     expect(jsonBody.success).toBe(true);
   });
+
+  it('permite criar e atualizar features personalizadas de um produto na BD e API', async () => {
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+    let statusCode = 200;
+    let jsonBody = null;
+    const fakeRes = () => ({
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = data ? JSON.parse(data) : null;
+      },
+    });
+
+    // 1. Criar produto com features personalizadas
+    let res = fakeRes();
+    let handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          title: 'Sweat Engenharia Edição 2026',
+          item_name: 'Sweat 2026',
+          item_price: 25.0,
+          shipping_fee: 3.5,
+          sizes_available: ['S', 'M', 'L'],
+          features: [
+            '80% Algodão Premium cardado',
+            'Bordado de alta definição NEEI',
+            'Edição Oficial Limitada 2026',
+          ],
+        },
+      },
+      res,
+      '/api/admin/shop/products'
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.product.features).toEqual([
+      '80% Algodão Premium cardado',
+      'Bordado de alta definição NEEI',
+      'Edição Oficial Limitada 2026',
+    ]);
+    const prodId = jsonBody.product.id;
+
+    // 2. Verificar na base de dados diretamente
+    const inDb = db.getShopCampaignById(prodId);
+    expect(inDb.features).toEqual([
+      '80% Algodão Premium cardado',
+      'Bordado de alta definição NEEI',
+      'Edição Oficial Limitada 2026',
+    ]);
+
+    // 3. Atualizar as features
+    res = fakeRes();
+    handled = await shopApi.handleShopApi(
+      {
+        method: 'PUT',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          features: [
+            'Algodão 100% Orgânico',
+            'Recolha no Campus de Gambelas',
+          ],
+        },
+      },
+      res,
+      `/api/admin/shop/products/${prodId}`
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(jsonBody.product.features).toEqual([
+      'Algodão 100% Orgânico',
+      'Recolha no Campus de Gambelas',
+    ]);
+
+    // 4. Verificar se a campanha ativa por omissão também traz features por defeito
+    const active = db.getActiveShopCampaign();
+    expect(Array.isArray(active.features)).toBe(true);
+    expect(active.features.length).toBeGreaterThan(0);
+  });
 });
