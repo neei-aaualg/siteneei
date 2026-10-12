@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight,
   Code,
   Calendar,
   MapPin,
   Terminal as TerminalIcon,
-  Box,
-  ExternalLink,
   FileCheck,
   UtensilsCrossed,
+  Brain,
+  Globe,
   ScrollText,
   PartyPopper,
   Shirt,
@@ -191,18 +190,24 @@ const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
       icon: <Shirt className="text-accent-200" size={32} />,
-      title: 'Apresentação do Calendário de Sweats',
-      desc: 'Apresentação do calendário de concurso e encomenda das sweats do curso.',
-      date: 'Set 2026',
+      title: 'Realização do Concurso de Sweats',
+      desc: 'Decorrer de um concurso interno dos cursos de engenharia informática para a decisão da sweat do curso.',
+      date: 'Out 2026',
+    },
+    {
+      icon: <Code className="text-accent-200" size={32} />,
+      title: 'Realização de Workshops de Introdução à Programação',
+      desc: 'Em três sessões distintas, decorreu uma atividade de workshop de introdução à programação direcionada aos novos alunos.',
+      date: 'Out 2026',
     },
     {
       icon: <Calendar className="text-accent-200" size={32} />,
-      title: 'Apresentação do Calendário de Atividades',
+      title: 'Apresentação do Calendário de Atividades e Sweats',
       desc: 'Apresentação do calendário oficial de atividades planeados para os estudantes.',
       date: 'Set 2026',
     },
     {
-      icon: <Code className="text-accent-200" size={32} />,
+      icon: <Globe className="text-accent-200" size={32} />,
       title: 'Apresentação do NEEI-Box e update do site',
       desc: 'A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.',
       date: 'Set 2026',
