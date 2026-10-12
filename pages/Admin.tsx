@@ -813,8 +813,8 @@ export const Admin: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'activities'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <Calendar size={18} />
@@ -827,8 +827,8 @@ export const Admin: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'collaborators'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <UserPlus size={18} />
@@ -850,8 +850,8 @@ export const Admin: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'jobs'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <Briefcase size={18} />
@@ -873,8 +873,8 @@ export const Admin: React.FC = () => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`pb-3.5 px-3 text-sm sm:text-base font-bold flex items-center gap-2 border-b-2 transition cursor-pointer ${activeTab === 'shop'
-                ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
-                : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
+              ? 'border-accent-200 text-accent-200 dark:border-cyan-400 dark:text-cyan-400'
+              : 'border-transparent text-text-200 dark:text-slate-400 hover:text-text-100 dark:hover:text-slate-200'
               }`}
           >
             <ShoppingBag size={18} />
@@ -971,41 +971,37 @@ export const Admin: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setActivityFilterStatus('all')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                      activityFilterStatus === 'all'
-                        ? 'bg-accent-200 text-white shadow-sm dark:bg-cyan-500 dark:text-slate-950'
-                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activityFilterStatus === 'all'
+                      ? 'bg-accent-200 text-white shadow-sm dark:bg-cyan-500 dark:text-slate-950'
+                      : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                      }`}
                   >
                     Todas ({activities.length})
                   </button>
                   <button
                     onClick={() => setActivityFilterStatus('ongoing')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                      activityFilterStatus === 'ongoing'
-                        ? 'bg-emerald-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activityFilterStatus === 'ongoing'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                      }`}
                   >
                     A Decorrer ({ongoingCount})
                   </button>
                   <button
                     onClick={() => setActivityFilterStatus('upcoming')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                      activityFilterStatus === 'upcoming'
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activityFilterStatus === 'upcoming'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                      }`}
                   >
                     Futuras ({upcomingCount})
                   </button>
                   <button
                     onClick={() => setActivityFilterStatus('completed')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                      activityFilterStatus === 'completed'
-                        ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
-                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-                    }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activityFilterStatus === 'completed'
+                      ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
+                      : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
+                      }`}
                   >
                     Concluídas ({completedCount})
                   </button>
@@ -1082,13 +1078,12 @@ export const Admin: React.FC = () => {
                   return (
                     <div
                       key={activity.id}
-                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
-                        activity.status === 'ongoing'
-                          ? 'border-emerald-500/40 dark:border-emerald-500/30'
-                          : activity.status === 'upcoming'
-                            ? 'border-blue-400/40 dark:border-blue-500/30'
-                            : 'border-gray-200 dark:border-slate-800 opacity-90'
-                      }`}
+                      className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
+                        ? 'border-emerald-500/40 dark:border-emerald-500/30'
+                        : activity.status === 'upcoming'
+                          ? 'border-blue-400/40 dark:border-blue-500/30'
+                          : 'border-gray-200 dark:border-slate-800 opacity-90'
+                        }`}
                     >
                       {/* Cabeçalho do Card da Atividade */}
                       <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -1098,13 +1093,12 @@ export const Admin: React.FC = () => {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <span
-                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                                activity.status === 'ongoing'
-                                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
-                                  : activity.status === 'upcoming'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-                                    : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300'
-                              }`}
+                              className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
+                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
+                                : activity.status === 'upcoming'
+                                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                                  : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300'
+                                }`}
                             >
                               {activity.status === 'ongoing'
                                 ? '● A Decorrer'
@@ -1151,31 +1145,28 @@ export const Admin: React.FC = () => {
                           <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                             <button
                               onClick={() => handleToggleStatus(activity, 'ongoing')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                                activity.status === 'ongoing'
-                                  ? 'bg-emerald-600 text-white shadow-sm'
-                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                              }`}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'ongoing'
+                                ? 'bg-emerald-600 text-white shadow-sm'
+                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                                }`}
                             >
                               A Decorrer
                             </button>
                             <button
                               onClick={() => handleToggleStatus(activity, 'upcoming')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                                activity.status === 'upcoming'
-                                  ? 'bg-blue-600 text-white shadow-sm'
-                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                              }`}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'upcoming'
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                                }`}
                             >
                               Futura
                             </button>
                             <button
                               onClick={() => handleToggleStatus(activity, 'completed')}
-                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${
-                                activity.status === 'completed'
-                                  ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-sm'
-                                  : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                              }`}
+                              className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition ${activity.status === 'completed'
+                                ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-sm'
+                                : 'text-text-200 dark:text-slate-400 hover:text-text-100'
+                                }`}
                             >
                               Concluída
                             </button>
@@ -1429,8 +1420,8 @@ export const Admin: React.FC = () => {
                         key={st}
                         onClick={() => setCollabFilterStatus(st)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
-                            ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
-                            : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                          ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
+                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                           }`}
                       >
                         {label} ({count})
@@ -1533,8 +1524,8 @@ export const Admin: React.FC = () => {
                                     disabled={isUpdating}
                                     onClick={() => handleUpdateCollabStatus(collab.id, st)}
                                     className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
-                                        ? getCollabStatusBadgeClass(st)
-                                        : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
+                                      ? getCollabStatusBadgeClass(st)
+                                      : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
                                       }`}
                                   >
                                     {isCurrent && isUpdating ? (
@@ -1691,8 +1682,8 @@ export const Admin: React.FC = () => {
                       key={st}
                       onClick={() => setJobFilterStatus(st as any)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${isSelected
-                          ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
-                          : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
+                        ? 'bg-accent-200 text-white dark:bg-cyan-600 shadow-sm'
+                        : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700'
                         }`}
                     >
                       {label} ({count})
@@ -1797,8 +1788,8 @@ export const Admin: React.FC = () => {
                                   disabled={isUpdating}
                                   onClick={() => handleUpdateJobStatus(job.id, st)}
                                   className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition border ${isCurrent
-                                      ? getJobStatusBadgeClass(st)
-                                      : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
+                                    ? getJobStatusBadgeClass(st)
+                                    : 'border-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'
                                     }`}
                                 >
                                   {isCurrent && isUpdating ? (
@@ -1917,38 +1908,38 @@ export const Admin: React.FC = () => {
       {confirmDeleteReg && (
         <Portal>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-amber-500">
-              <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">Remover Inscrição</h3>
-            </div>
-            <p className="text-sm text-text-200 dark:text-slate-300">
-              Tens a certeza de que pretendes desinscrever o aluno{' '}
-              <strong className="text-text-100 dark:text-white">
-                {confirmDeleteReg.studentName}
-              </strong>{' '}
-              (
-              <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                {confirmDeleteReg.studentNumber}
-              </span>
-              )?
-            </p>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setConfirmDeleteReg(null)}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleRemoveRegistration}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
-              >
-                Confirmar Remoção
-              </button>
+            <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-amber-500">
+                <AlertCircle size={24} />
+                <h3 className="text-lg font-bold text-text-100 dark:text-white">Remover Inscrição</h3>
+              </div>
+              <p className="text-sm text-text-200 dark:text-slate-300">
+                Tens a certeza de que pretendes desinscrever o aluno{' '}
+                <strong className="text-text-100 dark:text-white">
+                  {confirmDeleteReg.studentName}
+                </strong>{' '}
+                (
+                <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                  {confirmDeleteReg.studentNumber}
+                </span>
+                )?
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setConfirmDeleteReg(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRemoveRegistration}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                >
+                  Confirmar Remoção
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         </Portal>
       )}
 
@@ -1956,33 +1947,33 @@ export const Admin: React.FC = () => {
       {confirmDeleteAct && (
         <Portal>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-red-500">
-              <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">
-                Eliminar Atividade
-              </h3>
-            </div>
-            <p className="text-sm text-text-200 dark:text-slate-300">
-              Atenção: Ao eliminar esta atividade, todas as inscrições associadas serão também
-              removidas de forma irreversível.
-            </p>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setConfirmDeleteAct(null)}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteActivity(confirmDeleteAct)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
-              >
-                Eliminar Definitivamente
-              </button>
+            <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-red-500">
+                <AlertCircle size={24} />
+                <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                  Eliminar Atividade
+                </h3>
+              </div>
+              <p className="text-sm text-text-200 dark:text-slate-300">
+                Atenção: Ao eliminar esta atividade, todas as inscrições associadas serão também
+                removidas de forma irreversível.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setConfirmDeleteAct(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDeleteActivity(confirmDeleteAct)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition"
+                >
+                  Eliminar Definitivamente
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         </Portal>
       )}
 
@@ -1990,34 +1981,34 @@ export const Admin: React.FC = () => {
       {confirmDeleteCollab && (
         <Portal>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-red-500">
-              <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">
-                Eliminar Candidatura
-              </h3>
-            </div>
-            <p className="text-sm text-text-200 dark:text-slate-300">
-              Tens a certeza de que pretendes eliminar a candidatura de{' '}
-              <strong className="text-text-100 dark:text-white">{confirmDeleteCollab.name}</strong>?
-              Esta ação é irreversível.
-            </p>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setConfirmDeleteCollab(null)}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteCollab(confirmDeleteCollab.id)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
-              >
-                Eliminar Definitivamente
-              </button>
+            <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-red-500">
+                <AlertCircle size={24} />
+                <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                  Eliminar Candidatura
+                </h3>
+              </div>
+              <p className="text-sm text-text-200 dark:text-slate-300">
+                Tens a certeza de que pretendes eliminar a candidatura de{' '}
+                <strong className="text-text-100 dark:text-white">{confirmDeleteCollab.name}</strong>?
+                Esta ação é irreversível.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setConfirmDeleteCollab(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDeleteCollab(confirmDeleteCollab.id)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
+                >
+                  Eliminar Definitivamente
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         </Portal>
       )}
 
@@ -2025,36 +2016,36 @@ export const Admin: React.FC = () => {
       {confirmDeleteJob && (
         <Portal>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-red-500">
-              <AlertCircle size={24} />
-              <h3 className="text-lg font-bold text-text-100 dark:text-white">
-                Eliminar Oferta de Vaga
-              </h3>
-            </div>
-            <p className="text-sm text-text-200 dark:text-slate-300">
-              Tens a certeza de que pretendes eliminar a oferta{' '}
-              <strong className="text-text-100 dark:text-white">"{confirmDeleteJob.title}"</strong>{' '}
-              da empresa{' '}
-              <strong className="text-text-100 dark:text-white">{confirmDeleteJob.company}</strong>?
-              Esta ação é irreversível.
-            </p>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setConfirmDeleteJob(null)}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDeleteJob(confirmDeleteJob.id)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
-              >
-                Eliminar Definitivamente
-              </button>
+            <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+              <div className="flex items-center gap-3 text-red-500">
+                <AlertCircle size={24} />
+                <h3 className="text-lg font-bold text-text-100 dark:text-white">
+                  Eliminar Oferta de Vaga
+                </h3>
+              </div>
+              <p className="text-sm text-text-200 dark:text-slate-300">
+                Tens a certeza de que pretendes eliminar a oferta{' '}
+                <strong className="text-text-100 dark:text-white">"{confirmDeleteJob.title}"</strong>{' '}
+                da empresa{' '}
+                <strong className="text-text-100 dark:text-white">{confirmDeleteJob.company}</strong>?
+                Esta ação é irreversível.
+              </p>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setConfirmDeleteJob(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDeleteJob(confirmDeleteJob.id)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold transition shadow-sm"
+                >
+                  Eliminar Definitivamente
+                </button>
+              </div>
             </div>
           </div>
-        </div>
         </Portal>
       )}
 
@@ -2062,169 +2053,170 @@ export const Admin: React.FC = () => {
       {isActivityModalOpen && (
         <Portal>
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-cyan-900/60 p-6 sm:p-8 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
-              <h3 className="text-xl font-bold text-text-100 dark:text-white">
-                {editingActivity ? 'Editar Atividade' : 'Nova Atividade NEEI'}
-              </h3>
-              <button onClick={() => setIsActivityModalOpen(false)}>
-                <X size={20} className="text-gray-400 hover:text-gray-600" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveActivity} className="space-y-4 text-xs sm:text-sm">
-              <div>
-                <label className="block font-semibold mb-1">Título da Atividade</label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="ex.: Workshop de React e Tailwind"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                />
+            <div className="bg-white dark:bg-[#0c1724] rounded-2xl border border-gray-200 dark:border-cyan-900/60 p-6 sm:p-8 max-w-xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+                <h3 className="text-xl font-bold text-text-100 dark:text-white">
+                  {editingActivity ? 'Editar Atividade' : 'Nova Atividade NEEI'}
+                </h3>
+                <button onClick={() => setIsActivityModalOpen(false)}>
+                  <X size={20} className="text-gray-400 hover:text-gray-600" />
+                </button>
               </div>
 
-              <div>
-                <label className="block font-semibold mb-1">Descrição Detalhada</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  placeholder="Descreve os objetivos, tópicos abordados e pré-requisitos..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSaveActivity} className="space-y-4 text-xs sm:text-sm">
                 <div>
-                  <label className="block font-semibold mb-1">Categoria</label>
-                  <select
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
+                  <label className="block font-semibold mb-1">Título da Atividade</label>
+                  <input
+                    type="text"
+                    required
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    placeholder="ex.: Workshop de React e Tailwind"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  >
-                    <option value="Workshop">Workshop</option>
-                    <option value="Palestra">Palestra</option>
-                    <option value="Hackathon">Hackathon</option>
-                    <option value="Torneio">Torneio</option>
-                    <option value="Sessão Prática">Sessão Prática</option>
-                    <option value="Visita de Estudo">Visita de Estudo</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
-                  <label className="block font-semibold mb-1">Estado das Inscrições</label>
-                  <select
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as ActivityStatus)}
+                  <label className="block font-semibold mb-1">Descrição Detalhada</label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Descreve os objetivos, tópicos abordados e pré-requisitos..."
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  >
-                    <option value="ongoing">A Decorrer (Inscrições Abertas)</option>
-                    <option value="upcoming">Futura (Passa a Decorrer automaticamente na data/semana)</option>
-                    <option value="completed">Concluída</option>
-                  </select>
+                  />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-1">Categoria</label>
+                    <select
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    >
+                      <option value="Workshop">Workshop</option>
+                      <option value="Palestra">Palestra</option>
+                      <option value="Convívio">Convívio</option>
+                      <option value="Hackathon">Hackathon</option>
+                      <option value="Torneio">Torneio</option>
+                      <option value="Sessão Prática">Sessão Prática</option>
+                      <option value="Visita de Estudo">Visita de Estudo</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1">Estado das Inscrições</label>
+                    <select
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value as ActivityStatus)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    >
+                      <option value="ongoing">A Decorrer (Inscrições Abertas)</option>
+                      <option value="upcoming">Futura (Passa a Decorrer automaticamente na data/semana)</option>
+                      <option value="completed">Concluída</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-1">Data (DD-MM-AAAA)</label>
+                    <input
+                      type="date"
+                      required
+                      value={formDate}
+                      onChange={(e) => handleFormDateChange(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1">Horário</label>
+                    <input
+                      type="text"
+                      required
+                      value={formTime}
+                      onChange={(e) => setFormTime(e.target.value)}
+                      placeholder="ex.: 14:30 - 17:30"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold mb-1">Localização</label>
+                    <input
+                      type="text"
+                      required
+                      value={formLocation}
+                      onChange={(e) => setFormLocation(e.target.value)}
+                      placeholder="ex.: Lab 1.15, Edifício 1, Gambelas"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold mb-1">Lotação Máxima (0 = ilimitada)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formMaxCapacity}
+                      onChange={(e) => setFormMaxCapacity(parseInt(e.target.value, 10) || 0)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block font-semibold mb-1">Data (DD-MM-AAAA)</label>
+                  <label className="block font-semibold mb-1">Orador / Facilitador (opcional)</label>
+                  <input
+                    type="text"
+                    value={formSpeaker}
+                    onChange={(e) => setFormSpeaker(e.target.value)}
+                    placeholder="ex.: Equipa NEEI ou Convidado"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-1">
+                    Data de Abertura das Inscrições (opcional)
+                  </label>
                   <input
                     type="date"
-                    required
-                    value={formDate}
-                    onChange={(e) => handleFormDateChange(e.target.value)}
+                    value={formRegistrationOpensAt}
+                    onChange={(e) => handleFormRegistrationOpensAtChange(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
                   />
+                  <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
+                    Quando esta data for atingida, a atividade passa automaticamente para{' '}
+                    <strong>A Decorrer</strong> (inscrições abertas).
+                  </span>
                 </div>
 
-                <div>
-                  <label className="block font-semibold mb-1">Horário</label>
-                  <input
-                    type="text"
-                    required
-                    value={formTime}
-                    onChange={(e) => setFormTime(e.target.value)}
-                    placeholder="ex.: 14:30 - 17:30"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  />
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsActivityModalOpen(false)}
+                    className="px-4 py-2 text-gray-500 hover:text-gray-900"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingActivity}
+                    className="px-5 py-2.5 bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white font-semibold rounded-xl transition flex items-center gap-2"
+                  >
+                    {savingActivity ? <Loader2 size={16} className="animate-spin" /> : null}
+                    <span>Guardar Atividade</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold mb-1">Localização</label>
-                  <input
-                    type="text"
-                    required
-                    value={formLocation}
-                    onChange={(e) => setFormLocation(e.target.value)}
-                    placeholder="ex.: Lab 1.15, Edifício 1, Gambelas"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold mb-1">Lotação Máxima (0 = ilimitada)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formMaxCapacity}
-                    onChange={(e) => setFormMaxCapacity(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1">Orador / Facilitador (opcional)</label>
-                <input
-                  type="text"
-                  value={formSpeaker}
-                  onChange={(e) => setFormSpeaker(e.target.value)}
-                  placeholder="ex.: Equipa NEEI ou Convidado"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1">
-                  Data de Abertura das Inscrições (opcional)
-                </label>
-                <input
-                  type="date"
-                  value={formRegistrationOpensAt}
-                  onChange={(e) => handleFormRegistrationOpensAtChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900"
-                />
-                <span className="text-[11px] text-text-200 dark:text-slate-400 block mt-1">
-                  Quando esta data for atingida, a atividade passa automaticamente para{' '}
-                  <strong>A Decorrer</strong> (inscrições abertas).
-                </span>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsActivityModalOpen(false)}
-                  className="px-4 py-2 text-gray-500 hover:text-gray-900"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingActivity}
-                  className="px-5 py-2.5 bg-accent-200 dark:bg-cyan-600 hover:bg-accent-100 dark:hover:bg-cyan-500 text-white font-semibold rounded-xl transition flex items-center gap-2"
-                >
-                  {savingActivity ? <Loader2 size={16} className="animate-spin" /> : null}
-                  <span>Guardar Atividade</span>
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
         </Portal>
       )}
     </div>
