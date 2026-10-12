@@ -39,19 +39,18 @@ export function setSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  // CSP pragmática: o site ainda usa o Tailwind via CDN e scripts inline
-  // (tema + config). Remover o CDN do Tailwind permite apertar para
-  // script-src 'self' sem 'unsafe-inline'/'unsafe-eval'.
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=*');
+  // CSP pragmática: o site suporta Tailwind via CDN, scripts inline e Stripe (scripts, iframes e API)
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' https://cdn.tailwindcss.com 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' https://cdn.tailwindcss.com https://js.stripe.com 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data:",
-      "connect-src 'self' https://emkc.org",
+      "img-src 'self' data: https://*.stripe.com",
+      "connect-src 'self' https://emkc.org https://api.stripe.com https://maps.googleapis.com",
+      "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
