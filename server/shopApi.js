@@ -276,13 +276,15 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 404, { error: 'Encomenda não encontrada ou já expirada.' });
       }
 
-      let isPaid = isPaymentSandbox();
-      if (!isPaid && paymentIntentId && !isStripeSandbox()) {
+      let isPaid = isStripeSandbox();
+      if (!isPaid && paymentIntentId) {
         try {
           const stripe = getStripeClient();
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-          if (pi && pi.status === 'succeeded') {
-            isPaid = true;
+          if (stripe) {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+            if (pi && pi.status === 'succeeded') {
+              isPaid = true;
+            }
           }
         } catch (e) {
           console.error('[CONFIRM PAYMENT ERROR]', e.message);
@@ -332,6 +334,23 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       if (event.type === 'payment_intent.succeeded') {
         const paymentIntent = event.data?.object || {};
         const orderId = paymentIntent.metadata?.order_id;
+
+        // Se estiver em modo real com Stripe, valida diretamente com a API Stripe para prevenir spoofing mesmo sem webhook secret
+        if (!isStripeSandbox() && paymentIntent.id) {
+          try {
+            const stripe = getStripeClient();
+            if (stripe) {
+              const verifiedPi = await stripe.paymentIntents.retrieve(paymentIntent.id);
+              if (!verifiedPi || verifiedPi.status !== 'succeeded') {
+                console.warn('[STRIPE WEBHOOK] PaymentIntent não confirmado na API Stripe:', paymentIntent.id);
+                return sendJson(res, 400, { error: 'PaymentIntent status not succeeded' });
+              }
+            }
+          } catch (vErr) {
+            console.error('[STRIPE WEBHOOK VERIFY ERROR]', vErr.message);
+            return sendJson(res, 400, { error: 'Falha ao validar PaymentIntent na Stripe' });
+          }
+        }
 
         if (orderId) {
           let order = getShopOrderById(orderId);

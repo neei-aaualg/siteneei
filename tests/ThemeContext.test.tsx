@@ -64,14 +64,18 @@ describe('ThemeContext', () => {
   });
 
   it('o class de transição é removido após o toggle', async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers();
     render(
       <ThemeProvider>
         <ThemeProbe />
       </ThemeProvider>
     );
 
-    await user.click(screen.getByRole('button'));
+    const btn = screen.getByRole('button');
+    btn.click();
     expect(document.documentElement).toHaveClass('theme-transition');
+
+    vi.advanceTimersByTime(400);
+    expect(document.documentElement).not.toHaveClass('theme-transition');
   });
 });

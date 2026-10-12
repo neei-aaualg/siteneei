@@ -1,8 +1,16 @@
 import Stripe from 'stripe';
 
-const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
-const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET;
-const STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY;
+export function getStripeSecretKey() {
+  return (process.env.STRIPE_SECRET_KEY || '').trim();
+}
+
+export function getStripePublishableKey() {
+  return (process.env.STRIPE_PUBLISHABLE_KEY || '').trim();
+}
+
+export function getStripeWebhookSecret() {
+  return (process.env.STRIPE_WEBHOOK_SECRET || '').trim();
+}
 
 let stripeClient = null;
 
@@ -10,38 +18,33 @@ let stripeClient = null;
  * Verifica se a aplicação está em modo Sandbox de desenvolvimento
  */
 export function isStripeSandbox() {
-  return (
-    !STRIPE_SECRET_KEY ||
-    STRIPE_SECRET_KEY === 'sandbox' ||
-    STRIPE_SECRET_KEY === 'test' ||
-    STRIPE_SECRET_KEY.trim() === ''
-  );
+  const key = getStripeSecretKey();
+  return !key || key === 'sandbox' || key === 'test';
 }
 
 /**
  * Verifica se as chaves da Stripe estão em modo de testes (sk_test_...) ou sandbox
  */
 export function isStripeTestMode() {
-  return (
-    isStripeSandbox() ||
-    (typeof STRIPE_SECRET_KEY === 'string' && STRIPE_SECRET_KEY.startsWith('sk_test_'))
-  );
+  const key = getStripeSecretKey();
+  return isStripeSandbox() || key.startsWith('sk_test_');
 }
 
 /**
  * Obtém a instância do SDK Stripe configurada
  */
 export function getStripeClient() {
-  if (stripeClient) return stripeClient;
+  const secretKey = getStripeSecretKey();
+  if (isStripeSandbox()) {
+    stripeClient = null;
+    return null;
+  }
 
-  if (!isStripeSandbox()) {
-    stripeClient = new Stripe(STRIPE_SECRET_KEY);
+  if (!stripeClient || stripeClient._secretKey !== secretKey) {
+    stripeClient = new Stripe(secretKey);
+    stripeClient._secretKey = secretKey;
     const mode = isStripeTestMode() ? 'TEST (sk_test_)' : 'LIVE (sk_live_)';
     console.log(`[STRIPE] Cliente Stripe inicializado em modo ${mode}.`);
-  } else {
-    // Cliente mock para desenvolvimento sem chaves
-    stripeClient = null;
-    console.log('[STRIPE] A correr em modo SANDBOX / Mock.');
   }
 
   return stripeClient;
@@ -162,7 +165,7 @@ export async function createStripePaymentIntentAutomatic({
       provider: 'stripe_sandbox',
       paymentIntentId: `pi_sandbox_${Date.now()}_${orderId}`,
       clientSecret: `pi_sandbox_secret_${Date.now()}`,
-      publishableKey: STRIPE_PUBLISHABLE_KEY || 'pk_test_sandbox',
+      publishableKey: getStripePublishableKey() || 'pk_test_sandbox',
     };
   }
 
@@ -191,7 +194,7 @@ export async function createStripePaymentIntentAutomatic({
       provider: 'stripe',
       paymentIntentId: paymentIntent.id,
       clientSecret: paymentIntent.client_secret,
-      publishableKey: STRIPE_PUBLISHABLE_KEY,
+      publishableKey: getStripePublishableKey(),
     };
   } catch (error) {
     console.error('[STRIPE ERROR] Falha ao criar PaymentIntent automático:', error);
@@ -275,7 +278,8 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
  * Valida a assinatura do webhook recebido da Stripe
  */
 export function constructStripeWebhookEvent(rawBody, signature) {
-  if (isStripeSandbox() || !STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = getStripeWebhookSecret();
+  if (isStripeSandbox() || !webhookSecret) {
     // Se não houver segredo de webhook em desenvolvimento, faz parse do payload JSON
     try {
       const parsed = typeof rawBody === 'string' ? JSON.parse(rawBody) : rawBody;
@@ -286,5 +290,5 @@ export function constructStripeWebhookEvent(rawBody, signature) {
   }
 
   const stripe = getStripeClient();
-  return stripe.webhooks.constructEvent(rawBody, signature, STRIPE_WEBHOOK_SECRET);
+  return stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
 }
