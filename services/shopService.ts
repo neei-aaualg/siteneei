@@ -17,6 +17,7 @@ export async function fetchShopCampaign(options?: {
   token?: string | null;
 }): Promise<{
   campaign: ShopCampaign;
+  campaigns?: ShopCampaign[];
   isSandbox: boolean;
   sweatsAvailable?: boolean;
   isAdminPreview?: boolean;
@@ -306,4 +307,105 @@ export async function createAdminManualOrder(
     throw new Error(data.error || 'Falha ao criar encomenda manual');
   }
   return data;
+}
+
+/**
+ * Obtém todos os produtos/campanhas para gestão no painel de administração
+ */
+export async function fetchAdminProducts(
+  token: string
+): Promise<{ products: ShopCampaign[] }> {
+  const res = await fetch('/api/admin/shop/products', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Falha ao carregar lista de produtos');
+  }
+  return res.json();
+}
+
+/**
+ * Cria um novo produto no catálogo via painel de administração
+ */
+export async function createAdminProduct(
+  token: string,
+  payload: Partial<ShopCampaign>
+): Promise<{ product: ShopCampaign; message?: string }> {
+  const res = await fetch('/api/admin/shop/products', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao criar produto');
+  }
+  return data;
+}
+
+/**
+ * Atualiza um produto existente via painel de administração
+ */
+export async function updateAdminProduct(
+  token: string,
+  id: string,
+  payload: Partial<ShopCampaign>
+): Promise<{ product: ShopCampaign; message?: string }> {
+  const res = await fetch(`/api/admin/shop/products/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao atualizar produto');
+  }
+  return data;
+}
+
+/**
+ * Elimina um produto do catálogo via painel de administração
+ */
+export async function deleteAdminProduct(
+  token: string,
+  id: string
+): Promise<{ message: string }> {
+  const res = await fetch(`/api/admin/shop/products/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao eliminar produto');
+  }
+  return data;
+}
+
+/**
+ * Obtém todos os produtos ativos para a loja pública
+ */
+export async function fetchShopProducts(options?: {
+  adminPreview?: boolean;
+  token?: string | null;
+}): Promise<{ products: ShopCampaign[] }> {
+  const params = new URLSearchParams();
+  if (options?.adminPreview) params.set('admin_preview', '1');
+  if (options?.token) params.set('token', options.token);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const headers: Record<string, string> = {};
+  if (options?.token) headers['Authorization'] = `Bearer ${options.token}`;
+
+  const res = await fetch(`/api/shop/products${query}`, { headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Erro ao carregar produtos');
+  }
+  return res.json();
 }

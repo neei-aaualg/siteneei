@@ -26,6 +26,13 @@ import {
   X,
   User,
   CreditCard,
+  Edit,
+  Trash2,
+  Layers,
+  Package,
+  ToggleLeft,
+  ToggleRight,
+  Image as ImageIcon,
 } from 'lucide-react';
 import {
   ShopOrder,
@@ -34,6 +41,7 @@ import {
   SweatSize,
   DeliveryType,
   AdminCreateOrderPayload,
+  ShopCampaign,
 } from '../../types/shop';
 import {
   fetchAdminShopOrders,
@@ -43,6 +51,10 @@ import {
   resendOrderEmail,
   fetchShopCampaign,
   createAdminManualOrder,
+  fetchAdminProducts,
+  createAdminProduct,
+  updateAdminProduct,
+  deleteAdminProduct,
 } from '../../services/shopService';
 import { formatDateTimeDDMMAAAA } from '../../utils/dateHelpers';
 import { Portal } from '../Portal';
@@ -54,13 +66,37 @@ interface AdminShopPanelProps {
 }
 
 export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedback }) => {
+  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
   const [orders, setOrders] = useState<ShopOrder[]>([]);
+  const [products, setProducts] = useState<ShopCampaign[]>([]);
   const [stats, setStats] = useState<ShopSummaryStats | null>(null);
   const [sweatsAvailable, setSweatsAvailable] = useState<boolean>(true);
   const [showTestShop, setShowTestShop] = useState<boolean>(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Gestão de Produtos (Modal / Formulário)
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<ShopCampaign | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [productError, setProductError] = useState<string | null>(null);
+
+  const defaultProductForm = {
+    title: '',
+    description: '',
+    item_name: '',
+    item_price: 25.0,
+    shipping_fee: 3.5,
+    image_url: '/assets/sweat_mockup.jpg',
+    deadline_date: '',
+    is_active: true,
+    allow_pickup: true,
+    allow_shipping: true,
+    pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
+    sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[],
+  };
+  const [productForm, setProductForm] = useState(defaultProductForm);
 
   // Seleção Múltipla / Bulk Actions
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
@@ -81,6 +117,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const [createError, setCreateError] = useState<string | null>(null);
 
   const initialManualForm = {
+    campaign_id: '',
+    item_name: 'Sweat Oficial Engenharia Informática',
     student_name: '',
     student_email: '',
     phone_number: '',
@@ -116,13 +154,17 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     try {
       setLoading(true);
       setError(null);
-      const [ordersData, statsData, campaignData] = await Promise.all([
+      const [ordersData, statsData, campaignData, productsData] = await Promise.all([
         fetchAdminShopOrders(token),
         fetchAdminShopStats(token),
         fetchShopCampaign({ adminPreview: false }).catch(() => null),
+        fetchAdminProducts(token).catch(() => ({ products: [] })),
       ]);
       setOrders(ordersData.orders || []);
       setStats(statsData);
+      const prods = productsData.products || [];
+      setProducts(prods);
+
       if (campaignData) {
         setSweatsAvailable(Boolean(campaignData.sweatsAvailable));
         if (campaignData.showTestShop !== undefined) {
@@ -131,10 +173,21 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         if (campaignData.item_price) {
           setManualForm((prev) => ({
             ...prev,
+            campaign_id: prev.campaign_id || campaignData.campaign?.id || (prods[0]?.id ?? ''),
+            item_name: prev.item_name || campaignData.campaign?.item_name || (prods[0]?.item_name ?? 'Sweat Oficial Engenharia Informática'),
             item_price: campaignData.item_price,
             shipping_fee: campaignData.shipping_fee || 4.5,
           }));
         }
+      } else if (prods.length > 0) {
+        const first = prods[0];
+        setManualForm((prev) => ({
+          ...prev,
+          campaign_id: prev.campaign_id || first.id,
+          item_name: prev.item_name || first.item_name,
+          item_price: prev.item_price || first.item_price,
+          shipping_fee: prev.shipping_fee || first.shipping_fee,
+        }));
       }
     } catch (err: any) {
       setError(err.message || 'Falha ao carregar dados da loja');
@@ -178,6 +231,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         o.student_email.toLowerCase().includes(q) ||
         o.phone_number.includes(q) ||
         o.id.toLowerCase().includes(q) ||
+        Boolean(o.item_name && o.item_name.toLowerCase().includes(q)) ||
         Boolean(o.nif && o.nif.includes(q)) ||
         Boolean(o.admin_notes && o.admin_notes.toLowerCase().includes(q));
 
@@ -418,6 +472,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           : undefined;
 
       const payload: AdminCreateOrderPayload = {
+        campaign_id: manualForm.campaign_id || undefined,
+        item_name: manualForm.item_name || undefined,
         student_name: name,
         student_email: email,
         phone_number: phone,
@@ -453,6 +509,129 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setCreateError(err.message || 'Falha ao criar encomenda manual.');
     } finally {
       setCreatingOrder(false);
+    }
+  };
+
+  const handleOpenCreateProduct = () => {
+    setEditingProduct(null);
+    setProductError(null);
+    setProductForm({
+      title: '',
+      description: '',
+      item_name: '',
+      item_price: 25.0,
+      shipping_fee: 3.5,
+      image_url: '/assets/sweat_mockup.jpg',
+      deadline_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+      is_active: true,
+      allow_pickup: true,
+      allow_shipping: true,
+      pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
+      sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    });
+    setIsProductModalOpen(true);
+  };
+
+  const handleOpenEditProduct = (prod: ShopCampaign) => {
+    setEditingProduct(prod);
+    setProductError(null);
+    setProductForm({
+      title: prod.title || '',
+      description: prod.description || '',
+      item_name: prod.item_name || '',
+      item_price: prod.item_price || 0,
+      shipping_fee: prod.shipping_fee || 0,
+      image_url: prod.raw_image_url || prod.image_url || '/assets/sweat_mockup.jpg',
+      deadline_date: prod.deadline_date || '',
+      is_active: Boolean(prod.is_active),
+      allow_pickup: Boolean(prod.allow_pickup),
+      allow_shipping: Boolean(prod.allow_shipping),
+      pickup_location: prod.pickup_location || '',
+      sizes_available: prod.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    });
+    setIsProductModalOpen(true);
+  };
+
+  const handleToggleProductActive = async (prod: ShopCampaign) => {
+    try {
+      const newStatus = !prod.is_active;
+      await updateAdminProduct(token, prod.id, { is_active: newStatus });
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, is_active: newStatus } : p))
+      );
+      showFeedback(
+        prod.id,
+        newStatus ? 'Produto ativado na loja pública!' : 'Produto desativado/ocultado na loja pública!'
+      );
+    } catch (err: any) {
+      alert(err.message || 'Falha ao alterar estado do produto');
+    }
+  };
+
+  const handleDeleteProduct = async (prod: ShopCampaign) => {
+    if (!window.confirm(`Tens a certeza de que desejas eliminar o produto "${prod.title}"?`)) {
+      return;
+    }
+    try {
+      await deleteAdminProduct(token, prod.id);
+      setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+      showFeedback('product-deleted', 'Produto eliminado com sucesso!');
+    } catch (err: any) {
+      alert(err.message || 'Erro ao eliminar produto');
+    }
+  };
+
+  const handleToggleSize = (sz: SweatSize) => {
+    setProductForm((prev) => {
+      const exists = prev.sizes_available.includes(sz);
+      const next = exists
+        ? prev.sizes_available.filter((s) => s !== sz)
+        : [...prev.sizes_available, sz];
+      return { ...prev, sizes_available: next };
+    });
+  };
+
+  const handleSaveProductSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProductError(null);
+
+    const title = productForm.title.trim();
+    if (!title || title.length < 2) {
+      setProductError('Por favor insere o título do produto.');
+      return;
+    }
+    const itemName = productForm.item_name.trim();
+    if (!itemName || itemName.length < 2) {
+      setProductError('Por favor insere o nome da peça/artigo nas encomendas.');
+      return;
+    }
+    if (productForm.item_price < 0) {
+      setProductError('O preço deve ser igual ou superior a 0.');
+      return;
+    }
+    if (productForm.sizes_available.length === 0) {
+      setProductError('Deves selecionar pelo menos um tamanho disponível.');
+      return;
+    }
+
+    try {
+      setSavingProduct(true);
+      if (editingProduct) {
+        const res = await updateAdminProduct(token, editingProduct.id, productForm);
+        setProducts((prev) =>
+          prev.map((p) => (p.id === editingProduct.id ? res.product : p))
+        );
+        showFeedback(editingProduct.id, 'Produto atualizado com sucesso!');
+      } else {
+        const res = await createAdminProduct(token, productForm);
+        setProducts((prev) => [res.product, ...prev]);
+        showFeedback('product-created', 'Novo produto adicionado à loja com sucesso!');
+      }
+      setIsProductModalOpen(false);
+    } catch (err: any) {
+      setProductError(err.message || 'Erro ao guardar produto.');
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -605,7 +784,202 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         </div>
       </div>
 
-      {/* 2. Distribuição por Tamanhos para a Fábrica & Botão de Exportação CSV */}
+      {/* Abas de Navegação: Encomendas vs Gerir Produtos */}
+      <div className="flex items-center gap-3 border-b border-gray-200 dark:border-slate-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('orders')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+            activeTab === 'orders'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/25'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800'
+          }`}
+        >
+          <ShoppingBag size={16} />
+          <span>Encomendas & Produção ({orders.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('products')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+            activeTab === 'products'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-600/25'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-gray-200 dark:border-slate-800'
+          }`}
+        >
+          <Tag size={16} />
+          <span>Gerir Produtos & Merch ({products.length})</span>
+        </button>
+      </div>
+
+      {/* Vista de Gestão de Produtos */}
+      {activeTab === 'products' && (
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Tag className="text-cyan-500" size={18} />
+                Catálogo de Produtos à Venda ({products.length})
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                Adiciona, edita preços, prazos e gere a visibilidade dos artigos.
+                <span className="block mt-0.5 text-cyan-600 dark:text-cyan-400 font-semibold">
+                  Garantia de integridade: Peças já vendidas mantêm permanentemente o nome histórico que tinham quando foram compradas, mesmo após alterações no catálogo.
+                </span>
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleOpenCreateProduct}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-cyan-600/30 transition-all cursor-pointer self-start sm:self-auto shrink-0"
+            >
+              <Plus size={16} />
+              <span>Novo Produto</span>
+            </button>
+          </div>
+
+          {/* Grelha de Produtos */}
+          {products.length === 0 ? (
+            <div className="p-12 text-center bg-white dark:bg-[#0c1724] rounded-2xl border border-dashed border-gray-200 dark:border-slate-800">
+              <Package size={36} className="text-slate-400 mx-auto mb-2 opacity-60" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Nenhum produto registado</p>
+              <p className="text-xs text-slate-500 mt-1">Clica no botão "Novo Produto" para adicionar um artigo à loja.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((prod) => (
+                <div
+                  key={prod.id}
+                  className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-950/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Imagem do Produto */}
+                    <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center">
+                      {prod.image_url ? (
+                        <img
+                          src={prod.raw_image_url || prod.image_url}
+                          alt={prod.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={32} className="text-slate-600" />
+                      )}
+                      <div className="absolute top-2.5 right-2.5">
+                        {prod.is_active ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
+                            Ativo na Loja
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-slate-800/90 text-slate-300 text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
+                            Oculto / Inativo
+                          </span>
+                        )}
+                      </div>
+                      <div className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-sm border border-cyan-500/30 text-white font-black text-sm">
+                        {prod.item_price.toFixed(2)}€
+                      </div>
+                    </div>
+
+                    {/* Detalhes do Produto */}
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{prod.title}</h4>
+                        {prod.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                            {prod.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Nome Gravado no Registo */}
+                      <div className="p-2.5 rounded-xl bg-cyan-500/5 dark:bg-cyan-950/30 border border-cyan-500/20 text-xs">
+                        <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block mb-0.5">
+                          Nome Gravado nas Encomendas
+                        </span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                          {prod.item_name}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
+                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-400 block">Portes CTT</span>
+                          <span className="font-bold">{prod.shipping_fee.toFixed(2)}€</span>
+                        </div>
+                        <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-400 block">Data Limite</span>
+                          <span className="font-bold">{prod.deadline_date || 'Sem prazo'}</span>
+                        </div>
+                      </div>
+
+                      {/* Tamanhos */}
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                          Tamanhos Disponíveis
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {prod.sizes_available?.map((sz) => (
+                            <span
+                              key={sz}
+                              className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                            >
+                              {sz}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/80 mt-3 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleProductActive(prod)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                        prod.is_active
+                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-amber-200'
+                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
+                      }`}
+                      title={prod.is_active ? 'Desativar na loja' : 'Ativar na loja'}
+                    >
+                      {prod.is_active ? <ToggleRight size={15} /> : <ToggleLeft size={15} />}
+                      <span>{prod.is_active ? 'Ocultar' : 'Ativar'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditProduct(prod)}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Edit size={13} />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProduct(prod)}
+                        className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+                        title="Eliminar produto"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Vista de Encomendas & Produção */}
+      {activeTab === 'orders' && (
+        <>
+          {/* 2. Distribuição por Tamanhos para a Fábrica & Botão de Exportação CSV */}
       <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
           <div>
@@ -865,6 +1239,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                     />
                   </th>
                   <th className="py-3 px-3">Encomenda</th>
+                  <th className="py-3 px-3">Artigo / Peça</th>
                   <th className="py-3 px-3">Aluno</th>
                   <th className="py-3 px-3">Contacto</th>
                   <th className="py-3 px-3">Tamanho</th>
@@ -928,6 +1303,16 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                           Nota: {o.admin_notes}
                         </span>
                       )}
+                    </td>
+
+                    {/* Artigo / Peça - Mostra o nome que tinha quando foi vendida */}
+                    <td className="py-3 px-3">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 block">
+                        {o.item_name || 'Sweat Oficial Engenharia Informática'}
+                      </span>
+                      <span className="text-[10px] text-slate-400 block font-mono">
+                        {o.campaign_id}
+                      </span>
                     </td>
 
                     {/* Aluno */}
@@ -1047,6 +1432,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Modal para Adicionar Encomenda Manual (Criada por Admin) */}
       {isCreateModalOpen && (
@@ -1154,12 +1541,68 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                 <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <ShoppingBag size={13} className="text-cyan-500" />
-                    <span>2. Configuração da Sweat</span>
+                    <span>2. Artigo e Tamanho</span>
                   </h4>
+
+                  {products.length > 0 && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Associar a Produto do Catálogo
+                      </label>
+                      <select
+                        value={manualForm.campaign_id}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selectedProd = products.find((p) => p.id === selectedId);
+                          if (selectedProd) {
+                            setManualForm((prev) => ({
+                              ...prev,
+                              campaign_id: selectedProd.id,
+                              item_name: selectedProd.item_name,
+                              item_price: selectedProd.item_price,
+                              shipping_fee: selectedProd.shipping_fee,
+                            }));
+                          } else {
+                            setManualForm((prev) => ({
+                              ...prev,
+                              campaign_id: '',
+                            }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                      >
+                        <option value="">(Personalizado / Sem catálogo associado)</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.item_name} ({p.item_price.toFixed(2)}€) {!p.is_active ? '— [Inativo]' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Nome do Artigo (gravado permanentemente na encomenda) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={manualForm.item_name}
+                      onChange={(e) =>
+                        setManualForm((prev) => ({ ...prev, item_name: e.target.value }))
+                      }
+                      placeholder="Sweat Oficial Engenharia Informática"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      Este nome fica registado para a fábrica e histórico mesmo se o produto for alterado depois.
+                    </p>
+                  </div>
 
                   <div>
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">
-                      Tamanho da Sweat *
+                      Tamanho da Peça *
                     </label>
                     <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
                       {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => (
@@ -1465,6 +1908,337 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
                       <>
                         <Plus size={14} />
                         <span>Criar Encomenda Manual</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </Portal>
+      )}
+
+      {/* Modal para Criar / Editar Produto */}
+      {isProductModalOpen && (
+        <Portal>
+          <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+              <button
+                type="button"
+                onClick={() => setIsProductModalOpen(false)}
+                className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                  {editingProduct ? <Edit size={22} /> : <Plus size={22} />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {editingProduct ? 'Editar Produto do Catálogo' : 'Adicionar Novo Produto'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Gere o merchandising disponível para compra pelos estudantes de Engenharia Informática.
+                  </p>
+                </div>
+              </div>
+
+              {/* Informação sobre snapshot de nome */}
+              <div className="mb-5 p-3.5 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-2.5">
+                <AlertCircle size={16} className="text-cyan-500 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <span className="font-bold">Histórico Permanente das Encomendas:</span>
+                  <p className="text-[11px] text-cyan-800/90 dark:text-cyan-300/80 leading-relaxed">
+                    O <strong>Nome da Peça</strong> configurado abaixo é guardado de forma imutável em cada encomenda no momento da compra. Mesmo que o produto venha a ser renomeado ou editado posteriormente, as encomendas já vendidas retêm o nome exato que tinham quando foram compradas.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveProductSubmit} className="space-y-5">
+                {/* 1. Identificação do Produto */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Tag size={13} className="text-cyan-500" />
+                    <span>1. Informação Principal</span>
+                  </h4>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Título Comercial (Visível na Loja) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={productForm.title}
+                      onChange={(e) =>
+                        setProductForm((prev) => ({ ...prev, title: e.target.value }))
+                      }
+                      placeholder="Ex: Sweat Oficial Engenharia Informática 2026"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Nome da Peça / Artigo nas Encomendas (Gravado na Venda & Fábrica) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={productForm.item_name}
+                      onChange={(e) =>
+                        setProductForm((prev) => ({ ...prev, item_name: e.target.value }))
+                      }
+                      placeholder="Ex: Sweat Oficial Engenharia Informática"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      Este nome é o que aparece no ficheiro CSV da fábrica e nos recibos do cliente.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      Descrição Detalhada
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={productForm.description}
+                      onChange={(e) =>
+                        setProductForm((prev) => ({ ...prev, description: e.target.value }))
+                      }
+                      placeholder="Detalhes sobre o material, corte, acabamentos ou mensagem da edição..."
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                      URL da Imagem / Mockup
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={productForm.image_url}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, image_url: e.target.value }))
+                        }
+                        placeholder="/assets/sweat_mockup.jpg ou https://..."
+                        className="flex-1 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Preços e Prazos */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <CreditCard size={13} className="text-cyan-500" />
+                    <span>2. Valores e Prazos</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Preço Base (€) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                        value={productForm.item_price}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({
+                            ...prev,
+                            item_price: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Portes CTT (€) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                        value={productForm.shipping_fee}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({
+                            ...prev,
+                            shipping_fee: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Data Limite (Opcional)
+                      </label>
+                      <input
+                        type="date"
+                        value={productForm.deadline_date}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, deadline_date: e.target.value }))
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Tamanhos Disponíveis */}
+                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    3. Tamanhos Disponíveis *
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => {
+                      const isSelected = productForm.sizes_available.includes(sz);
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => handleToggleSize(sz)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm'
+                              : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                          }`}
+                        >
+                          {sz} {isSelected && '✓'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Opções de Entrega & Visibilidade */}
+                <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Truck size={13} className="text-cyan-500" />
+                    <span>4. Opções de Entrega & Visibilidade</span>
+                  </h4>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={productForm.allow_pickup}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, allow_pickup: e.target.checked }))
+                        }
+                        className="mt-0.5 w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
+                      />
+                      <div className="text-xs">
+                        <span className="font-semibold text-slate-900 dark:text-white block">
+                          Permitir Levantamento Presencial
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                          Estudante levanta no gabinete NEEI sem custo de envio.
+                        </span>
+                      </div>
+                    </label>
+
+                    <label className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-start gap-2.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={productForm.allow_shipping}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, allow_shipping: e.target.checked }))
+                        }
+                        className="mt-0.5 w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
+                      />
+                      <div className="text-xs">
+                        <span className="font-semibold text-slate-900 dark:text-white block">
+                          Permitir Envio Postal CTT
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                          Permite envio direto para morada com taxa de portes.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
+                  {productForm.allow_pickup && (
+                    <div>
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                        Local de Levantamento Presencial
+                      </label>
+                      <input
+                        type="text"
+                        value={productForm.pickup_location}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, pickup_location: e.target.value }))
+                        }
+                        placeholder="Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                      />
+                    </div>
+                  )}
+
+                  {/* Ativo na loja */}
+                  <div className="pt-2">
+                    <label className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-50/30 dark:bg-emerald-950/20 flex items-center justify-between cursor-pointer">
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 dark:text-white block">
+                          Disponível na Loja Pública
+                        </span>
+                        <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                          Se ativo, estudantes e público geral podem encomendar na página de Merch.
+                        </span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={productForm.is_active}
+                        onChange={(e) =>
+                          setProductForm((prev) => ({ ...prev, is_active: e.target.checked }))
+                        }
+                        className="w-5 h-5 rounded text-emerald-600 accent-emerald-500 cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {productError && (
+                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                    <AlertCircle size={16} className="flex-shrink-0" />
+                    <span>{productError}</span>
+                  </div>
+                )}
+
+                {/* Botões do Modal */}
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsProductModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProduct}
+                    className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {savingProduct ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span>A guardar produto...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>{editingProduct ? 'Guardar Alterações' : 'Criar Produto'}</span>
                       </>
                     )}
                   </button>

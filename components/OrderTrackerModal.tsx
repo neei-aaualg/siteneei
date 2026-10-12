@@ -360,11 +360,17 @@ export const OrderTrackerModal: React.FC<OrderTrackerModalProps> = ({
                 </div>
 
                 {/* Informações Rápidas em Grelha */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                   <div>
                     <span className="text-slate-400 block mb-0.5">Comprador</span>
                     <strong className="text-slate-800 dark:text-slate-200 truncate block">
                       {order.studentName}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block mb-0.5">Artigo</span>
+                    <strong className="text-slate-800 dark:text-slate-200 truncate block" title={order.itemName || 'Sweat Oficial'}>
+                      {order.itemName || 'Sweat Oficial'}
                     </strong>
                   </div>
                   <div>

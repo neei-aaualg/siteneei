@@ -526,4 +526,231 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(jsonBody.order.admin_notes).toBe('Entrega em mão no dia aberto');
     expect(jsonBody.order.student_name).toBe('Manuel Gabinete');
   });
+
+  it('permite criar, editar, listar e gerir produtos no catálogo de loja', () => {
+    // 1. Criar novo produto
+    const newProduct = db.createShopCampaign({
+      title: 'T-Shirt Oficial NEEI 2026',
+      description: 'T-shirt de algodão leve de edição especial.',
+      item_name: 'T-Shirt Oficial NEEI',
+      item_price: 12.5,
+      shipping_fee: 2.5,
+      image_url: '/assets/tshirt_mockup.jpg',
+      deadline_date: '2026-11-15',
+      is_active: 1,
+      allow_pickup: 1,
+      allow_shipping: 1,
+      pickup_location: 'Gabinete NEEI (Sala 0.18)',
+      sizes_available: ['S', 'M', 'L', 'XL'],
+    });
+
+    expect(newProduct).toBeTruthy();
+    expect(newProduct.id).toMatch(/^prod-/);
+    expect(newProduct.item_name).toBe('T-Shirt Oficial NEEI');
+    expect(newProduct.item_price).toBe(12.5);
+
+    // 2. Listar produtos
+    const all = db.getAllShopCampaigns();
+    expect(all.length).toBeGreaterThanOrEqual(2);
+    const found = all.find((p) => p.id === newProduct.id);
+    expect(found).toBeTruthy();
+
+    // 3. Atualizar produto
+    const updated = db.updateShopCampaign(newProduct.id, {
+      title: 'T-Shirt Oficial NEEI 2026 - Edição Limitada',
+      item_price: 14.0,
+      item_name: 'T-Shirt Oficial Edição Limitada',
+    });
+
+    expect(updated.title).toBe('T-Shirt Oficial NEEI 2026 - Edição Limitada');
+    expect(updated.item_price).toBe(14.0);
+    expect(updated.item_name).toBe('T-Shirt Oficial Edição Limitada');
+
+    // 4. Remover produto sem encomendas
+    const deleted = db.deleteShopCampaign(newProduct.id);
+    expect(deleted.success).toBe(true);
+
+    const checkGone = db.getShopCampaignById(newProduct.id);
+    expect(checkGone).toBeNull();
+  });
+
+  it('preserva permanentemente o nome do artigo (item_name) na encomenda vendida, mesmo após o produto ser editado ou renomeado', () => {
+    // 1. Criar um produto inicial com nome específico
+    const product = db.createShopCampaign({
+      title: 'Hoodie de Programação V1',
+      item_name: 'Hoodie Clássico 2026',
+      item_price: 28.0,
+      shipping_fee: 3.5,
+      sizes_available: ['M', 'L'],
+    });
+
+    // 2. Criar uma encomenda para este produto
+    const pendingOrder = db.preparePendingShopOrder({
+      campaign_id: product.id,
+      student_name: 'Beatriz Costa',
+      student_email: 'beatriz@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+
+    expect(pendingOrder.item_name).toBe('Hoodie Clássico 2026');
+
+    // 3. Registar o pagamento e guardar a encomenda na BD
+    const paidOrder = db.recordPaidShopOrder(pendingOrder, 'pi_test_snapshot_123');
+    expect(paidOrder.item_name).toBe('Hoodie Clássico 2026');
+
+    // 4. Admin edita o produto e altera o seu nome no catálogo para outro nome diferente
+    db.updateShopCampaign(product.id, {
+      title: 'Hoodie de Programação V2 (Renovado)',
+      item_name: 'Hoodie Renovado 2027',
+      item_price: 35.0,
+    });
+
+    // 5. Verificar que a encomenda previamente vendida AINDA mantém o nome original no momento da compra
+    const fetchedOrder = db.getShopOrderById(paidOrder.id);
+    expect(fetchedOrder.item_name).toBe('Hoodie Clássico 2026');
+
+    // 6. Verificar que a lista de encomendas para o admin também apresenta o nome original
+    const allOrders = db.getAllShopOrders();
+    const orderInList = allOrders.find((o) => o.id === paidOrder.id);
+    expect(orderInList).toBeTruthy();
+    expect(orderInList.item_name).toBe('Hoodie Clássico 2026');
+
+    // 7. Verificar que o export para a fábrica (CSV) inclui o artigo original
+    const factoryRows = db.getFactoryExportData();
+    const factoryOrder = factoryRows.find((r) => r.id === paidOrder.id);
+    expect(factoryOrder).toBeTruthy();
+    expect(factoryOrder.artigo).toBe('Hoodie Clássico 2026');
+
+    // 8. Uma NOVA encomenda criada após a edição do produto recebe o novo nome
+    const newPending = db.preparePendingShopOrder({
+      campaign_id: product.id,
+      student_name: 'Carlos Dias',
+      student_email: 'carlos@ualg.pt',
+      phone_number: '923456789',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+    expect(newPending.item_name).toBe('Hoodie Renovado 2027');
+  });
+
+  it('impede a eliminação de um produto que já tenha encomendas associadas', () => {
+    const product = db.createShopCampaign({
+      title: 'Caneca NEEI',
+      item_name: 'Caneca Cerâmica NEEI',
+      item_price: 6.0,
+      sizes_available: ['M'],
+    });
+
+    // Criar encomenda associada ao produto
+    const pending = db.preparePendingShopOrder({
+      campaign_id: product.id,
+      student_name: 'Diana Ferreira',
+      student_email: 'diana@ualg.pt',
+      phone_number: '934567890',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+    db.recordPaidShopOrder(pending, 'pi_test_delete_protect');
+
+    // Tentativa de eliminação deve falhar
+    expect(() => {
+      db.deleteShopCampaign(product.id);
+    }).toThrow(/Não é possível eliminar um produto com \d+ encomenda/);
+
+    // O produto continua a existir na BD
+    const stillExists = db.getShopCampaignById(product.id);
+    expect(stillExists).toBeTruthy();
+  });
+
+  it('suporta endpoints REST /api/admin/shop/products com autenticação', async () => {
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+
+    // 1. GET lista de produtos
+    let statusCode = 0;
+    let jsonBody = null;
+    const fakeRes = () => ({
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = JSON.parse(data);
+      },
+    });
+
+    let res = fakeRes();
+    let handled = await shopApi.handleShopApi(
+      { method: 'GET', headers: { authorization: `Bearer ${token}` } },
+      res,
+      '/api/admin/shop/products'
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(Array.isArray(jsonBody.products)).toBe(true);
+
+    // 2. POST criar produto
+    res = fakeRes();
+    handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          title: 'Gorro de Inverno NEEI',
+          item_name: 'Gorro de Malha NEEI',
+          item_price: 8.5,
+          shipping_fee: 2.0,
+          sizes_available: ['M'],
+        },
+      },
+      res,
+      '/api/admin/shop/products'
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.product).toBeTruthy();
+    expect(jsonBody.product.item_name).toBe('Gorro de Malha NEEI');
+    const createdId = jsonBody.product.id;
+
+    // 3. PUT atualizar produto
+    res = fakeRes();
+    handled = await shopApi.handleShopApi(
+      {
+        method: 'PUT',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          title: 'Gorro de Inverno NEEI 2026',
+          item_name: 'Gorro de Malha Atualizado',
+          item_price: 9.0,
+        },
+      },
+      res,
+      `/api/admin/shop/products/${createdId}`
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(jsonBody.product.item_name).toBe('Gorro de Malha Atualizado');
+    expect(jsonBody.product.item_price).toBe(9.0);
+
+    // 4. DELETE remover produto
+    res = fakeRes();
+    handled = await shopApi.handleShopApi(
+      {
+        method: 'DELETE',
+        headers: { authorization: `Bearer ${token}` },
+      },
+      res,
+      `/api/admin/shop/products/${createdId}`
+    );
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(200);
+    expect(jsonBody.success).toBe(true);
+  });
 });

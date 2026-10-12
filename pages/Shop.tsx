@@ -61,11 +61,16 @@ const SIZE_GUIDE: Record<
 
 export const Shop: React.FC = () => {
   const [campaign, setCampaign] = useState<ShopCampaign | null>(null);
+  const [campaignsList, setCampaignsList] = useState<ShopCampaign[]>([]);
+  const [selectedProductCampaign, setSelectedProductCampaign] = useState<ShopCampaign | null>(null);
   const [isSandbox, setIsSandbox] = useState(false);
   const [sweatsAvailable, setSweatsAvailable] = useState(true);
   const [isAdminPreview, setIsAdminPreview] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Campanha ativa selecionada para checkout
+  const activeCampaign = selectedProductCampaign || campaign;
 
   // Filtro de categoria no Merch
   const [activeCategory, setActiveCategory] = useState<'all' | 'clothing' | 'accessories'>('all');
@@ -96,6 +101,7 @@ export const Shop: React.FC = () => {
   // Detalhes da encomenda confirmada (para ecrã de sucesso garantindo precisão)
   const [confirmedOrderDetails, setConfirmedOrderDetails] = useState<{
     orderId?: string;
+    itemName?: string;
     studentName?: string;
     studentEmail?: string;
     phoneNumber?: string;
@@ -163,13 +169,22 @@ export const Shop: React.FC = () => {
       .then((data) => {
         if (mounted) {
           setCampaign(data.campaign);
+          const allCampaigns =
+            data.campaigns && data.campaigns.length > 0
+              ? data.campaigns
+              : data.campaign
+              ? [data.campaign]
+              : [];
+          setCampaignsList(allCampaigns);
+          const initialCamp = data.campaign || allCampaigns[0] || null;
+          setSelectedProductCampaign(initialCamp);
           setIsSandbox(data.isSandbox ?? false);
           setSweatsAvailable(data.sweatsAvailable ?? true);
           setIsAdminPreview(Boolean(data.isAdminPreview));
 
-          if (data.campaign?.sizes_available?.length) {
-            if (!data.campaign.sizes_available.includes('M')) {
-              setSelectedSize(data.campaign.sizes_available[0]);
+          if (initialCamp?.sizes_available?.length) {
+            if (!initialCamp.sizes_available.includes('M')) {
+              setSelectedSize(initialCamp.sizes_available[0]);
             }
           }
           setLoading(false);
@@ -217,6 +232,7 @@ export const Shop: React.FC = () => {
           if (res?.order) {
             setConfirmedOrderDetails({
               orderId: res.order.id,
+              itemName: res.order.item_name,
               studentName: res.order.student_name,
               studentEmail: res.order.student_email,
               phoneNumber: res.order.phone_number,
@@ -235,6 +251,7 @@ export const Shop: React.FC = () => {
             .then((st) => {
               setConfirmedOrderDetails((prev) => ({
                 orderId: st.orderId,
+                itemName: st.itemName || prev?.itemName,
                 studentName: st.studentName || prev?.studentName,
                 studentEmail: prev?.studentEmail,
                 phoneNumber: prev?.phoneNumber,
@@ -266,36 +283,38 @@ export const Shop: React.FC = () => {
 
   // Lista de produtos suportados no catálogo de Merch
   const products: MerchProduct[] = useMemo(() => {
-    if (!campaign) return [];
+    const list = campaignsList.length > 0 ? campaignsList : campaign ? [campaign] : [];
+    if (list.length === 0) return [];
 
     const isAvailableToBuy = sweatsAvailable || isAdminPreview;
-    return [
-      {
-        id: 'sweat-ei-2026',
-        name: campaign.item_name || 'Sweat Oficial Engenharia Informática 2026',
-        category: 'clothing',
-        price: campaign.item_price,
-        imageUrl: isAvailableToBuy ? campaign.image_url || '/assets/sweat_mockup.jpg' : '',
-        badge: isAvailableToBuy
-          ? (isAdminPreview ? 'Modo Teste (0.50€)' : 'Já Disponível')
-          : 'Brevemente',
-        description:
-          'A sweat oficial dos cursos de Engenharia Informática da UAlg.',
-        features: [
-          '80% Algodão cardado / 20% Poliéster (320g/m²)',
-          'Bordado de alta definição NEEI · Engenharia Informática',
-          'Corte unissexo confortável com cordões reforçados',
-          'Recolha no Campus de Gambelas ou Envio CTT',
-        ],
-        available: isAvailableToBuy,
-        isPreorder: true,
-        sizes: campaign.sizes_available,
-        allowShipping: campaign.allow_shipping,
-        shippingFee: campaign.shipping_fee,
-        pickupLocation: campaign.pickup_location,
-      },
-    ];
-  }, [campaign, sweatsAvailable, isAdminPreview]);
+    return list.map((c) => ({
+      id: c.id,
+      name: c.title || c.item_name || 'Sweat Oficial Engenharia Informática',
+      category: 'clothing',
+      price: c.item_price,
+      imageUrl: isAvailableToBuy ? c.image_url || '/assets/sweat_mockup.jpg' : '',
+      badge: isAvailableToBuy
+        ? isAdminPreview
+          ? 'Modo Teste (0.50€)'
+          : 'Já Disponível'
+        : 'Brevemente',
+      description:
+        c.description || 'Artigo oficial do Núcleo de Estudantes de Engenharia Informática da UAlg.',
+      features: [
+        `Artigo: ${c.item_name}`,
+        '80% Algodão cardado / 20% Poliéster (320g/m²)',
+        'Bordado de alta definição NEEI · Engenharia Informática',
+        c.allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+      ],
+      available: isAvailableToBuy && Boolean(c.is_active),
+      isPreorder: true,
+      sizes: c.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      allowShipping: c.allow_shipping,
+      shippingFee: c.shipping_fee,
+      pickupLocation: c.pickup_location,
+      campaignData: c,
+    }));
+  }, [campaignsList, campaign, sweatsAvailable, isAdminPreview]);
 
   // Produtos filtrados por categoria
   const filteredProducts = useMemo(() => {
@@ -306,20 +325,20 @@ export const Shop: React.FC = () => {
 
   // Cálculo de dias restantes até ao fim da campanha
   const daysLeft = useMemo(() => {
-    if (!campaign?.deadline_date) return null;
-    const deadline = new Date(campaign.deadline_date);
+    if (!activeCampaign?.deadline_date) return null;
+    const deadline = new Date(activeCampaign.deadline_date);
     const now = new Date();
     const diffTime = deadline.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
-  }, [campaign?.deadline_date]);
+  }, [activeCampaign?.deadline_date]);
 
   // Cálculo do subtotal, taxa de pagamento (0,25€ + 1,5%) e total final da encomenda
   const subtotalPrice = useMemo(() => {
-    if (!campaign) return 0;
-    const shipping = deliveryType === 'shipping' ? campaign.shipping_fee : 0;
-    return Number((campaign.item_price + shipping).toFixed(2));
-  }, [campaign, deliveryType]);
+    if (!activeCampaign) return 0;
+    const shipping = deliveryType === 'shipping' ? activeCampaign.shipping_fee : 0;
+    return Number((activeCampaign.item_price + shipping).toFixed(2));
+  }, [activeCampaign, deliveryType]);
 
   const paymentFee = useMemo(() => {
     if (!subtotalPrice || subtotalPrice <= 0) return 0;
@@ -463,6 +482,8 @@ export const Shop: React.FC = () => {
 
       // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
       const res = await createPaymentIntent({
+        campaign_id: activeCampaign?.id,
+        item_name: activeCampaign?.item_name,
         student_name: trimmedName,
         student_email: trimmedEmail,
         phone_number: cleanPhone,
@@ -477,6 +498,7 @@ export const Shop: React.FC = () => {
 
       const orderDataToSave = {
         orderId: res.orderId,
+        itemName: res.itemName || activeCampaign?.item_name,
         studentName: trimmedName,
         studentEmail: trimmedEmail,
         phoneNumber: cleanPhone,
@@ -519,6 +541,7 @@ export const Shop: React.FC = () => {
         if (res?.order) {
           setConfirmedOrderDetails({
             orderId: res.order.id,
+            itemName: res.order.item_name,
             studentName: res.order.student_name,
             studentEmail: res.order.student_email,
             phoneNumber: res.order.phone_number,
@@ -831,7 +854,17 @@ export const Shop: React.FC = () => {
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setIsCheckoutOpen(true)}
+                        onClick={() => {
+                          if (prod.campaignData) {
+                            setSelectedProductCampaign(prod.campaignData);
+                            if (prod.campaignData.sizes_available?.length) {
+                              if (!prod.campaignData.sizes_available.includes(selectedSize)) {
+                                setSelectedSize(prod.campaignData.sizes_available[0]);
+                              }
+                            }
+                          }
+                          setIsCheckoutOpen(true);
+                        }}
                         className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
                       >
                         <ShoppingBag size={18} />
@@ -916,7 +949,11 @@ export const Shop: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                      {checkoutStep === 1 ? 'Pré-encomenda da Sweat' : 'Escolhe o método de pagamento'}
+                      {checkoutStep === 1
+                        ? activeCampaign
+                          ? `Pré-encomenda · ${activeCampaign.item_name}`
+                          : 'Pré-encomenda de Merch'
+                        : 'Escolhe o método de pagamento'}
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
@@ -932,7 +969,7 @@ export const Shop: React.FC = () => {
 
                 {!sweatsAvailable && !isAdminPreview ? (
                   <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
-                    As encomendas das sweats estão temporariamente suspensas de momento.
+                    As encomendas do merchandise estão temporariamente suspensas de momento.
                   </div>
                 ) : checkoutStep === 1 ? (
                   /* =========================================================================
@@ -959,7 +996,7 @@ export const Shop: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                        {campaign.sizes_available.map((sz) => {
+                        {(activeCampaign?.sizes_available || (['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[])).map((sz) => {
                           const isSelected = selectedSize === sz;
                           return (
                             <button
@@ -981,7 +1018,7 @@ export const Shop: React.FC = () => {
                     {/* 2. Modalidade de Entrega */}
                     <div>
                       <label className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">
-                        Como queres receber a tua sweat?
+                        Como queres receber a tua encomenda?
                       </label>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1004,7 +1041,7 @@ export const Shop: React.FC = () => {
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                            Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.
+                            {activeCampaign?.pickup_location || 'Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.'}
                           </p>
                         </button>
 
@@ -1023,7 +1060,7 @@ export const Shop: React.FC = () => {
                               <span>Envio CTT Nacional</span>
                             </div>
                             <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
-                              +{campaign.shipping_fee.toFixed(2)}€
+                              +{(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -1164,8 +1201,8 @@ export const Shop: React.FC = () => {
                     {/* Resumo de Valores */}
                     <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                        <span>Sweat Oficial ({selectedSize})</span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{campaign.item_price.toFixed(2)}€</span>
+                        <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">{(activeCampaign?.item_price ?? 0).toFixed(2)}€</span>
                       </div>
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>
@@ -1176,7 +1213,7 @@ export const Shop: React.FC = () => {
                         </span>
                         <span className="font-medium text-slate-800 dark:text-slate-200">
                           {deliveryType === 'shipping'
-                            ? `${campaign.shipping_fee.toFixed(2)}€`
+                            ? `${(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€`
                             : 'Grátis'}
                         </span>
                       </div>
@@ -1256,9 +1293,9 @@ export const Shop: React.FC = () => {
 
                       <div className="space-y-1.5 text-slate-600 dark:text-slate-400">
                         <div className="flex justify-between">
-                          <span>Sweat Oficial ({selectedSize})</span>
+                          <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
                           <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {campaign.item_price.toFixed(2)}€
+                            {(activeCampaign?.item_price ?? 0).toFixed(2)}€
                           </span>
                         </div>
                         <div className="flex justify-between">
@@ -1269,7 +1306,7 @@ export const Shop: React.FC = () => {
                           </span>
                           <span className="font-medium text-slate-800 dark:text-slate-200">
                             {deliveryType === 'shipping'
-                              ? `${campaign.shipping_fee.toFixed(2)}€`
+                              ? `${(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€`
                               : 'Grátis'}
                           </span>
                         </div>
@@ -1500,6 +1537,7 @@ export const Shop: React.FC = () => {
                 {paymentStatus === 'paid' && (() => {
                   const displayBuyerName = confirmedOrderDetails?.studentName || studentName || 'Colega';
                   const displayBuyerEmail = confirmedOrderDetails?.studentEmail || studentEmail;
+                  const displayItemName = confirmedOrderDetails?.itemName || activeCampaign?.item_name || 'Sweat Oficial';
                   const displaySize = confirmedOrderDetails?.size || selectedSize;
                   const displayDeliveryType = confirmedOrderDetails?.deliveryType || deliveryType;
                   const displayAddress = confirmedOrderDetails?.shippingAddress || (deliveryType === 'shipping' ? shippingAddress : '');
@@ -1517,12 +1555,16 @@ export const Shop: React.FC = () => {
                       </h3>
                       <p className="text-slate-300 text-sm mb-6 leading-relaxed">
                         Muito obrigado, <strong className="text-white">{displayBuyerName}</strong>! O teu
-                        pagamento foi recebido e a tua sweat de tamanho{' '}
+                        pagamento foi recebido e a tua peça <strong className="text-cyan-300">"{displayItemName}"</strong> de tamanho{' '}
                         <strong className="text-cyan-300">{displaySize}</strong> já está reservada para
                         produção.
                       </p>
 
                       <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 text-left mb-6 space-y-2">
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Artigo Encomendado:</span>
+                          <span className="text-cyan-400 font-semibold">{displayItemName}</span>
+                        </div>
                         <div className="flex justify-between items-center text-xs text-slate-400">
                           <span>Nº de Encomenda:</span>
                           <button

@@ -151,6 +151,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS shop_orders (
     id TEXT PRIMARY KEY,
     campaign_id TEXT NOT NULL,
+    item_name TEXT NOT NULL DEFAULT 'Sweat Oficial Engenharia Informática',
     student_name TEXT NOT NULL,
     student_email TEXT NOT NULL,
     phone_number TEXT NOT NULL,
@@ -247,6 +248,11 @@ try {
 }
 try {
   db.exec('ALTER TABLE shop_orders ADD COLUMN payment_fee REAL NOT NULL DEFAULT 0;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec("ALTER TABLE shop_orders ADD COLUMN item_name TEXT NOT NULL DEFAULT 'Sweat Oficial Engenharia Informática';");
 } catch (_) {
   // Já existe
 }
@@ -1213,22 +1219,13 @@ export function isShowTestShopEnv() {
 }
 
 /**
- * Obtém a campanha de loja ativa
- * Se isAdminPreview for verdadeiro e SHOW_TEST_SHOP estiver ativo,
- * ativa a loja com preço de teste de 0.50€ (mínimo Stripe) para testes da equipa.
+ * Formata um registo da tabela shop_campaigns para objeto padronizado
  */
-export function getActiveShopCampaign(isAdminPreview = false) {
-  const row = db
-    .prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
-    .get();
-
-  if (!row) {
-    return null;
-  }
-
+export function formatShopCampaignRow(row, isAdminPreview = false) {
+  if (!row) return null;
   let sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
   try {
-    sizes = JSON.parse(row.sizes_available);
+    sizes = typeof row.sizes_available === 'string' ? JSON.parse(row.sizes_available) : row.sizes_available;
   } catch (e) {
     // fallback
   }
@@ -1248,6 +1245,7 @@ export function getActiveShopCampaign(isAdminPreview = false) {
     item_price: effectivePrice,
     shipping_fee: Number(row.shipping_fee),
     image_url: effectiveImage,
+    raw_image_url: row.image_url,
     deadline_date: row.deadline_date,
     is_active: Boolean(row.is_active),
     is_available: effectiveAvailable,
@@ -1255,17 +1253,104 @@ export function getActiveShopCampaign(isAdminPreview = false) {
     allow_shipping: Boolean(row.allow_shipping),
     pickup_location: row.pickup_location,
     sizes_available: sizes,
+    created_at: row.created_at,
     isAdminPreview: isTestingMode,
   };
 }
 
 /**
- * Atualiza configurações da campanha
+ * Obtém a campanha de loja ativa principal
+ * Se isAdminPreview for verdadeiro e SHOW_TEST_SHOP estiver ativo,
+ * ativa a loja com preço de teste de 0.50€ (mínimo Stripe) para testes da equipa.
+ */
+export function getActiveShopCampaign(isAdminPreview = false) {
+  const row = db
+    .prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
+    .get();
+
+  return formatShopCampaignRow(row, isAdminPreview);
+}
+
+/**
+ * Obtém uma campanha / produto pelo seu ID
+ */
+export function getShopCampaignById(id, isAdminPreview = false) {
+  if (!id) return null;
+  const row = db.prepare('SELECT * FROM shop_campaigns WHERE id = ?').get(id);
+  return formatShopCampaignRow(row, isAdminPreview);
+}
+
+/**
+ * Obtém todas as campanhas / produtos existentes na base de dados
+ */
+export function getAllShopCampaigns() {
+  const rows = db.prepare('SELECT * FROM shop_campaigns ORDER BY created_at DESC').all();
+  return rows.map((r) => formatShopCampaignRow(r, false));
+}
+
+/**
+ * Obtém todas as campanhas / produtos ativos para a loja pública
+ */
+export function getActiveShopCampaigns(isAdminPreview = false) {
+  const rows = db.prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC').all();
+  return rows.map((r) => formatShopCampaignRow(r, isAdminPreview));
+}
+
+/**
+ * Cria um novo produto / campanha no catálogo
+ */
+export function createShopCampaign(data) {
+  const now = new Date().toISOString();
+  const id = data.id || `prod-${Date.now()}`;
+  const title = (data.title || 'Novo Artigo').trim();
+  const description = (data.description || '').trim();
+  const item_name = (data.item_name || title).trim();
+  const item_price = Number(data.item_price) >= 0 ? Number(data.item_price) : 25.0;
+  const shipping_fee = Number(data.shipping_fee) >= 0 ? Number(data.shipping_fee) : 3.5;
+  const image_url = (data.image_url || '/assets/sweat_mockup.jpg').trim();
+  const deadline_date = data.deadline_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+  const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1;
+  const allow_pickup = data.allow_pickup !== undefined ? (data.allow_pickup ? 1 : 0) : 1;
+  const allow_shipping = data.allow_shipping !== undefined ? (data.allow_shipping ? 1 : 0) : 1;
+  const pickup_location = data.pickup_location || 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
+  const sizes_available = Array.isArray(data.sizes_available)
+    ? JSON.stringify(data.sizes_available)
+    : (data.sizes_available || JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']));
+
+  db.prepare(`
+    INSERT INTO shop_campaigns (
+      id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, created_at
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
+  `).run(
+    id,
+    title,
+    description,
+    item_name,
+    item_price,
+    shipping_fee,
+    image_url,
+    deadline_date,
+    is_active,
+    allow_pickup,
+    allow_shipping,
+    pickup_location,
+    sizes_available,
+    now
+  );
+
+  return getShopCampaignById(id);
+}
+
+/**
+ * Atualiza configurações de um produto / campanha
  */
 export function updateShopCampaign(id, data) {
   const current = db.prepare('SELECT * FROM shop_campaigns WHERE id = ?').get(id);
   if (!current) {
-    throw new Error('Campanha não encontrada');
+    throw new Error('Produto ou campanha não encontrado');
   }
 
   const title = data.title !== undefined ? data.title : current.title;
@@ -1274,6 +1359,7 @@ export function updateShopCampaign(id, data) {
   const item_price = data.item_price !== undefined ? Number(data.item_price) : current.item_price;
   const shipping_fee =
     data.shipping_fee !== undefined ? Number(data.shipping_fee) : current.shipping_fee;
+  const image_url = data.image_url !== undefined ? data.image_url : current.image_url;
   const deadline_date =
     data.deadline_date !== undefined ? data.deadline_date : current.deadline_date;
   const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active;
@@ -1284,13 +1370,13 @@ export function updateShopCampaign(id, data) {
   const pickup_location =
     data.pickup_location !== undefined ? data.pickup_location : current.pickup_location;
   const sizes_available = data.sizes_available
-    ? JSON.stringify(data.sizes_available)
+    ? (Array.isArray(data.sizes_available) ? JSON.stringify(data.sizes_available) : data.sizes_available)
     : current.sizes_available;
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
-      deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
+      image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
       pickup_location = ?, sizes_available = ?
     WHERE id = ?
   `);
@@ -1301,6 +1387,7 @@ export function updateShopCampaign(id, data) {
     item_name,
     item_price,
     shipping_fee,
+    image_url,
     deadline_date,
     is_active,
     allow_pickup,
@@ -1310,7 +1397,23 @@ export function updateShopCampaign(id, data) {
     id
   );
 
-  return getActiveShopCampaign(data.isAdminPreview);
+  return getShopCampaignById(id, data.isAdminPreview);
+}
+
+/**
+ * Elimina um produto do catálogo se não tiver encomendas associadas
+ */
+export function deleteShopCampaign(id) {
+  const existingOrders = db.prepare('SELECT COUNT(*) as count FROM shop_orders WHERE campaign_id = ?').get(id);
+  if (existingOrders && existingOrders.count > 0) {
+    const err = new Error(
+      `Não é possível eliminar um produto com ${existingOrders.count} encomenda(s) associada(s). Podes desativá-lo para que não apareça na loja pública.`
+    );
+    err.statusCode = 400;
+    throw err;
+  }
+  const res = db.prepare('DELETE FROM shop_campaigns WHERE id = ?').run(id);
+  return { success: res.changes > 0 };
 }
 
 /**
@@ -1342,9 +1445,13 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     throw err;
   }
 
-  const campaign = getActiveShopCampaign(isTestingMode);
-  if (!campaign || !campaign.is_active) {
-    const err = new Error('A campanha de pré-encomenda das sweats encontra-se encerrada.');
+  const campaignId = orderData.campaign_id || orderData.campaignId;
+  const campaign = campaignId
+    ? getShopCampaignById(campaignId, isTestingMode)
+    : getActiveShopCampaign(isTestingMode);
+
+  if (!campaign || (!campaign.is_active && !isTestingMode)) {
+    const err = new Error('O produto selecionado encontra-se indisponível ou encerrado.');
     err.statusCode = 400;
     throw err;
   }
@@ -1429,6 +1536,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
   const pendingOrder = {
     id: orderId,
     campaign_id: campaign.id,
+    item_name: orderData.item_name || campaign.item_name || 'Sweat Oficial Engenharia Informática',
     student_name: studentName,
     student_email: studentEmail,
     phone_number: rawPhone,
@@ -1511,12 +1619,12 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
 
   const stmt = db.prepare(`
     INSERT INTO shop_orders (
-      id, campaign_id, student_name, student_email, phone_number, nif,
+      id, campaign_id, item_name, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
       item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
       payment_ref, order_status, email_sent, moloni_status, created_at, paid_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, 'paid', ?,
       ?, ?, 0, 'none', ?, ?
@@ -1526,6 +1634,7 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
   stmt.run(
     orderData.id,
     orderData.campaign_id || 'camp-sweat-ei-2026',
+    orderData.item_name || 'Sweat Oficial Engenharia Informática',
     orderData.student_name,
     orderData.student_email,
     orderData.phone_number,
@@ -1575,6 +1684,7 @@ export function getShopOrderById(orderId) {
   return {
     id: row.id,
     campaign_id: row.campaign_id,
+    item_name: row.item_name || 'Sweat Oficial Engenharia Informática',
     student_name: row.student_name,
     student_email: row.student_email,
     phone_number: row.phone_number,
@@ -1769,12 +1879,17 @@ export function getAllShopOrders(filters = {}) {
     params.push(filters.is_admin_created === '1' || filters.is_admin_created === true ? 1 : 0);
   }
 
+  if (filters.campaign_id) {
+    conditions.push('campaign_id = ?');
+    params.push(filters.campaign_id);
+  }
+
   if (filters.search) {
     conditions.push(
-      '(student_name LIKE ? OR student_email LIKE ? OR phone_number LIKE ? OR id LIKE ? OR nif LIKE ?)'
+      '(student_name LIKE ? OR student_email LIKE ? OR phone_number LIKE ? OR id LIKE ? OR nif LIKE ? OR item_name LIKE ?)'
     );
     const s = `%${filters.search.trim()}%`;
-    params.push(s, s, s, s, s);
+    params.push(s, s, s, s, s, s);
   }
 
   if (conditions.length > 0) {
@@ -1786,6 +1901,7 @@ export function getAllShopOrders(filters = {}) {
   const rows = db.prepare(query).all(...params);
   return rows.map((row) => ({
     ...row,
+    item_name: row.item_name || 'Sweat Oficial Engenharia Informática',
     item_price: Number(row.item_price),
     shipping_fee: Number(row.shipping_fee),
     payment_fee: Number(row.payment_fee || 0),
@@ -1855,6 +1971,7 @@ export function getFactoryExportData() {
 
   return paidOrders.map((o) => ({
     id: o.id,
+    artigo: o.item_name || 'Sweat Oficial Engenharia Informática',
     aluno: o.student_name,
     email: o.student_email,
     telemovel: o.phone_number,
@@ -1877,7 +1994,11 @@ export function getFactoryExportData() {
  * Cria uma encomenda manualmente a partir do painel de administração (marcada com is_admin_created = 1)
  */
 export function createAdminManualOrder(orderData) {
-  const campaign = getActiveShopCampaign();
+  const campaign = orderData.campaign_id
+    ? getShopCampaignById(orderData.campaign_id)
+    : getActiveShopCampaign();
+  const itemName =
+    orderData.item_name || campaign?.item_name || 'Sweat Oficial Engenharia Informática';
   const now = new Date();
   const year = now.getFullYear();
   const randomSuffix = crypto.randomInt(1000, 9999);
@@ -1925,13 +2046,13 @@ export function createAdminManualOrder(orderData) {
 
   const stmt = db.prepare(`
     INSERT INTO shop_orders (
-      id, campaign_id, student_name, student_email, phone_number, nif,
+      id, campaign_id, item_name, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
       item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
       payment_ref, order_status, email_sent, moloni_status, created_at, paid_at,
       is_admin_created, admin_notes
     ) VALUES (
-      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, 'manual_admin',
       'admin-manual', ?, 0, 'none', ?, ?,
@@ -1941,7 +2062,8 @@ export function createAdminManualOrder(orderData) {
 
   stmt.run(
     orderId,
-    campaign?.id || 'camp-sweat-ei-2026',
+    campaign?.id || orderData.campaign_id || 'camp-sweat-ei-2026',
+    itemName,
     studentName,
     studentEmail,
     cleanPhone,

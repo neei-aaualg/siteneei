@@ -21,9 +21,28 @@ export interface ShopCampaign {
   item_price: number;
   shipping_fee: number;
   image_url: string;
+  raw_image_url?: string;
   deadline_date: string; // YYYY-MM-DD
   is_active: boolean;
   is_available?: boolean;
+  allow_pickup: boolean;
+  allow_shipping: boolean;
+  pickup_location: string;
+  sizes_available: SweatSize[];
+  created_at?: string;
+  isAdminPreview?: boolean;
+}
+
+export interface AdminProductPayload {
+  id?: string;
+  title: string;
+  description: string;
+  item_name: string;
+  item_price: number;
+  shipping_fee: number;
+  image_url: string;
+  deadline_date: string;
+  is_active: boolean;
   allow_pickup: boolean;
   allow_shipping: boolean;
   pickup_location: string;
@@ -45,11 +64,13 @@ export interface MerchProduct {
   allowShipping?: boolean;
   shippingFee?: number;
   pickupLocation?: string;
+  campaignData?: ShopCampaign;
 }
 
 export interface ShopOrder {
   id: string;
   campaign_id: string;
+  item_name: string;
   student_name: string;
   student_email: string;
   phone_number: string;
@@ -77,6 +98,8 @@ export interface ShopOrder {
 }
 
 export interface AdminCreateOrderPayload {
+  campaign_id?: string;
+  item_name?: string;
   student_name: string;
   student_email: string;
   phone_number: string;
@@ -98,6 +121,8 @@ export interface AdminCreateOrderPayload {
 }
 
 export interface CheckoutPayload {
+  campaign_id?: string;
+  item_name?: string;
   student_name: string;
   student_email: string;
   phone_number: string;
@@ -128,6 +153,7 @@ export interface OrderStatusResponse {
   paidAt?: string | null;
   createdAt?: string | null;
   studentName: string;
+  itemName?: string;
   studentEmail?: string;
   phoneNumber?: string;
   size: SweatSize;

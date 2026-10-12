@@ -2,6 +2,11 @@ import { readJsonBody, readRawBody, sendJson } from './api.js';
 import { verifyAdminToken, verifyAdminTokenString } from './auth.js';
 import {
   getActiveShopCampaign,
+  getAllShopCampaigns,
+  getActiveShopCampaigns,
+  getShopCampaignById,
+  createShopCampaign,
+  deleteShopCampaign,
   updateShopCampaign,
   preparePendingShopOrder,
   getPendingShopOrder,
@@ -54,17 +59,30 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const isAdminPreview = Boolean(isAdmin && wantsPreview && isTestShopAllowed);
 
       const campaign = getActiveShopCampaign(isAdminPreview);
+      const campaigns = getActiveShopCampaigns(isAdminPreview);
       if (!campaign) {
         return sendJson(res, 404, { error: 'Nenhuma campanha ativa no momento.' });
       }
 
       return sendJson(res, 200, {
         campaign,
+        campaigns,
         sweatsAvailable: isAdminPreview ? true : Boolean(campaign.is_available) && isSweatsAvailable,
         isSandbox: isPaymentSandbox(),
         isAdminPreview,
         showTestShop: isTestShopAllowed,
       });
+    }
+
+    // 1b. GET /api/shop/products - Obter todos os produtos/artigos ativos
+    if (pathname === '/api/shop/products' && req.method === 'GET') {
+      const isAdmin = verifyAdminToken(req, searchParams);
+      const wantsPreview =
+        searchParams?.get('admin_preview') === '1' || searchParams?.get('admin_preview') === 'true';
+      const isTestShopAllowed = isShowTestShopEnv();
+      const isAdminPreview = Boolean(isAdmin && wantsPreview && isTestShopAllowed);
+      const products = getActiveShopCampaigns(isAdminPreview);
+      return sendJson(res, 200, { products });
     }
 
     // 2. POST /api/shop/create-payment-intent - Preparar encomenda em memória + criar PaymentIntent Stripe
@@ -86,10 +104,12 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         studentEmail: order.student_email,
         studentName: order.student_name,
         description: isAdminPreview
-          ? `NEEI - Sweat ${order.size} (Modo Teste 50c)`
-          : `NEEI - Sweat ${order.size}`,
+          ? `NEEI - ${order.item_name} ${order.size} (Modo Teste 50c)`
+          : `NEEI - ${order.item_name} ${order.size}`,
         metadata: {
           order_id: order.id,
+          campaign_id: order.campaign_id,
+          item_name: order.item_name,
           student_name: order.student_name,
           student_email: order.student_email,
           phone_number: order.phone_number,
@@ -184,6 +204,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       return sendJson(res, 201, {
         success: true,
         orderId: order.id,
+        itemName: order.item_name,
         itemPrice: order.item_price,
         shippingFee: order.shipping_fee,
         paymentFee: order.payment_fee || 0,
@@ -258,6 +279,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         paidAt: order.paid_at || null,
         createdAt: order.created_at || null,
         studentName: order.student_name,
+        itemName: order.item_name || 'Sweat Oficial Engenharia Informática',
         size: order.size,
         color: order.color || 'Preto',
         itemPrice: order.item_price,
@@ -586,6 +608,46 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const active = getActiveShopCampaign();
         const updated = updateShopCampaign(active.id, body);
         return sendJson(res, 200, { campaign: updated, message: 'Campanha atualizada' });
+      }
+
+      // GET /api/admin/shop/products - Listar todos os produtos/campanhas
+      if (pathname === '/api/admin/shop/products' && req.method === 'GET') {
+        const products = getAllShopCampaigns();
+        return sendJson(res, 200, { products });
+      }
+
+      // POST /api/admin/shop/products - Criar novo produto
+      if (pathname === '/api/admin/shop/products' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        try {
+          const product = createShopCampaign(body);
+          return sendJson(res, 201, { product, message: 'Produto criado com sucesso' });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao criar produto' });
+        }
+      }
+
+      // PUT /api/admin/shop/products/:id - Atualizar produto existente
+      if (pathname.startsWith('/api/admin/shop/products/') && req.method === 'PUT') {
+        const productId = pathname.replace('/api/admin/shop/products/', '').trim();
+        const body = await readJsonBody(req);
+        try {
+          const updated = updateShopCampaign(productId, body);
+          return sendJson(res, 200, { product: updated, message: 'Produto atualizado com sucesso' });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao atualizar produto' });
+        }
+      }
+
+      // DELETE /api/admin/shop/products/:id - Eliminar produto
+      if (pathname.startsWith('/api/admin/shop/products/') && req.method === 'DELETE') {
+        const productId = pathname.replace('/api/admin/shop/products/', '').trim();
+        try {
+          deleteShopCampaign(productId);
+          return sendJson(res, 200, { success: true, message: 'Produto eliminado com sucesso' });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao eliminar produto' });
+        }
       }
 
       // GET /api/admin/shop/stats
