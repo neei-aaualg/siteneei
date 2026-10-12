@@ -3,18 +3,40 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-try {
-  if (fs.existsSync('.env')) {
-    process.loadEnvFile('.env');
-  }
-} catch (e) {
-  // Ignora se não for suportado ou não existir
+function reloadEnvFile() {
+  try {
+    if (fs.existsSync('.env')) {
+      const content = fs.readFileSync('.env', 'utf-8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          let val = trimmed.slice(eqIdx + 1).trim();
+          if (
+            (val.startsWith('"') && val.endsWith('"')) ||
+            (val.startsWith("'") && val.endsWith("'"))
+          ) {
+            val = val.slice(1, -1);
+          }
+          process.env[key] = val;
+        }
+      }
+    }
+  } catch (_) {}
 }
+reloadEnvFile();
 
 function activitiesApiPlugin() {
   return {
     name: 'activities-api-plugin',
     configureServer(server: any) {
+      server.watcher.on('change', (file: string) => {
+        if (file.endsWith('.env')) {
+          reloadEnvFile();
+        }
+      });
       server.middlewares.use(async (req: any, res: any, next: any) => {
         try {
           const url = new URL(req.url, 'http://localhost');

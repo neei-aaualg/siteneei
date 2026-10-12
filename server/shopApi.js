@@ -20,7 +20,11 @@ import {
   pendingOrdersCache,
   createAdminManualOrder,
 } from './db.js';
-import { sendOrderConfirmationEmail } from './services/emailService.js';
+import {
+  sendOrderConfirmationEmail,
+  isSmtpConfigured,
+  verifySmtpConnection,
+} from './services/emailService.js';
 import {
   initiateMbWayPayment,
   createAutomaticPaymentIntent,
@@ -696,6 +700,48 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             error: emailResult.error || 'Falha ao reenviar email',
           });
         }
+      }
+
+      // GET /api/admin/shop/smtp-status - Verificar estado da ligação SMTP
+      if (pathname === '/api/admin/shop/smtp-status' && req.method === 'GET') {
+        const verification = await verifySmtpConnection();
+        return sendJson(res, 200, {
+          isConfigured: isSmtpConfigured(),
+          verification,
+        });
+      }
+
+      // POST /api/admin/shop/test-email - Testar envio de email via painel admin
+      if (pathname === '/api/admin/shop/test-email' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const targetEmail = (
+          body.email ||
+          process.env.SMTP_USER ||
+          'neei@aaualg.pt'
+        )
+          .trim()
+          .toLowerCase();
+
+        const testOrder = {
+          id: 'SW-TEST-EMAIL',
+          student_name: 'Administrador NEEI (Teste)',
+          student_email: targetEmail,
+          phone_number: '912345678',
+          delivery_type: 'pickup',
+          item_price: 25.0,
+          shipping_fee: 0,
+          payment_fee: 0.63,
+          total_amount: 25.63,
+          size: 'M',
+          color: 'Preto',
+        };
+
+        const result = await sendOrderConfirmationEmail(testOrder);
+        return sendJson(res, result.success ? 200 : 500, {
+          ...result,
+          targetEmail,
+          isSmtpConfigured: isSmtpConfigured(),
+        });
       }
 
       // GET /api/admin/shop/export-factory - Descarregar CSV de produção

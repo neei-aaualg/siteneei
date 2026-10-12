@@ -6,14 +6,18 @@ function cleanEnvVal(val) {
 }
 
 let transporter = null;
+let cachedConfigKey = null;
 
-function getTransporter() {
-  if (transporter) return transporter;
-
+export function getTransporter() {
   const host = cleanEnvVal(process.env.SMTP_HOST);
   const port = parseInt(cleanEnvVal(process.env.SMTP_PORT) || '587', 10);
   const user = cleanEnvVal(process.env.SMTP_USER);
   const pass = cleanEnvVal(process.env.SMTP_PASS);
+  const currentKey = `${host}:${port}:${user}:${pass}`;
+
+  if (transporter && cachedConfigKey === currentKey) {
+    return transporter;
+  }
 
   if (host && user && pass) {
     transporter = nodemailer.createTransport({
@@ -25,6 +29,7 @@ function getTransporter() {
         rejectUnauthorized: false, // Permite certificados institucionais / STARTTLS com segurança
       },
     });
+    cachedConfigKey = currentKey;
     console.log(`[EMAIL] Transporte SMTP ativo configurado para ${host}:${port} (${user})`);
   } else {
     // Modo Dry-run / Sandbox em desenvolvimento
@@ -39,10 +44,48 @@ function getTransporter() {
         return { messageId: `mock-${Date.now()}` };
       },
     };
+    cachedConfigKey = 'dry-run';
     console.log('[EMAIL] Credenciais SMTP não configuradas no .env. Ativo em modo DRY-RUN / Log.');
   }
 
   return transporter;
+}
+
+export function isSmtpConfigured() {
+  const host = cleanEnvVal(process.env.SMTP_HOST);
+  const user = cleanEnvVal(process.env.SMTP_USER);
+  const pass = cleanEnvVal(process.env.SMTP_PASS);
+  return Boolean(host && user && pass);
+}
+
+export async function verifySmtpConnection() {
+  if (!isSmtpConfigured()) {
+    return {
+      success: false,
+      configured: false,
+      message: 'SMTP não configurado no .env (modo DRY-RUN ativo).',
+    };
+  }
+  const transport = getTransporter();
+  try {
+    if (typeof transport.verify === 'function') {
+      await transport.verify();
+    }
+    return {
+      success: true,
+      configured: true,
+      host: cleanEnvVal(process.env.SMTP_HOST),
+      user: cleanEnvVal(process.env.SMTP_USER),
+      message: 'Ligação SMTP verificada com sucesso.',
+    };
+  } catch (error) {
+    return {
+      success: false,
+      configured: true,
+      error: error.message,
+      message: `Falha ao ligar ao servidor SMTP: ${error.message}`,
+    };
+  }
 }
 
 /**
