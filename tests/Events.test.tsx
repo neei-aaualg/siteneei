@@ -143,7 +143,7 @@ describe('Events', () => {
 
     await user.click(await screen.findByRole('button', { name: /Inscrever-me na Atividade/ }));
 
-    await user.type(screen.getByLabelText('Nome Completo'), 'Afonso Bitoque');
+    await user.type(screen.getByLabelText('Nome Completo'), 'David Rodrigues');
     await user.type(screen.getByLabelText('Número de Aluno'), 'abc');
     await user.click(screen.getByRole('button', { name: /Confirmar Inscrição/ }));
 
@@ -164,12 +164,12 @@ describe('Events', () => {
 
     await user.click(await screen.findByRole('button', { name: /Inscrever-me na Atividade/ }));
 
-    await user.type(screen.getByLabelText('Nome Completo'), 'Afonso Bitoque');
-    await user.type(screen.getByLabelText('Número de Aluno'), '74123');
+    await user.type(screen.getByLabelText('Nome Completo'), 'David Rodrigues');
+    await user.type(screen.getByLabelText('Número de Aluno'), '79994');
     await user.click(screen.getByRole('button', { name: /Confirmar Inscrição/ }));
 
     expect(await screen.findByText('Inscrição Confirmada!')).toBeInTheDocument();
-    expect(registerForActivity).toHaveBeenCalledWith('act-1', 'Afonso Bitoque', 'a74123');
+    expect(registerForActivity).toHaveBeenCalledWith('act-1', 'David Rodrigues', 'a79994');
     expect(confetti).toHaveBeenCalled();
 
     await user.click(screen.getByRole('button', { name: 'Concluído' }));
@@ -185,8 +185,8 @@ describe('Events', () => {
     render(<Events />);
 
     await user.click(await screen.findByRole('button', { name: /Inscrever-me na Atividade/ }));
-    await user.type(screen.getByLabelText('Nome Completo'), 'Afonso Bitoque');
-    await user.type(screen.getByLabelText('Número de Aluno'), '74123');
+    await user.type(screen.getByLabelText('Nome Completo'), 'David Rodrigues');
+    await user.type(screen.getByLabelText('Número de Aluno'), '79994');
     await user.click(screen.getByRole('button', { name: /Confirmar Inscrição/ }));
 
     expect(

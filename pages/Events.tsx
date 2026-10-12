@@ -500,11 +500,10 @@ export const Events: React.FC = () => {
                                 {activity.category}
                               </span>
                               <span
-                                className={`text-[11px] font-mono font-medium ${
-                                  activity.date
-                                    ? 'text-text-200 dark:text-slate-400'
-                                    : 'text-amber-600 dark:text-amber-400'
-                                }`}
+                                className={`text-[11px] font-mono font-medium ${activity.date
+                                  ? 'text-text-200 dark:text-slate-400'
+                                  : 'text-amber-600 dark:text-amber-400'
+                                  }`}
                               >
                                 {activity.date ? formatDateWithMonthSigla(activity.date) : 'Por definir'}
                               </span>
@@ -785,7 +784,7 @@ export const Events: React.FC = () => {
                           id="student-name-input"
                           type="text"
                           autoComplete="name"
-                          placeholder="ex.: Afonso Bitoque"
+                          placeholder="ex.: David Rodrigues"
                           value={studentName}
                           onChange={(e) => {
                             setStudentName(e.target.value);
@@ -808,7 +807,7 @@ export const Events: React.FC = () => {
                         <input
                           id="student-number-input"
                           type="text"
-                          placeholder="ex.: a74123 ou 74123"
+                          placeholder="ex.: a79994 ou 79994"
                           value={studentNumber}
                           onChange={(e) => {
                             setStudentNumber(e.target.value);
