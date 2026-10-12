@@ -1182,7 +1182,7 @@ export const Shop: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
                         <span className="flex items-center gap-1">
-                          Taxa de processamento / pagamento (0,25€ + 1,5%)
+                          Taxa de processamento (0,25€ + 1,5%)
                         </span>
                         <span className="font-semibold text-slate-800 dark:text-slate-200">
                           +{paymentFee.toFixed(2)}€
