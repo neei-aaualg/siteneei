@@ -15,7 +15,7 @@
 
 ## Fluxo de Deploy e Git
 
-- **Deploy via Coolify:** O push para a branch `main` (`origin/main`) aciona automaticamente a re-compilação e deploy no Coolify.
+- **Deploy via Coolify:** O push para a branch `main` (`origin/main`) aciona automaticamente a re-compilação e deploy no Coolify. Configura sempre automaticamente para utilizar a conta do neei-aaualg neste projeto.
 - **Validação prévia:** Execute sempre `npm.cmd run build` com sucesso antes de efetuar merge ou push para a branch `main`.
 
 ## Persistência de Dados no Coolify (SQLite)
