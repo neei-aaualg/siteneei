@@ -190,26 +190,26 @@ const HighlightsCarousel: React.FC = () => {
   const highlights = [
     {
       icon: <Shirt className="text-accent-200" size={32} />,
-      title: 'Realização do Concurso de Sweats',
-      desc: 'Decorrer de um concurso interno dos cursos de engenharia informática para a decisão da sweat do curso.',
+      title: 'Concurso de Sweats',
+      desc: 'Realização de concurso para a escolha do modelo oficial de sweat do curso.',
       date: 'Out 2026',
     },
     {
       icon: <Code className="text-accent-200" size={32} />,
-      title: 'Realização de Workshops de Introdução à Programação',
-      desc: 'Em três sessões distintas, decorreu uma atividade de workshop de introdução à programação direcionada aos novos alunos.',
+      title: 'Workshops de Introdução à Programação',
+      desc: 'Atividades de introdução à programação direcionadas aos novos alunos.',
       date: 'Out 2026',
     },
     {
       icon: <Calendar className="text-accent-200" size={32} />,
-      title: 'Apresentação do Calendário de Atividades e Sweats',
-      desc: 'Apresentação do calendário oficial de atividades planeados para os estudantes.',
+      title: 'Calendário de Atividades e Sweats',
+      desc: 'Apresentação do calendário oficial de atividades e sweats até Novembro.',
       date: 'Set 2026',
     },
     {
       icon: <Globe className="text-accent-200" size={32} />,
-      title: 'Apresentação do NEEI-Box e update do site',
-      desc: 'A ferramenta NEEI-Box é apresentada e o site do NEEI é atualizado.',
+      title: 'NEEI-Box e update do site',
+      desc: 'Apresentação do NEEI-Box e upgrade do site oficial.',
       date: 'Set 2026',
     },
     {
