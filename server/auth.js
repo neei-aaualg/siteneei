@@ -78,8 +78,8 @@ export function verifyAdminTokenString(token) {
 /**
  * Verifica se o request contém um token de sessão válido (headers ou query params)
  */
-export function verifyAdminToken(req, searchParams = null) {
-  const authHeader = req.headers['authorization'] || req.headers['x-admin-token'];
+export function verifyAdminToken(req, _searchParams = null) {
+  const authHeader = req?.headers?.['authorization'] || req?.headers?.['x-admin-token'];
 
   let token = null;
   if (authHeader) {
@@ -88,8 +88,6 @@ export function verifyAdminToken(req, searchParams = null) {
     } else {
       token = authHeader.trim();
     }
-  } else if (searchParams && typeof searchParams.get === 'function') {
-    token = searchParams.get('token') || searchParams.get('adminToken');
   }
 
   return verifyAdminTokenString(token);

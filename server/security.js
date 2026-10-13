@@ -19,6 +19,11 @@ export function createRateLimiter({ windowMs = 60_000, max = 60 } = {}) {
       const record = hits.get(ip);
 
       if (!record || now - record.first > windowMs) {
+        // Prevenção de crescimento descontrolado da memória em caso de ataques
+        if (hits.size > 10_000) {
+          const oldestKey = hits.keys().next().value;
+          hits.delete(oldestKey);
+        }
         hits.set(ip, { first: now, count: 1 });
         return { ok: true, retryAfterSec: null };
       }
@@ -40,12 +45,12 @@ export function setSecurityHeaders(res) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=*');
-  // CSP pragmática: o site suporta Tailwind via CDN, scripts inline e Stripe (scripts, iframes e API)
+  // CSP sem 'unsafe-eval'
   res.setHeader(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' https://cdn.tailwindcss.com https://js.stripe.com 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' https://cdn.tailwindcss.com https://js.stripe.com 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https://*.stripe.com",
@@ -60,9 +65,45 @@ export function setSecurityHeaders(res) {
 }
 
 export function clientIp(req) {
-  return (
-    req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
-    req.socket?.remoteAddress ||
-    'unknown'
-  );
+  const trustProxy = process.env.TRUST_PROXY !== 'false' && process.env.TRUST_PROXY !== '0';
+
+  if (trustProxy && req?.headers && req.headers['x-forwarded-for']) {
+    const raw = req.headers['x-forwarded-for'].toString().split(',')[0].trim();
+    const sanitized = raw.replace(/[^\w.:-]/g, '').slice(0, 64);
+    if (sanitized) return sanitized;
+  }
+
+  const socketIp = req?.socket?.remoteAddress;
+  if (socketIp) {
+    return socketIp.replace(/[^\w.:-]/g, '').slice(0, 64);
+  }
+
+  return 'unknown';
 }
+
+/**
+ * Obtém o URL base canónico da aplicação validando o host para evitar Host Header Injection
+ */
+export function getCanonicalAppUrl(req = null) {
+  const envUrl = (process.env.APP_URL || '').trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+
+  if (req && req.headers && req.headers.host) {
+    const rawHost = String(req.headers.host).trim();
+    // Validação estrita: apenas domínios/hostnames válidos com porta opcional
+    const hostMatch = rawHost.match(/^[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$/);
+    if (hostMatch) {
+      const proto =
+        req.headers['x-forwarded-proto'] === 'https' ||
+          req.connection?.encrypted
+          ? 'https'
+          : 'http';
+      return `${proto}://${hostMatch[0]}`;
+    }
+  }
+
+  return 'https://neei.online';
+}
+

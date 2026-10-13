@@ -12,7 +12,7 @@ import {
   ListPlus,
   Trash2,
 } from 'lucide-react';
-import { ShopCampaign, SweatSize, ProductFormData } from '../../../types/shop';
+import { ShopCampaign, SweatSize, ProductFormData, ORDERED_SWEAT_SIZES } from '../../../types/shop';
 import { Portal } from '../../Portal';
 
 interface ShopProductModalProps {
@@ -372,7 +372,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                 4. Tamanhos Disponíveis *
               </label>
               <div className="flex flex-wrap gap-2">
-                {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => {
+                {ORDERED_SWEAT_SIZES.map((sz) => {
                   const isSelected = productForm.sizes_available.includes(sz);
                   return (
                     <button

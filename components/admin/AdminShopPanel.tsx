@@ -15,6 +15,7 @@ import {
   ShopCampaign,
   ProductFormData,
   AdminProductPayload,
+  sortSweatSizes,
 } from '../../types/shop';
 import {
   fetchAdminShopOrders,
@@ -493,7 +494,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       allow_pickup: Boolean(prod.allow_pickup),
       allow_shipping: Boolean(prod.allow_shipping),
       pickup_location: prod.pickup_location || '',
-      sizes_available: prod.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      sizes_available: sortSweatSizes(prod.sizes_available),
       category: prod.category || 'Vestuário',
       features:
         prod.features && prod.features.length > 0
@@ -542,7 +543,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       const next = exists
         ? prev.sizes_available.filter((s) => s !== sz)
         : [...prev.sizes_available, sz];
-      return { ...prev, sizes_available: next };
+      return { ...prev, sizes_available: sortSweatSizes(next) };
     });
   };
 
