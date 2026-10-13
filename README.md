@@ -1,4 +1,4 @@
-# 🌐 NEEI Web Portal & Quack 🦆
+# 🌐 NEEI Web Portal
 
 [![Node.js](https://img.shields.io/badge/Node.js-22.x%20%7C%20LTS-339933?style=flat&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
