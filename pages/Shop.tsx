@@ -30,7 +30,7 @@ import {
   ChevronLeft,
   Shirt,
 } from 'lucide-react';
-import { ShopCampaign, SweatSize, DeliveryType, MerchProduct } from '../types/shop';
+import { ShopCampaign, SweatSize, DeliveryType, MerchProduct, sortSweatSizes } from '../types/shop';
 import {
   fetchShopCampaign,
   submitCheckout,
@@ -183,8 +183,9 @@ export const Shop: React.FC = () => {
           setIsAdminPreview(Boolean(data.isAdminPreview));
 
           if (initialCamp?.sizes_available?.length) {
-            if (!initialCamp.sizes_available.includes('M')) {
-              setSelectedSize(initialCamp.sizes_available[0]);
+            const sorted = sortSweatSizes(initialCamp.sizes_available);
+            if (!sorted.includes('M')) {
+              setSelectedSize(sorted[0]);
             }
           }
           setLoading(false);
@@ -221,7 +222,9 @@ export const Shop: React.FC = () => {
             setConfirmedOrderDetails(parsed);
           }
         }
-      } catch (_) { }
+      } catch (_) {
+        // Ignora erro de parse de cache de sessão
+      }
 
       // 2. Confirma e regista a encomenda na BD caso o webhook ainda não tenha chegado
       confirmPayment({
@@ -529,7 +532,9 @@ export const Shop: React.FC = () => {
       setConfirmedOrderDetails(orderDataToSave);
       try {
         sessionStorage.setItem('neei_last_order', JSON.stringify(orderDataToSave));
-      } catch (_) { }
+      } catch (_) {
+        // Ignora erro de sessionStorage se restrito pelo browser
+      }
 
       setActiveOrderId(res.orderId);
       setStripeClientSecret(res.clientSecret);
@@ -864,8 +869,9 @@ export const Shop: React.FC = () => {
                           if (prod.campaignData) {
                             setSelectedProductCampaign(prod.campaignData);
                             if (prod.campaignData.sizes_available?.length) {
-                              if (!prod.campaignData.sizes_available.includes(selectedSize)) {
-                                setSelectedSize(prod.campaignData.sizes_available[0]);
+                              const sorted = sortSweatSizes(prod.campaignData.sizes_available);
+                              if (!sorted.includes(selectedSize)) {
+                                setSelectedSize(sorted[0]);
                               }
                             }
                           }
@@ -1015,7 +1021,7 @@ export const Shop: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
-                        {(activeCampaign?.sizes_available || (['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[])).map((sz) => {
+                        {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
                           const isSelected = selectedSize === sz;
                           return (
                             <button

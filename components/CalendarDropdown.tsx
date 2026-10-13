@@ -54,10 +54,6 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
   direction = 'up',
   className = '',
 }) => {
-  if (!activity || !activity.date || !activity.date.trim()) {
-    return null;
-  }
-
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +79,10 @@ export const CalendarDropdown: React.FC<CalendarDropdownProps> = ({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
+  if (!activity || !activity.date || !activity.date.trim()) {
+    return null;
+  }
 
   const handleAppleIphoneClick = (e: React.MouseEvent) => {
     e.preventDefault();

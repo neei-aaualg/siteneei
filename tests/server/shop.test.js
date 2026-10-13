@@ -967,7 +967,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
       })
     );
 
-    // 2. Reutilização de cliente existente e atualização de nome se modificado
+    // 2. Reutilização de cliente existente sem sobrescrever dados não autenticados (M7)
     const customerId2 = await stripeService.getOrCreateStripeCustomer(mockStripe, {
       email: 'maria.santos@ualg.pt',
       name: 'Maria Santos Atualizada',
@@ -976,10 +976,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     });
 
     expect(customerId2).toBe('cus_test_1');
-    expect(mockStripe.customers.update).toHaveBeenCalledWith('cus_test_1', {
-      name: 'Maria Santos Atualizada',
-      phone: '+351912345678',
-    });
+    expect(mockStripe.customers.update).not.toHaveBeenCalled();
 
     // 3. Tolerância a falhas na API do Stripe
     const errorStripe = {
@@ -994,6 +991,439 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
       name: 'Erro Teste',
     });
     expect(fallbackId).toBeNull();
+  });
+});
+
+describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
+  function makeMockResponse() {
+    let statusCode = 200;
+    let headers = {};
+    let body = null;
+    return {
+      res: {
+        writeHead: (code, h) => {
+          statusCode = code;
+          if (h) Object.assign(headers, h);
+        },
+        setHeader: (k, v) => {
+          headers[k] = v;
+        },
+        end: (data) => {
+          try {
+            body = typeof data === 'string' ? JSON.parse(data) : data;
+          } catch {
+            body = data;
+          }
+        },
+      },
+      getStatusCode: () => statusCode,
+      getBody: () => body,
+    };
+  }
+
+  it('A1 — Rejeita webhook payment_intent.succeeded com montante ou moeda divergentes', async () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Teste Montante',
+      student_email: 'montante@ualg.pt',
+      phone_number: '912345678',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+
+    // 1. Webhook com moeda incorreta (ex: usd em vez de eur)
+    const badCurrencyEvent = {
+      id: 'evt_bad_curr_' + Date.now(),
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_bad_curr_' + Date.now(),
+          amount_received: Math.round(pending.total_amount * 100),
+          currency: 'usd',
+          metadata: { order_id: pending.id },
+        },
+      },
+    };
+
+    const mockRes1 = makeMockResponse();
+    await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {},
+        rawBody: JSON.stringify(badCurrencyEvent),
+      },
+      mockRes1.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes1.getStatusCode()).toBe(400);
+    expect(mockRes1.getBody().error).toMatch(/moeda/i);
+    expect(db.getShopOrderById(pending.id)).toBeNull();
+
+    // 2. Webhook com montante inferior (ex: atacante pagou 0.50€ em vez de 25.63€)
+    const badAmountEvent = {
+      id: 'evt_bad_amount_' + Date.now(),
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_bad_amount_' + Date.now(),
+          amount_received: 50, // 0.50€
+          currency: 'eur',
+          metadata: { order_id: pending.id },
+        },
+      },
+    };
+
+    const mockRes2 = makeMockResponse();
+    await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {},
+        rawBody: JSON.stringify(badAmountEvent),
+      },
+      mockRes2.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes2.getStatusCode()).toBe(400);
+    expect(mockRes2.getBody().error).toMatch(/montante/i);
+    expect(db.getShopOrderById(pending.id)).toBeNull();
+  });
+
+  it('A1 — Rejeita reutilização de PaymentIntent (Double Spending) em encomendas diferentes', async () => {
+    const order1 = db.preparePendingShopOrder({
+      student_name: 'Cliente Um',
+      student_email: 'um@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+    const order2 = db.preparePendingShopOrder({
+      student_name: 'Cliente Dois',
+      student_email: 'dois@ualg.pt',
+      phone_number: '919876543',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+
+    const sharedPaymentRef = 'pi_shared_payment_intent_test';
+    // Regista a primeira encomenda como paga com este PI
+    db.recordPaidShopOrder(order1, sharedPaymentRef);
+    expect(db.getShopOrderById(order1.id)?.payment_status).toBe('paid');
+
+    // Tentativa de associar o mesmo PI à segunda encomenda deve falhar
+    expect(() => {
+      db.recordPaidShopOrder(order2, sharedPaymentRef);
+    }).toThrow(/já se encontra associada/);
+  });
+
+  it('A2 — Ignora checkout.session.completed se session.payment_status !== "paid"', async () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Teste Async',
+      student_email: 'async@ualg.pt',
+      phone_number: '912345678',
+      size: 'S',
+      delivery_type: 'pickup',
+    });
+
+    const unpaidSessionEvent = {
+      id: 'evt_unpaid_session_' + Date.now(),
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_unpaid_' + Date.now(),
+          client_reference_id: pending.id,
+          payment_status: 'unpaid', // Pagamento ainda não liquidado
+          currency: 'eur',
+          amount_total: Math.round(pending.total_amount * 100),
+          metadata: { order_id: pending.id },
+        },
+      },
+    };
+
+    const mockRes = makeMockResponse();
+    await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {},
+        rawBody: JSON.stringify(unpaidSessionEvent),
+      },
+      mockRes.res,
+      '/api/webhooks/stripe'
+    );
+
+    expect(mockRes.getStatusCode()).toBe(200);
+    expect(mockRes.getBody().payment_status).toBe('unpaid');
+    // A encomenda NÃO pode ter sido registada como paga na base de dados
+    expect(db.getShopOrderById(pending.id)).toBeNull();
+  });
+
+  it('A3 — Usa URL canónico e evita Host Header Injection no checkout-session', async () => {
+    const originalAppUrl = process.env.APP_URL;
+    process.env.APP_URL = 'https://neei.online';
+
+    const security = await import('../../server/security.js');
+    const safeUrl = security.getCanonicalAppUrl({
+      headers: { host: 'evil-attacker.com', 'x-forwarded-proto': 'http' },
+    });
+    expect(safeUrl).toBe('https://neei.online');
+
+    delete process.env.APP_URL;
+    const fallbackCleanHost = security.getCanonicalAppUrl({
+      headers: { host: 'portal.ualg.pt:8080' },
+    });
+    expect(fallbackCleanHost).toBe('http://portal.ualg.pt:8080');
+
+    // Host inválido com injeção de cabeçalhos ou caracteres perigosos
+    const maliciousHost = security.getCanonicalAppUrl({
+      headers: { host: 'evil.com\r\nInjected: Header' },
+    });
+    expect(maliciousHost).toBe('https://neei.online');
+
+    if (originalAppUrl !== undefined) {
+      process.env.APP_URL = originalAppUrl;
+    } else {
+      delete process.env.APP_URL;
+    }
+  });
+
+  it('A4 — Webhook fallback rejeita metadados adulterados ou com valor inconsistente', async () => {
+    const forgedEvent = {
+      id: 'evt_forged_' + Date.now(),
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_forged_' + Date.now(),
+          amount_received: 100, // 1€ forjado
+          currency: 'eur',
+          metadata: {
+            order_id: 'SW-2026-9999',
+            student_name: 'Atacante Hacker',
+            student_email: 'hacker@ualg.pt',
+            phone_number: '912345678',
+            size: 'M',
+            delivery_type: 'pickup',
+            total_amount: '1.00',
+          },
+        },
+      },
+    };
+
+    const mockRes = makeMockResponse();
+    await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {},
+        rawBody: JSON.stringify(forgedEvent),
+      },
+      mockRes.res,
+      '/api/webhooks/stripe'
+    );
+
+    expect(mockRes.getStatusCode()).toBe(400);
+    expect(mockRes.getBody().error).toMatch(/forjado/i);
+    expect(db.getShopOrderById('SW-2026-9999')).toBeNull();
+  });
+
+  it('M2 — Processa eventos charge.refunded, charge.dispute.created e checkout.session.expired', async () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Teste Reembolso',
+      student_email: 'reembolso@ualg.pt',
+      phone_number: '912345678',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+    const paidOrder = db.recordPaidShopOrder(pending, 'pi_refund_test_123');
+    expect(paidOrder.payment_status).toBe('paid');
+
+    // 1. charge.refunded
+    const refundEvent = {
+      id: 'evt_refund_' + Date.now(),
+      type: 'charge.refunded',
+      data: {
+        object: {
+          id: 'ch_123',
+          payment_intent: 'pi_refund_test_123',
+          amount_refunded: 2563,
+        },
+      },
+    };
+
+    const mockRes1 = makeMockResponse();
+    await shopApi.handleShopApi(
+      { method: 'POST', headers: {}, rawBody: JSON.stringify(refundEvent) },
+      mockRes1.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes1.getStatusCode()).toBe(200);
+    const orderAfterRefund = db.getShopOrderById(paidOrder.id);
+    expect(orderAfterRefund.admin_notes).toContain('[REEMBOLSO STRIPE]');
+
+    // 2. charge.dispute.created
+    const disputeEvent = {
+      id: 'evt_dispute_' + Date.now(),
+      type: 'charge.dispute.created',
+      data: {
+        object: {
+          id: 'dp_999',
+          payment_intent: 'pi_refund_test_123',
+          amount: 2563,
+        },
+      },
+    };
+
+    const mockRes2 = makeMockResponse();
+    await shopApi.handleShopApi(
+      { method: 'POST', headers: {}, rawBody: JSON.stringify(disputeEvent) },
+      mockRes2.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes2.getStatusCode()).toBe(200);
+    const orderAfterDispute = db.getShopOrderById(paidOrder.id);
+    expect(orderAfterDispute.admin_notes).toContain('[DISPUTA BANCÁRIA STRIPE]');
+
+    // 3. checkout.session.expired
+    const pending2 = db.preparePendingShopOrder({
+      student_name: 'Teste Expirado',
+      student_email: 'expirado@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+    const expiredEvent = {
+      id: 'evt_expired_' + Date.now(),
+      type: 'checkout.session.expired',
+      data: {
+        object: {
+          id: 'cs_expired_123',
+          client_reference_id: pending2.id,
+        },
+      },
+    };
+    const mockRes3 = makeMockResponse();
+    await shopApi.handleShopApi(
+      { method: 'POST', headers: {}, rawBody: JSON.stringify(expiredEvent) },
+      mockRes3.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes3.getStatusCode()).toBe(200);
+  });
+
+  it('M5 — Rejeita tokens de administrador fornecidos apenas na query string', async () => {
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+
+    // Query string NÃO é aceite
+    const searchParams = new URLSearchParams({ token });
+    expect(auth.verifyAdminToken({ headers: {} }, searchParams)).toBe(false);
+
+    // Header Authorization Bearer é aceite
+    expect(auth.verifyAdminToken({ headers: { authorization: `Bearer ${token}` } })).toBe(true);
+  });
+
+  it('M10 — Rejeita simulate-payment em ambiente de produção', async () => {
+    const prevNodeEnv = process.env.NODE_ENV;
+    const prevStripeKey = process.env.STRIPE_SECRET_KEY;
+    process.env.NODE_ENV = 'production';
+    process.env.STRIPE_SECRET_KEY = 'sk_live_fake123';
+
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Prod Test',
+      student_email: 'prod@ualg.pt',
+      phone_number: '912345678',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+
+    const mockRes = makeMockResponse();
+    await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {},
+        body: { orderId: pending.id },
+      },
+      mockRes.res,
+      '/api/shop/simulate-payment'
+    );
+
+    expect(mockRes.getStatusCode()).toBe(403);
+    expect(mockRes.getBody().error).toMatch(/desativada em ambiente de produção/i);
+
+    process.env.NODE_ENV = prevNodeEnv;
+    if (prevStripeKey !== undefined) {
+      process.env.STRIPE_SECRET_KEY = prevStripeKey;
+    } else {
+      delete process.env.STRIPE_SECRET_KEY;
+    }
+  });
+
+  it('BAIXO — Deduplica eventos de webhook repetidos (Replay Attack)', async () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'Deduplication Test',
+      student_email: 'dedup@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      delivery_type: 'pickup',
+    });
+
+    const eventId = 'evt_dedup_unique_id_' + Date.now();
+    const event = {
+      id: eventId,
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_dedup_' + Date.now(),
+          amount_received: Math.round(pending.total_amount * 100),
+          currency: 'eur',
+          metadata: { order_id: pending.id },
+        },
+      },
+    };
+
+    const mockRes1 = makeMockResponse();
+    await shopApi.handleShopApi(
+      { method: 'POST', headers: {}, rawBody: JSON.stringify(event) },
+      mockRes1.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes1.getStatusCode()).toBe(200);
+
+    // Segundo envio do MESMO evento deve ser deduplicado imediatamente
+    const mockRes2 = makeMockResponse();
+    await shopApi.handleShopApi(
+      { method: 'POST', headers: {}, rawBody: JSON.stringify(event) },
+      mockRes2.res,
+      '/api/webhooks/stripe'
+    );
+    expect(mockRes2.getStatusCode()).toBe(200);
+    expect(mockRes2.getBody().deduplicated).toBe(true);
+  });
+
+  it('BAIXO — Expira encomendas pendentes em memória após o TTL', () => {
+    const pending = db.preparePendingShopOrder({
+      student_name: 'TTL Test',
+      student_email: 'ttl@ualg.pt',
+      phone_number: '912345678',
+      size: 'S',
+      delivery_type: 'pickup',
+    });
+
+    expect(db.getPendingShopOrder(pending.id)).toBeTruthy();
+
+    // Simula passagem do tempo para além do TTL (2 horas + 1 minuto)
+    pending.createdAtMs = Date.now() - (2 * 60 * 60 * 1000 + 60000);
+
+    // Consulta deve retornar null por ter expirado
+    expect(db.getPendingShopOrder(pending.id)).toBeNull();
+  });
+
+  it('Ordenação de tamanhos — preserva sempre a ordem do XS ao 3XL', () => {
+    const unorderedSizes = ['L', '3XL', 'XS', 'XXL', 'M', 'XL', 'S'];
+    const sorted = db.sortShopSizes(unorderedSizes);
+    expect(sorted).toEqual(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']);
+
+    const product = db.createShopCampaign({
+      title: 'T-Shirt Ordenada',
+      sizes_available: ['XXL', 'S', 'XS', '3XL'],
+    });
+    expect(product.sizes_available).toEqual(['XS', 'S', 'XXL', '3XL']);
   });
 });
 

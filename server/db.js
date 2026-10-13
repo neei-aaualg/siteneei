@@ -1237,14 +1237,34 @@ export function isShowTestShopEnv() {
   return !['false', '0', 'f', 'no', 'off', 'disabled'].includes(s);
 }
 
+export const CANONICAL_SHOP_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+/**
+ * Ordena tamanhos segundo a ordem canónica de XS até 3XL
+ */
+export function sortShopSizes(sizes) {
+  if (!Array.isArray(sizes)) return [...CANONICAL_SHOP_SIZES];
+  return [...sizes].sort((a, b) => {
+    const idxA = CANONICAL_SHOP_SIZES.indexOf(a);
+    const idxB = CANONICAL_SHOP_SIZES.indexOf(b);
+    if (idxA === -1 && idxB === -1) return String(a).localeCompare(String(b));
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
+}
+
 /**
  * Formata um registo da tabela shop_campaigns para objeto padronizado
  */
 export function formatShopCampaignRow(row, isAdminPreview = false) {
   if (!row) return null;
-  let sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+  let sizes = [...CANONICAL_SHOP_SIZES];
   try {
-    sizes = typeof row.sizes_available === 'string' ? JSON.parse(row.sizes_available) : row.sizes_available;
+    const parsed = typeof row.sizes_available === 'string' ? JSON.parse(row.sizes_available) : row.sizes_available;
+    if (Array.isArray(parsed)) {
+      sizes = sortShopSizes(parsed);
+    }
   } catch (e) {
     // fallback
   }
@@ -1253,7 +1273,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     '80% Algodão cardado / 20% Poliéster (320g/m²)',
     'Bordado de alta definição NEEI · Engenharia Informática',
     'Corte unissexo confortável com cordões reforçados',
-    Boolean(row.allow_shipping) ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+    row.allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
   ];
   if (row.features) {
     try {
@@ -1351,18 +1371,22 @@ export function createShopCampaign(data) {
   const allow_pickup = data.allow_pickup !== undefined ? (data.allow_pickup ? 1 : 0) : 1;
   const allow_shipping = data.allow_shipping !== undefined ? (data.allow_shipping ? 1 : 0) : 1;
   const pickup_location = data.pickup_location || 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
-  const sizes_available = Array.isArray(data.sizes_available)
-    ? JSON.stringify(data.sizes_available)
-    : (data.sizes_available || JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']));
+  const sizes_available = JSON.stringify(
+    Array.isArray(data.sizes_available)
+      ? sortShopSizes(data.sizes_available)
+      : (data.sizes_available
+        ? sortShopSizes(typeof data.sizes_available === 'string' ? JSON.parse(data.sizes_available) : data.sizes_available)
+        : CANONICAL_SHOP_SIZES)
+  );
   const category = (data.category || 'Vestuário').trim();
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : JSON.stringify([
-        '80% Algodão cardado / 20% Poliéster (320g/m²)',
-        'Bordado de alta definição NEEI · Engenharia Informática',
-        'Corte unissexo confortável com cordões reforçados',
-        allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
-      ]);
+      '80% Algodão cardado / 20% Poliéster (320g/m²)',
+      'Bordado de alta definição NEEI · Engenharia Informática',
+      'Corte unissexo confortável com cordões reforçados',
+      allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+    ]);
 
   db.prepare(`
     INSERT INTO shop_campaigns (
@@ -1418,9 +1442,17 @@ export function updateShopCampaign(id, data) {
     data.allow_shipping !== undefined ? (data.allow_shipping ? 1 : 0) : current.allow_shipping;
   const pickup_location =
     data.pickup_location !== undefined ? data.pickup_location : current.pickup_location;
-  const sizes_available = data.sizes_available
-    ? (Array.isArray(data.sizes_available) ? JSON.stringify(data.sizes_available) : data.sizes_available)
-    : current.sizes_available;
+  let sizes_available = current.sizes_available;
+  if (data.sizes_available !== undefined) {
+    try {
+      const parsed = Array.isArray(data.sizes_available)
+        ? data.sizes_available
+        : (typeof data.sizes_available === 'string' ? JSON.parse(data.sizes_available) : data.sizes_available);
+      sizes_available = JSON.stringify(sortShopSizes(parsed));
+    } catch {
+      sizes_available = JSON.stringify(CANONICAL_SHOP_SIZES);
+    }
+  }
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : current.features;
@@ -1482,6 +1514,52 @@ export function calculatePaymentFee(subtotal) {
 
 // Cache em memória de encomendas pendentes de pagamento (não inseridas na BD até confirmação)
 export const pendingOrdersCache = new Map();
+export const PENDING_ORDER_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
+
+const pendingCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [id, order] of pendingOrdersCache.entries()) {
+    if (order.createdAtMs && now - order.createdAtMs > PENDING_ORDER_TTL_MS) {
+      pendingOrdersCache.delete(id);
+    }
+  }
+}, 15 * 60 * 1000);
+if (typeof pendingCleanupTimer.unref === 'function') pendingCleanupTimer.unref();
+
+// Registo em memória de eventos de webhook processados para evitar repetições (Deduplication)
+export const processedWebhookEvents = new Map();
+export const WEBHOOK_EVENT_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
+
+export function isWebhookEventProcessed(eventId) {
+  if (!eventId) return false;
+  const processedAt = processedWebhookEvents.get(String(eventId));
+  if (!processedAt) return false;
+  if (Date.now() - processedAt > WEBHOOK_EVENT_TTL_MS) {
+    processedWebhookEvents.delete(String(eventId));
+    return false;
+  }
+  return true;
+}
+
+export function markWebhookEventProcessed(eventId) {
+  if (!eventId) return;
+  if (processedWebhookEvents.size > 10_000) {
+    const oldest = processedWebhookEvents.keys().next().value;
+    processedWebhookEvents.delete(oldest);
+  }
+  processedWebhookEvents.set(String(eventId), Date.now());
+}
+
+/**
+ * Procura uma encomenda registada através da referência/identificador de pagamento Stripe
+ */
+export function getShopOrderByPaymentRef(paymentRef) {
+  if (!paymentRef) return null;
+  const cleanRef = String(paymentRef).trim();
+  const row = db.prepare('SELECT id FROM shop_orders WHERE payment_ref = ?').get(cleanRef);
+  if (!row) return null;
+  return getShopOrderById(row.id);
+}
 
 /**
  * Valida e prepara uma encomenda pendente de pagamento em memória.
@@ -1616,6 +1694,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     moloni_status: 'none',
     created_at: createdAt,
     paid_at: null,
+    createdAtMs: Date.now(),
     isAdminPreview: Boolean(isTestingMode),
   };
 
@@ -1631,18 +1710,29 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
 }
 
 /**
- * Obtém uma encomenda pendente em memória
+ * Obtém uma encomenda pendente em memória respeitando o TTL de expiração
  */
 export function getPendingShopOrder(orderId) {
   if (!orderId) return null;
   const cleanId = String(orderId).trim().replace(/^#/, '').toUpperCase();
-  if (pendingOrdersCache.has(cleanId)) {
-    return pendingOrdersCache.get(cleanId);
+  let found = pendingOrdersCache.get(cleanId);
+  if (!found) {
+    for (const [k, v] of pendingOrdersCache.entries()) {
+      if (k.toUpperCase() === cleanId) {
+        found = v;
+        break;
+      }
+    }
   }
-  for (const [k, v] of pendingOrdersCache.entries()) {
-    if (k.toUpperCase() === cleanId) return v;
+  if (!found) return null;
+
+  // Verificação de expiração por TTL
+  if (found.createdAtMs && Date.now() - found.createdAtMs > PENDING_ORDER_TTL_MS) {
+    pendingOrdersCache.delete(found.id);
+    return null;
   }
-  return null;
+
+  return found;
 }
 
 /**
@@ -1666,9 +1756,22 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
     return updateShopOrderPaymentStatus(orderData.id, 'paid', paymentRef, paidAt);
   }
 
+  const actualPaymentRef = paymentRef || orderData.payment_ref || null;
+
+  // Prevenção contra reutilização de PaymentIntent (Double Spending / PI Reuse attack)
+  if (actualPaymentRef) {
+    const existingWithSameRef = db
+      .prepare('SELECT id FROM shop_orders WHERE payment_ref = ? AND id != ?')
+      .get(actualPaymentRef, orderData.id);
+    if (existingWithSameRef) {
+      throw new Error(
+        `Referência de pagamento ${actualPaymentRef} já se encontra associada à encomenda ${existingWithSameRef.id}`
+      );
+    }
+  }
+
   const now = new Date().toISOString();
   const actualPaidAt = paidAt || now;
-  const actualPaymentRef = paymentRef || orderData.payment_ref || null;
   const isTest = Boolean(orderData.isAdminPreview || orderData.is_admin_preview);
   const orderStatus = isTest ? 'test' : 'confirmed';
 
@@ -1856,6 +1959,19 @@ export function updateShopOrderStatus(orderId, orderStatus) {
   const stmt = db.prepare('UPDATE shop_orders SET order_status = ? WHERE id = ?');
   const res = stmt.run(orderStatus, orderId);
   return res.changes > 0;
+}
+
+/**
+ * Adiciona notas administrativas a uma encomenda (auditoria de reembolsos e disputas)
+ */
+export function appendShopOrderAdminNotes(orderId, note) {
+  if (!orderId || !note) return null;
+  const current = getShopOrderById(orderId);
+  if (!current) return null;
+  const cleanNote = String(note).trim();
+  const newNotes = current.admin_notes ? `${current.admin_notes} | ${cleanNote}` : cleanNote;
+  db.prepare('UPDATE shop_orders SET admin_notes = ? WHERE id = ?').run(newNotes, current.id);
+  return getShopOrderById(orderId);
 }
 
 /**

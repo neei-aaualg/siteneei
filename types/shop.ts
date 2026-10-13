@@ -1,5 +1,22 @@
 export type SweatSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL' | '3XL';
 
+export const ORDERED_SWEAT_SIZES: SweatSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+/**
+ * Ordena uma lista de tamanhos segundo a ordem canónica de XS até 3XL
+ */
+export function sortSweatSizes(sizes?: SweatSize[] | string[]): SweatSize[] {
+  if (!sizes || !Array.isArray(sizes)) return [...ORDERED_SWEAT_SIZES];
+  return [...sizes].sort((a, b) => {
+    const idxA = ORDERED_SWEAT_SIZES.indexOf(a as SweatSize);
+    const idxB = ORDERED_SWEAT_SIZES.indexOf(b as SweatSize);
+    if (idxA === -1 && idxB === -1) return String(a).localeCompare(String(b));
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  }) as SweatSize[];
+}
+
 export type DeliveryType = 'pickup' | 'shipping';
 
 export type PaymentStatus = 'pending' | 'paid' | 'expired' | 'failed';

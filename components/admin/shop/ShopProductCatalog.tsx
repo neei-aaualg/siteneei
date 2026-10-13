@@ -10,7 +10,7 @@ import {
   ToggleRight,
   ListPlus,
 } from 'lucide-react';
-import { ShopCampaign } from '../../../types/shop';
+import { ShopCampaign, sortSweatSizes } from '../../../types/shop';
 
 interface ShopProductCatalogProps {
   products: ShopCampaign[];
@@ -160,7 +160,7 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                       Tamanhos Disponíveis
                     </span>
                     <div className="flex flex-wrap gap-1">
-                      {prod.sizes_available?.map((sz) => (
+                      {sortSweatSizes(prod.sizes_available).map((sz) => (
                         <span
                           key={sz}
                           className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"

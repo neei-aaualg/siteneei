@@ -27,9 +27,6 @@ export async function fetchShopCampaign(options?: {
   if (options?.adminPreview) {
     params.set('admin_preview', '1');
   }
-  if (options?.token) {
-    params.set('token', options.token);
-  }
   const query = params.toString() ? `?${params.toString()}` : '';
   const headers: Record<string, string> = {};
   if (options?.token) {
@@ -80,6 +77,8 @@ export async function createPaymentIntent(
   provider: string;
   isSandbox: boolean;
   isAdminPreview?: boolean;
+  itemName?: string;
+  paymentFee?: number;
 }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (payload.adminToken) {

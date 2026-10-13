@@ -24,7 +24,9 @@ function reloadEnvFile() {
         }
       }
     }
-  } catch (_) {}
+  } catch (_) {
+    // Ignora se o ficheiro .env não existir
+  }
 }
 reloadEnvFile();
 

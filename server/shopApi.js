@@ -1,5 +1,6 @@
 import { readJsonBody, readRawBody, sendJson } from './api.js';
 import { verifyAdminToken, verifyAdminTokenString } from './auth.js';
+import { getCanonicalAppUrl } from './security.js';
 import {
   getActiveShopCampaign,
   getAllShopCampaigns,
@@ -13,16 +14,21 @@ import {
   recordPaidShopOrder,
   createShopOrder,
   getShopOrderById,
+  getShopOrderByPaymentRef,
   updateShopOrderPaymentStatus,
   updateShopOrderEmailSent,
   updateShopOrderStatus,
   updateMultipleShopOrderStatus,
+  appendShopOrderAdminNotes,
+  calculatePaymentFee,
   getAllShopOrders,
   getShopSummaryStats,
   getFactoryExportData,
   isSweatsAvailableEnv,
   isShowTestShopEnv,
   pendingOrdersCache,
+  isWebhookEventProcessed,
+  markWebhookEventProcessed,
   createAdminManualOrder,
 } from './db.js';
 import {
@@ -51,7 +57,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
     // 1. GET /api/shop/campaign - Obter dados da campanha ativa
     if (pathname === '/api/shop/campaign' && req.method === 'GET') {
-      const isAdmin = verifyAdminToken(req, searchParams);
+      const isAdmin = verifyAdminToken(req);
       const wantsPreview =
         searchParams?.get('admin_preview') === '1' || searchParams?.get('admin_preview') === 'true';
       const isSweatsAvailable = isSweatsAvailableEnv();
@@ -76,7 +82,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
     // 1b. GET /api/shop/products - Obter todos os produtos/artigos ativos
     if (pathname === '/api/shop/products' && req.method === 'GET') {
-      const isAdmin = verifyAdminToken(req, searchParams);
+      const isAdmin = verifyAdminToken(req);
       const wantsPreview =
         searchParams?.get('admin_preview') === '1' || searchParams?.get('admin_preview') === 'true';
       const isTestShopAllowed = isShowTestShopEnv();
@@ -144,6 +150,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       return sendJson(res, 201, {
         success: true,
         orderId: order.id,
+        itemName: order.item_name,
         itemPrice: order.item_price,
         shippingFee: order.shipping_fee,
         paymentFee: order.payment_fee || 0,
@@ -227,7 +234,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const order = preparePendingShopOrder(body);
 
-      const baseUrl = `http://${req.headers.host || 'localhost:3000'}`;
+      const baseUrl = getCanonicalAppUrl(req);
       const sessionResult = await createCheckoutSession({
         order,
         successUrl: `${baseUrl}/merch?payment_intent_done=1&orderId=${order.id}`,
@@ -317,26 +324,75 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 404, { error: 'Encomenda não encontrada ou já expirada.' });
       }
 
-      let isPaid = isStripeSandbox();
-      if (!isPaid && paymentIntentId) {
+      const targetOrder = order || pending;
+      const expectedAmountInCents = Math.round(Number(targetOrder.total_amount) * 100);
+
+      let isPaid = false;
+      let confirmedRef = paymentIntentId;
+
+      // Fail-Closed: Em ambiente de produção NUNCA aceita sandbox sem validação Stripe
+      const isProd = process.env.NODE_ENV === 'production';
+      if (!isProd && isStripeSandbox()) {
+        isPaid = true;
+        confirmedRef = paymentIntentId || `client-confirmed-${Date.now()}`;
+      } else if (paymentIntentId) {
         try {
           const stripe = getStripeClient();
-          if (stripe) {
-            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-            if (pi && pi.status === 'succeeded') {
-              isPaid = true;
-            }
+          if (!stripe) {
+            return sendJson(res, 500, { error: 'Serviço de pagamentos não configurado no servidor.' });
+          }
+
+          // Prevenção contra reutilização de PaymentIntent (Double Spending / PI Reuse attack)
+          const existingWithRef = getShopOrderByPaymentRef(paymentIntentId);
+          if (existingWithRef && existingWithRef.id !== targetOrder.id) {
+            console.warn(
+              `[CONFIRM PAYMENT WARNING] Tentativa de reutilização do PaymentIntent ${paymentIntentId} na encomenda ${targetOrder.id} (já associado a ${existingWithRef.id})`
+            );
+            return sendJson(res, 400, { error: 'Este identificador de pagamento já foi utilizado.' });
+          }
+
+          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+          if (!pi) {
+            return sendJson(res, 400, { error: 'PaymentIntent não encontrado na Stripe.' });
+          }
+
+          // A1: Validação de moeda
+          if ((pi.currency || '').toLowerCase() !== 'eur') {
+            console.warn(`[CONFIRM PAYMENT] Moeda inválida: ${pi.currency} (esperado: eur)`);
+            return sendJson(res, 400, { error: 'Moeda de pagamento inválida.' });
+          }
+
+          // A1: Validação de valor vs total da encomenda
+          const receivedAmount = pi.amount_received || pi.amount || 0;
+          if (receivedAmount !== expectedAmountInCents) {
+            console.warn(
+              `[CONFIRM PAYMENT] Valor incorreto: recebido ${receivedAmount} cêntimos, esperado ${expectedAmountInCents} cêntimos para ${targetOrder.id}`
+            );
+            return sendJson(res, 400, { error: 'O valor pago não coincide com o total da encomenda.' });
+          }
+
+          // A1: Validação de order_id nos metadados do PaymentIntent
+          const piOrderId = pi.metadata?.order_id;
+          if (piOrderId && piOrderId.toUpperCase() !== targetOrder.id.toUpperCase()) {
+            console.warn(`[CONFIRM PAYMENT] Encomenda no PI (${piOrderId}) não coincide com o pedido (${targetOrder.id})`);
+            return sendJson(res, 400, { error: 'Identificador de encomenda não corresponde a este pagamento.' });
+          }
+
+          if (pi.status === 'succeeded') {
+            isPaid = true;
+            confirmedRef = pi.id;
           }
         } catch (e) {
           console.error('[CONFIRM PAYMENT ERROR]', e.message);
+          return sendJson(res, 400, { error: 'Falha ao validar estado do pagamento na Stripe.' });
         }
       }
 
       if (isPaid) {
         if (!order) {
-          order = recordPaidShopOrder(pending, paymentIntentId || `client-confirmed-${Date.now()}`);
+          order = recordPaidShopOrder(pending, confirmedRef);
         } else {
-          order = updateShopOrderPaymentStatus(order.id, 'paid', paymentIntentId);
+          order = updateShopOrderPaymentStatus(order.id, 'paid', confirmedRef);
         }
 
         if (order && !order.email_sent) {
@@ -369,14 +425,23 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         return sendJson(res, 400, { error: `Webhook Error: ${err.message}` });
       }
 
-      console.log(`[STRIPE WEBHOOK] Evento recebido: ${event.type}`);
+      console.log(`[STRIPE WEBHOOK] Evento recebido: ${event.type} (ID: ${event.id})`);
+
+      // Deduplicação de eventos do webhook (Prevenção contra Replay Attacks)
+      if (event.id && isWebhookEventProcessed(event.id)) {
+        console.log(`[STRIPE WEBHOOK] Evento já processado anteriormente (deduplicated): ${event.id}`);
+        return sendJson(res, 200, { received: true, deduplicated: true });
+      }
+      if (event.id) {
+        markWebhookEventProcessed(event.id);
+      }
 
       // Pagamento bem sucedido via PaymentIntent
       if (event.type === 'payment_intent.succeeded') {
         const paymentIntent = event.data?.object || {};
         const orderId = paymentIntent.metadata?.order_id;
 
-        // Se estiver em modo real com Stripe, valida diretamente com a API Stripe para prevenir spoofing mesmo sem webhook secret
+        // Se estiver em modo real com Stripe, valida diretamente com a API Stripe para prevenir spoofing
         if (!isStripeSandbox() && paymentIntent.id) {
           try {
             const stripe = getStripeClient();
@@ -393,35 +458,101 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           }
         }
 
+        // A1: Validação de moeda
+        if (paymentIntent.currency && paymentIntent.currency.toLowerCase() !== 'eur') {
+          console.warn(`[STRIPE WEBHOOK] Moeda inválida: ${paymentIntent.currency}`);
+          return sendJson(res, 400, { error: 'Moeda inválida' });
+        }
+
         if (orderId) {
-          let order = getShopOrderById(orderId);
-          if (!order) {
-            const pendingOrder = getPendingShopOrder(orderId) || {
-              id: orderId,
-              student_name: paymentIntent.metadata?.student_name,
-              student_email: paymentIntent.metadata?.student_email,
-              phone_number: paymentIntent.metadata?.phone_number,
-              nif: paymentIntent.metadata?.nif,
-              size: paymentIntent.metadata?.size,
-              color: paymentIntent.metadata?.color || 'Preto',
-              delivery_type: paymentIntent.metadata?.delivery_type,
-              shipping_address: paymentIntent.metadata?.shipping_address,
-              shipping_postal_code: paymentIntent.metadata?.shipping_postal_code,
-              shipping_city: paymentIntent.metadata?.shipping_city,
-              item_price: Number(paymentIntent.metadata?.item_price || 0),
-              shipping_fee: Number(paymentIntent.metadata?.shipping_fee || 0),
-              payment_fee: Number(paymentIntent.metadata?.payment_fee || 0),
-              total_amount: Number(paymentIntent.metadata?.total_amount || (paymentIntent.amount ? paymentIntent.amount / 100 : 0)),
-              isAdminPreview: paymentIntent.metadata?.is_admin_preview === '1',
-            };
-            order = recordPaidShopOrder(pendingOrder, paymentIntent.id, new Date().toISOString());
-          } else if (order.payment_status !== 'paid') {
-            order = updateShopOrderPaymentStatus(
-              order.id,
-              'paid',
-              paymentIntent.id,
-              new Date().toISOString()
+          // Prevenção contra reutilização de PI
+          const existingWithRef = getShopOrderByPaymentRef(paymentIntent.id);
+          if (existingWithRef && existingWithRef.id !== orderId) {
+            console.warn(
+              `[STRIPE WEBHOOK SECURITY] Reutilização de PaymentIntent ${paymentIntent.id} na encomenda ${orderId} (já pertence a ${existingWithRef.id})`
             );
+            return sendJson(res, 400, { error: 'PaymentIntent já associado a outra encomenda' });
+          }
+
+          let order = getShopOrderById(orderId);
+          const pendingOrder = getPendingShopOrder(orderId);
+          const targetOrder = order || pendingOrder;
+          const paidAmount = paymentIntent.amount_received || paymentIntent.amount || 0;
+
+          if (targetOrder) {
+            // A1: Validação estrita do valor pago vs total da encomenda
+            const expectedCents = Math.round(Number(targetOrder.total_amount) * 100);
+            if (paidAmount !== expectedCents) {
+              console.error(
+                `[STRIPE WEBHOOK SECURITY] Discrepância de montante para encomenda ${orderId}: recebido ${paidAmount} cêntimos, esperado ${expectedCents} cêntimos`
+              );
+              return sendJson(res, 400, { error: 'Montante pago não coincide com a encomenda' });
+            }
+
+            if (!order) {
+              order = recordPaidShopOrder(pendingOrder, paymentIntent.id, new Date().toISOString());
+            } else if (order.payment_status !== 'paid') {
+              order = updateShopOrderPaymentStatus(
+                order.id,
+                'paid',
+                paymentIntent.id,
+                new Date().toISOString()
+              );
+            }
+          } else {
+            // A4 Fallback: Quando nem a encomenda nem o pendente existem em cache (ex: reinício de servidor)
+            // Validação estrita dos metadados contra a campanha ativa (NUNCA confiar cegamente na metadata do atacante)
+            const campaign = getActiveShopCampaign();
+            const studentEmail = (paymentIntent.metadata?.student_email || '').trim().toLowerCase();
+            const studentName = (paymentIntent.metadata?.student_name || '').trim();
+            const size = (paymentIntent.metadata?.size || '').toUpperCase().trim();
+            const deliveryType = paymentIntent.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (
+              campaign &&
+              studentName.length >= 3 &&
+              emailRegex.test(studentEmail) &&
+              campaign.sizes_available.includes(size)
+            ) {
+              const itemPrice = campaign.item_price;
+              const shippingFee = deliveryType === 'shipping' ? campaign.shipping_fee : 0;
+              const paymentFee = calculatePaymentFee(itemPrice + shippingFee);
+              const expectedTotal = Math.round((itemPrice + shippingFee + paymentFee) * 100) / 100;
+              const expectedCents = Math.round(expectedTotal * 100);
+
+              if (paidAmount === expectedCents) {
+                const reconstructedOrder = {
+                  id: orderId,
+                  campaign_id: campaign.id,
+                  item_name: campaign.item_name || 'Sweat Oficial Engenharia Informática',
+                  student_name: studentName,
+                  student_email: studentEmail,
+                  phone_number: paymentIntent.metadata?.phone_number || '',
+                  nif: paymentIntent.metadata?.nif || 'Consumidor Final',
+                  size,
+                  color: paymentIntent.metadata?.color || 'Preto',
+                  delivery_type: deliveryType,
+                  shipping_address: paymentIntent.metadata?.shipping_address || null,
+                  shipping_postal_code: paymentIntent.metadata?.shipping_postal_code || null,
+                  shipping_city: paymentIntent.metadata?.shipping_city || null,
+                  item_price: itemPrice,
+                  shipping_fee: shippingFee,
+                  payment_fee: paymentFee,
+                  total_amount: expectedTotal,
+                  isAdminPreview: paymentIntent.metadata?.is_admin_preview === '1',
+                };
+                order = recordPaidShopOrder(reconstructedOrder, paymentIntent.id, new Date().toISOString());
+              } else {
+                console.error(
+                  `[STRIPE WEBHOOK SECURITY] Rejeitado webhook fallback: valor recebido ${paidAmount} != esperado ${expectedCents}`
+                );
+                return sendJson(res, 400, { error: 'Montante forjado ou inconsistente com a campanha' });
+              }
+            } else {
+              console.error('[STRIPE WEBHOOK SECURITY] Rejeitado webhook fallback: metadados inválidos ou inexistentes');
+              return sendJson(res, 400, { error: 'Metadados inválidos para criação da encomenda' });
+            }
           }
 
           if (order && !order.email_sent) {
@@ -438,37 +569,110 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       }
 
       // Pagamento bem sucedido via Stripe Checkout Session
-      if (event.type === 'checkout.session.completed') {
+      if (
+        event.type === 'checkout.session.completed' ||
+        event.type === 'checkout.session.async_payment_succeeded'
+      ) {
         const session = event.data?.object || {};
+
+        // A2: Em pagamentos assíncronos, checkout.session.completed pode ter payment_status !== 'paid'
+        if (session.payment_status !== 'paid') {
+          console.log(`[STRIPE WEBHOOK] Sessão ${session.id} não paga ainda (payment_status: ${session.payment_status}). Aguardando liquidação.`);
+          return sendJson(res, 200, { received: true, payment_status: session.payment_status });
+        }
+
         const orderId = session.client_reference_id || session.metadata?.order_id;
+        const paymentRef = session.payment_intent || session.id;
+
+        if (session.currency && session.currency.toLowerCase() !== 'eur') {
+          console.warn(`[STRIPE WEBHOOK] Moeda inválida na sessão: ${session.currency}`);
+          return sendJson(res, 400, { error: 'Moeda inválida' });
+        }
 
         if (orderId) {
-          let order = getShopOrderById(orderId);
-          if (!order) {
-            const pendingOrder = getPendingShopOrder(orderId) || {
-              id: orderId,
-              student_name: session.metadata?.student_name || session.customer_details?.name,
-              student_email: session.metadata?.student_email || session.customer_details?.email || session.customer_email,
-              phone_number: session.metadata?.phone_number || session.customer_details?.phone || '',
-              size: session.metadata?.size || 'M',
-              color: session.metadata?.color || 'Preto',
-              delivery_type: session.metadata?.delivery_type || 'pickup',
-              shipping_address: session.metadata?.shipping_address || null,
-              shipping_postal_code: session.metadata?.shipping_postal_code || null,
-              shipping_city: session.metadata?.shipping_city || null,
-              item_price: Number(session.metadata?.item_price || (session.amount_total ? session.amount_total / 100 : 25)),
-              shipping_fee: Number(session.metadata?.shipping_fee || 0),
-              payment_fee: Number(session.metadata?.payment_fee || 0),
-              total_amount: Number(session.metadata?.total_amount || (session.amount_total ? session.amount_total / 100 : 25)),
-            };
-            order = recordPaidShopOrder(pendingOrder, session.payment_intent || session.id, new Date().toISOString());
-          } else if (order.payment_status !== 'paid') {
-            order = updateShopOrderPaymentStatus(
-              order.id,
-              'paid',
-              session.payment_intent || session.id,
-              new Date().toISOString()
+          const existingWithRef = getShopOrderByPaymentRef(paymentRef);
+          if (existingWithRef && existingWithRef.id !== orderId) {
+            console.warn(
+              `[STRIPE WEBHOOK SECURITY] Reutilização de sessão/PI ${paymentRef} na encomenda ${orderId} (já pertence a ${existingWithRef.id})`
             );
+            return sendJson(res, 400, { error: 'Referência de pagamento já associada a outra encomenda' });
+          }
+
+          let order = getShopOrderById(orderId);
+          const pendingOrder = getPendingShopOrder(orderId);
+          const targetOrder = order || pendingOrder;
+          const paidAmount = session.amount_total || 0;
+
+          if (targetOrder) {
+            const expectedCents = Math.round(Number(targetOrder.total_amount) * 100);
+            if (paidAmount !== expectedCents) {
+              console.error(`[STRIPE WEBHOOK SECURITY] Discrepância na sessão Checkout: recebido ${paidAmount}, esperado ${expectedCents}`);
+              return sendJson(res, 400, { error: 'Montante pago não coincide com a encomenda' });
+            }
+
+            if (!order) {
+              order = recordPaidShopOrder(pendingOrder, paymentRef, new Date().toISOString());
+            } else if (order.payment_status !== 'paid') {
+              order = updateShopOrderPaymentStatus(
+                order.id,
+                'paid',
+                paymentRef,
+                new Date().toISOString()
+              );
+            }
+          } else {
+            // A4 Fallback com validação contra campanha
+            const campaign = getActiveShopCampaign();
+            const studentEmail = (
+              session.metadata?.student_email ||
+              session.customer_details?.email ||
+              session.customer_email ||
+              ''
+            ).trim().toLowerCase();
+            const studentName = (session.metadata?.student_name || session.customer_details?.name || '').trim();
+            const size = (session.metadata?.size || 'M').toUpperCase().trim();
+            const deliveryType = session.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (
+              campaign &&
+              studentName.length >= 3 &&
+              emailRegex.test(studentEmail) &&
+              campaign.sizes_available.includes(size)
+            ) {
+              const itemPrice = campaign.item_price;
+              const shippingFee = deliveryType === 'shipping' ? campaign.shipping_fee : 0;
+              const paymentFee = calculatePaymentFee(itemPrice + shippingFee);
+              const expectedTotal = Math.round((itemPrice + shippingFee + paymentFee) * 100) / 100;
+              const expectedCents = Math.round(expectedTotal * 100);
+
+              if (paidAmount === expectedCents) {
+                const reconstructedOrder = {
+                  id: orderId,
+                  campaign_id: campaign.id,
+                  item_name: campaign.item_name || 'Sweat Oficial Engenharia Informática',
+                  student_name: studentName,
+                  student_email: studentEmail,
+                  phone_number: session.metadata?.phone_number || session.customer_details?.phone || '',
+                  nif: session.metadata?.nif || 'Consumidor Final',
+                  size,
+                  color: session.metadata?.color || 'Preto',
+                  delivery_type: deliveryType,
+                  shipping_address: session.metadata?.shipping_address || null,
+                  shipping_postal_code: session.metadata?.shipping_postal_code || null,
+                  shipping_city: session.metadata?.shipping_city || null,
+                  item_price: itemPrice,
+                  shipping_fee: shippingFee,
+                  payment_fee: paymentFee,
+                  total_amount: expectedTotal,
+                };
+                order = recordPaidShopOrder(reconstructedOrder, paymentRef, new Date().toISOString());
+              } else {
+                return sendJson(res, 400, { error: 'Montante forjado ou inconsistente com a campanha' });
+              }
+            } else {
+              return sendJson(res, 400, { error: 'Metadados da sessão inválidos' });
+            }
           }
 
           if (order && !order.email_sent) {
@@ -484,15 +688,63 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         }
       }
 
-      // Falha no pagamento
-      if (event.type === 'payment_intent.payment_failed') {
-        const paymentIntent = event.data?.object || {};
-        const orderId = paymentIntent.metadata?.order_id;
+      // Falha no pagamento (M2)
+      if (
+        event.type === 'payment_intent.payment_failed' ||
+        event.type === 'payment_intent.canceled' ||
+        event.type === 'checkout.session.async_payment_failed'
+      ) {
+        const obj = event.data?.object || {};
+        const orderId = obj.metadata?.order_id || obj.client_reference_id;
         if (orderId) {
           const order = getShopOrderById(orderId);
-          if (order) {
+          if (order && order.payment_status !== 'paid') {
             updateShopOrderPaymentStatus(orderId, 'failed');
+            console.log(`[STRIPE WEBHOOK] Encomenda ${orderId} marcada como falhada (${event.type})`);
           }
+        }
+      }
+
+      // Expiração da sessão Checkout (M2)
+      if (event.type === 'checkout.session.expired') {
+        const session = event.data?.object || {};
+        const orderId = session.metadata?.order_id || session.client_reference_id;
+        if (orderId) {
+          const order = getShopOrderById(orderId);
+          if (order && order.payment_status !== 'paid') {
+            updateShopOrderPaymentStatus(orderId, 'expired');
+            console.log(`[STRIPE WEBHOOK] Encomenda ${orderId} marcada como expirada (checkout.session.expired)`);
+          }
+        }
+      }
+
+      // Reembolso de pagamento (M2)
+      if (event.type === 'charge.refunded') {
+        const charge = event.data?.object || {};
+        const paymentRef = charge.payment_intent || charge.id;
+        const order =
+          getShopOrderByPaymentRef(paymentRef) ||
+          (charge.metadata?.order_id ? getShopOrderById(charge.metadata.order_id) : null);
+        if (order) {
+          const refundAmount = ((charge.amount_refunded || 0) / 100).toFixed(2);
+          const refundNote = `[REEMBOLSO STRIPE] Valor: ${refundAmount}€ em ${new Date().toISOString()}`;
+          console.log(`[STRIPE AUDIT] Reembolso registado para encomenda ${order.id}: ${refundAmount}€`);
+          appendShopOrderAdminNotes(order.id, refundNote);
+        }
+      }
+
+      // Abertura de disputa / contestação bancária (M2)
+      if (event.type === 'charge.dispute.created') {
+        const dispute = event.data?.object || {};
+        const paymentRef = dispute.payment_intent || dispute.charge;
+        const order =
+          getShopOrderByPaymentRef(paymentRef) ||
+          (dispute.metadata?.order_id ? getShopOrderById(dispute.metadata.order_id) : null);
+        if (order) {
+          const disputeAmount = ((dispute.amount || 0) / 100).toFixed(2);
+          const disputeNote = `[DISPUTA BANCÁRIA STRIPE] Disputa ${dispute.id} (${disputeAmount}€) iniciada em ${new Date().toISOString()}`;
+          console.warn(`[STRIPE AUDIT WARNING] Disputa aberta para encomenda ${order.id}: ${dispute.id}`);
+          appendShopOrderAdminNotes(order.id, disputeNote);
         }
       }
 
@@ -556,6 +808,10 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
     // 9. POST /api/shop/simulate-payment - Simulação manual para testes em Sandbox
     if (pathname === '/api/shop/simulate-payment' && req.method === 'POST') {
+      if (process.env.NODE_ENV === 'production' && !isPaymentSandbox()) {
+        return sendJson(res, 403, { error: 'Simulação desativada em ambiente de produção.' });
+      }
+
       const body = await readJsonBody(req);
       const { orderId } = body;
 
