@@ -178,15 +178,8 @@ export const Events: React.FC = () => {
       {/* Hero Header */}
       <div className="relative overflow-hidden border-b border-primary-200/50 dark:border-cyan-950/70 bg-gradient-to-b from-primary-100/30 via-transparent to-transparent dark:from-cyan-950/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 relative z-10">
-          <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300 mb-4">
-                <CalendarIcon
-                  size={14}
-                  className="animate-pulse text-accent-200 dark:text-cyan-400"
-                />
-                <span>Calendário Oficial do Mandato</span>
-              </div>
+          <div className="flex flex-col items-center text-center max-w-3xl mx-auto gap-6 sm:gap-8">
+            <div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-text-100 dark:text-white mb-4">
                 Atividades & Eventos{' '}
                 <span className="text-accent-200 dark:text-cyan-400">NEEI</span>
@@ -199,7 +192,7 @@ export const Events: React.FC = () => {
 
             {/* Quick stats badge */}
             {showCalendar && (
-              <div className="flex gap-4 sm:gap-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-gray-200/80 dark:border-cyan-900/50 shadow-sm">
+              <div className="inline-flex items-center gap-4 sm:gap-6 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-gray-200/80 dark:border-cyan-900/50 shadow-sm">
                 <div className="text-center px-3">
                   <div className="text-2xl sm:text-3xl font-bold text-accent-200 dark:text-cyan-400">
                     {ongoingActivities.length}
@@ -208,7 +201,7 @@ export const Events: React.FC = () => {
                     A Decorrer
                   </div>
                 </div>
-                <div className="w-px bg-gray-200 dark:bg-slate-800" />
+                <div className="w-px h-8 bg-gray-200 dark:bg-slate-800" />
                 <div className="text-center px-3">
                   <div className="text-2xl sm:text-3xl font-bold text-primary-300 dark:text-slate-200">
                     {upcomingActivities.length}
@@ -219,7 +212,7 @@ export const Events: React.FC = () => {
                 </div>
                 {completedActivities.length > 0 && (
                   <>
-                    <div className="w-px bg-gray-200 dark:bg-slate-800" />
+                    <div className="w-px h-8 bg-gray-200 dark:bg-slate-800" />
                     <div className="text-center px-3">
                       <div className="text-2xl sm:text-3xl font-bold text-gray-500 dark:text-slate-400">
                         {completedActivities.length}

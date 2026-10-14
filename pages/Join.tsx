@@ -183,10 +183,6 @@ export const Join: React.FC = () => {
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Banner de Apresentação */}
         <div className="text-center space-y-4 max-w-2xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-100/20 dark:bg-cyan-500/10 border border-accent-100/40 dark:border-cyan-500/30 text-xs font-semibold text-primary-300 dark:text-cyan-300">
-            <PartyPopper size={14} className="animate-pulse text-accent-200 dark:text-cyan-400" />
-            <span>Vem fazer a diferença</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-text-100 dark:text-white">
             Queres ser <span className="text-accent-200 dark:text-cyan-400">Colaborador</span>?
           </h1>

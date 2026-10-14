@@ -683,15 +683,12 @@ export const Shop: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header Hero da Página de Merch */}
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider mb-4">
-            <GraduationCap size={14} className="text-cyan-500" />
-            <span>Merchandise Oficial · NEEI AAUAlg</span>
-          </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4">
-            Merch Oficial
+            <span className="text-accent-200 dark:text-cyan-400">Merchandise </span>
+            Oficial
           </h1>
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Veste a camisola do curso e apoia as atividades e projetos dos estudantes de Engenharia
+            Adquire a merch do curso e/ou apoia as atividades e projetos dos estudantes de Engenharia
             Informática da Universidade do Algarve.
           </p>
 
