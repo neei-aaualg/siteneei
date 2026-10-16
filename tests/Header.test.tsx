@@ -54,16 +54,23 @@ describe('Header', () => {
     await user.click(screen.getAllByText('Explorar')[0]);
     expect(screen.getByText('Sobre')).toBeInTheDocument();
     expect(screen.getByText('Vagas')).toBeInTheDocument();
+    expect(screen.getByText('Constrói e personaliza o teu currículo')).toBeInTheDocument();
+    expect(screen.getAllByText('CV Builder').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Links')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
     expect(screen.queryByText('Sobre')).not.toBeInTheDocument();
     expect(screen.queryByText('Vagas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Constrói e personaliza o teu currículo')).not.toBeInTheDocument();
   });
 
-  it('liga para o NEEIBox e o Quack', () => {
+  it('liga para o CV Builder, o NEEIBox e o Quack', () => {
     renderHeader();
-    expect(screen.getByTitle('Ir para o NEEIBox (box.neei.online)')).toHaveAttribute(
+    const cvButtons = screen.getAllByTitle('CV Builder do NEEI (cv.neei.online)');
+    expect(cvButtons.length).toBeGreaterThan(0);
+    expect(cvButtons[0]).toHaveAttribute('href', 'https://cv.neei.online');
+
+    expect(screen.getByTitle('NEEIBox (box.neei.online)')).toHaveAttribute(
       'href',
       'https://box.neei.online'
     );

@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Briefcase,
   FileText,
+  FileUser,
   QrCode,
   Sun,
   Moon,
@@ -46,6 +47,13 @@ const Header: React.FC = () => {
       path: '/vagas',
       icon: <Briefcase size={18} />,
       desc: 'Estágios e oportunidades',
+    },
+    {
+      name: 'CV Builder',
+      path: 'https://cv.neei.online',
+      icon: <FileUser size={18} />,
+      desc: 'Constrói e personaliza o teu currículo',
+      isExternal: true,
     },
     {
       name: 'Links',
@@ -247,11 +255,10 @@ const Header: React.FC = () => {
               <Link
                 to="/merch"
                 onClick={() => jumpToPageTop('/merch')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
-                  isActive('/merch') || isActive('/loja')
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/merch') || isActive('/loja')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  }`}
               >
                 Merch
               </Link>
@@ -294,14 +301,26 @@ const Header: React.FC = () => {
             </button>
 
             <a
+              href="https://cv.neei.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm bg-accent-200 text-white hover:bg-accent-100 hover:shadow-md"
+              title="CV Builder do NEEI (cv.neei.online)"
+            >
+              <FileUser size={16} />
+              <span>NEEI-CV</span>
+              <ExternalLink size={14} className="opacity-80" />
+            </a>
+
+            <a
               href="https://box.neei.online"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm bg-accent-200 text-white hover:bg-accent-100 hover:shadow-md"
-              title="Ir para o NEEIBox (box.neei.online)"
+              title="NEEIBox (box.neei.online)"
             >
               <Box size={16} />
-              <span>Ir para o NEEIBox</span>
+              <span><span className="hidden xl:inline"></span>NEEI-Box</span>
               <ExternalLink size={14} className="opacity-80" />
             </a>
 
@@ -424,11 +443,10 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/merch');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
-                isActive('/merch') || isActive('/loja')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-              }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/merch') || isActive('/loja')
+                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
             >
               Merch
             </Link>
@@ -463,6 +481,21 @@ const Header: React.FC = () => {
 
             <div className="pt-3 space-y-2 border-t border-primary-200 dark:border-cyan-950/60 mt-2">
               <a
+                href="https://cv.neei.online"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-between px-3 py-2.5 rounded-md text-base font-bold bg-accent-200 text-white hover:bg-accent-100 transition-colors"
+                title="CV Builder do NEEI (cv.neei.online)"
+              >
+                <div className="flex items-center gap-2">
+                  <FileUser size={18} />
+                  <span>CV Builder</span>
+                </div>
+                <ExternalLink size={16} />
+              </a>
+
+              <a
                 href="https://box.neei.online"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -471,7 +504,7 @@ const Header: React.FC = () => {
               >
                 <div className="flex items-center gap-2">
                   <Box size={18} />
-                  <span>Ir para o NEEIBox</span>
+                  <span>NEEIBox</span>
                 </div>
                 <ExternalLink size={16} />
               </a>
