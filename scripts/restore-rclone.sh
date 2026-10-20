@@ -116,7 +116,7 @@ elif [ -n "$CONTAINER_ID" ]; then
   echo "(A validar através do contentor Coolify '${CONTAINER_ID}')..."
   docker cp "$LOCAL_DB" "${CONTAINER_ID}:/tmp/restore_verify.db"
   docker exec "$CONTAINER_ID" node -e "$NODE_SCRIPT" /tmp/restore_verify.db
-  docker exec "$CONTAINER_ID" rm -f /tmp/restore_verify.db
+  docker exec -u 0 "$CONTAINER_ID" rm -f /tmp/restore_verify.db 2>/dev/null || docker exec "$CONTAINER_ID" rm -f /tmp/restore_verify.db 2>/dev/null || true
 elif command -v sqlite3 > /dev/null 2>&1; then
   echo "(A validar através do sqlite3 do sistema)..."
   INTEGRITY=$(sqlite3 "$LOCAL_DB" "PRAGMA integrity_check;")

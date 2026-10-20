@@ -96,7 +96,7 @@ if [ -n "$CONTAINER_ID" ]; then
   
   docker exec "$CONTAINER_ID" node scripts/backup-db.js /tmp/backup_container.db
   docker cp "${CONTAINER_ID}:/tmp/backup_container.db" "$TEMP_SNAPSHOT"
-  docker exec "$CONTAINER_ID" rm -f /tmp/backup_container.db
+  docker exec -u 0 "$CONTAINER_ID" rm -f /tmp/backup_container.db 2>/dev/null || docker exec "$CONTAINER_ID" rm -f /tmp/backup_container.db 2>/dev/null || true
 elif [ -n "$HOST_DB_PATH" ] && [ -f "$HOST_DB_PATH" ]; then
   log "A usar base de dados local na VPS: ${HOST_DB_PATH}"
   DATABASE_PATH="$HOST_DB_PATH" node "$(dirname "$0")/backup-db.js" "$TEMP_SNAPSHOT"
