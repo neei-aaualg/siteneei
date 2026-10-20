@@ -16,6 +16,7 @@ import {
   ProductFormData,
   AdminProductPayload,
   sortSweatSizes,
+  DEFAULT_SIZE_GUIDE,
 } from '../../types/shop';
 import {
   fetchAdminShopOrders,
@@ -73,6 +74,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     allow_shipping: true,
     pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
     sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+    colors_available: ['Preto'],
+    size_guide: { ...DEFAULT_SIZE_GUIDE },
     features: [
       '80% Algodão cardado / 20% Poliéster (320g/m²)',
       'Bordado de alta definição NEEI · Engenharia Informática',
@@ -475,6 +478,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     setProductForm({
       ...defaultProductForm,
       deadline_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+      colors_available: ['Preto'],
+      size_guide: { ...DEFAULT_SIZE_GUIDE },
     });
     setIsProductModalOpen(true);
   };
@@ -495,6 +500,11 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       allow_shipping: Boolean(prod.allow_shipping),
       pickup_location: prod.pickup_location || '',
       sizes_available: sortSweatSizes(prod.sizes_available),
+      colors_available:
+        prod.colors_available && prod.colors_available.length > 0
+          ? [...prod.colors_available]
+          : ['Preto'],
+      size_guide: prod.size_guide ? { ...prod.size_guide } : { ...DEFAULT_SIZE_GUIDE },
       category: prod.category || 'Vestuário',
       features:
         prod.features && prod.features.length > 0
@@ -570,6 +580,12 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       return;
     }
 
+    const isClothing = (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
+    if (isClothing && (!productForm.colors_available || productForm.colors_available.length === 0)) {
+      setProductError('Deves selecionar pelo menos uma cor disponível para vestuário.');
+      return;
+    }
+
     const cleanedFeatures = productForm.features
       .map((f) => f.trim())
       .filter((f) => f.length > 0);
@@ -580,6 +596,12 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       item_name: itemName,
       category: productForm.category?.trim() || 'Vestuário',
       features: cleanedFeatures,
+      colors_available: isClothing
+        ? (productForm.colors_available && productForm.colors_available.length > 0
+          ? productForm.colors_available
+          : ['Preto'])
+        : undefined,
+      size_guide: isClothing ? (productForm.size_guide || DEFAULT_SIZE_GUIDE) : undefined,
     };
 
     try {

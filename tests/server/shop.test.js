@@ -1425,6 +1425,87 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     });
     expect(product.sizes_available).toEqual(['XS', 'S', 'XXL', '3XL']);
   });
+
+  it('permite definir cores disponíveis e guia de tamanhos customizado para artigos de vestuário', () => {
+    const customGuide = {
+      S: { chest: 50, length: 66, sleeve: 61, label: 'Pequeno Fit' },
+      M: { chest: 53, length: 69, sleeve: 63, label: 'Médio Regular' },
+      L: { chest: 56, length: 72, sleeve: 65, label: 'Grande Regular' },
+    };
+
+    const product = db.createShopCampaign({
+      title: 'Casaco Técnico NEEI 2026',
+      item_name: 'Casaco Técnico NEEI',
+      category: 'Vestuário',
+      item_price: 35.0,
+      sizes_available: ['S', 'M', 'L'],
+      colors_available: ['Preto', 'Azul Marinho', 'Verde Garrafa'],
+      size_guide: customGuide,
+    });
+
+    expect(product.colors_available).toEqual(['Preto', 'Azul Marinho', 'Verde Garrafa']);
+    expect(product.size_guide).toEqual(customGuide);
+
+    // Atualiza as cores e medidas
+    const updatedGuide = {
+      ...customGuide,
+      M: { chest: 54, length: 70, sleeve: 64, label: 'Médio Confortável' },
+    };
+    const updated = db.updateShopCampaign(product.id, {
+      colors_available: ['Preto', 'Bordeaux'],
+      size_guide: updatedGuide,
+    });
+
+    expect(updated.colors_available).toEqual(['Preto', 'Bordeaux']);
+    expect(updated.size_guide.M.chest).toBe(54);
+    expect(updated.size_guide.M.label).toBe('Médio Confortável');
+  });
+
+  it('valida e guarda a cor selecionada pelo comprador na encomenda', () => {
+    const product = db.createShopCampaign({
+      title: 'Sweat Universitária 2026',
+      item_name: 'Sweat Universitária',
+      category: 'Vestuário',
+      sizes_available: ['M', 'L'],
+      colors_available: ['Preto', 'Branco', 'Azul Marinho'],
+    });
+
+    // Encomenda com cor válida
+    const order1 = db.preparePendingShopOrder({
+      campaign_id: product.id,
+      student_name: 'Tiago Santos',
+      student_email: 'tiago@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      color: 'Azul Marinho',
+      delivery_type: 'pickup',
+    });
+
+    expect(order1.color).toBe('Azul Marinho');
+
+    // Encomenda sem cor especificada — recorre à primeira cor disponível
+    const order2 = db.preparePendingShopOrder({
+      campaign_id: product.id,
+      student_name: 'Ana Pires',
+      student_email: 'ana@ualg.pt',
+      phone_number: '912345678',
+      size: 'L',
+      delivery_type: 'pickup',
+    });
+
+    expect(order2.color).toBe('Preto');
+
+    // Registo do pagamento preserva a cor na base de dados
+    const paid = db.recordPaidShopOrder(order1, 'pi_test_color_123');
+    expect(paid.color).toBe('Azul Marinho');
+
+    // Exportação da fábrica reflete a cor correta
+    const exportRows = db.getFactoryExportData();
+    const foundExport = exportRows.find((r) => r.id === paid.id);
+    expect(foundExport).toBeTruthy();
+    expect(foundExport.cor).toBe('Azul Marinho');
+  });
 });
+
 
 

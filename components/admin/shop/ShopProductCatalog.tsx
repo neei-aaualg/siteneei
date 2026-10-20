@@ -9,8 +9,9 @@ import {
   ToggleLeft,
   ToggleRight,
   ListPlus,
+  Palette,
 } from 'lucide-react';
-import { ShopCampaign, sortSweatSizes } from '../../../types/shop';
+import { ShopCampaign, sortSweatSizes, getColorHex } from '../../../types/shop';
 
 interface ShopProductCatalogProps {
   products: ShopCampaign[];
@@ -170,6 +171,30 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                       ))}
                     </div>
                   </div>
+
+                  {/* Cores Disponíveis */}
+                  {prod.colors_available && prod.colors_available.length > 0 && (
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-1">
+                        <Palette size={11} className="text-cyan-500" />
+                        Cores Disponíveis ({prod.colors_available.length})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {prod.colors_available.map((c) => (
+                          <span
+                            key={c}
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300"
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                              style={{ backgroundColor: getColorHex(c) }}
+                            />
+                            <span>{c}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

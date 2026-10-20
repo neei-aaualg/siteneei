@@ -15,7 +15,7 @@ import {
   XCircle,
   Mail,
 } from 'lucide-react';
-import { ShopOrder, OrderStatus } from '../../../types/shop';
+import { ShopOrder, OrderStatus, getColorHex } from '../../../types/shop';
 import { formatDateTimeDDMMAAAA } from '../../../utils/dateHelpers';
 
 interface ShopOrdersTableProps {
@@ -300,7 +300,7 @@ export const ShopOrdersTable: React.FC<ShopOrdersTableProps> = ({
                 <th className="py-3 px-3">Artigo / Peça</th>
                 <th className="py-3 px-3">Aluno</th>
                 <th className="py-3 px-3">Contacto</th>
-                <th className="py-3 px-3">Tamanho</th>
+                <th className="py-3 px-3">Tamanho / Cor</th>
                 <th className="py-3 px-3">Entrega</th>
                 <th className="py-3 px-3">Valor</th>
                 <th className="py-3 px-3">Pagamento</th>
@@ -388,11 +388,22 @@ export const ShopOrdersTable: React.FC<ShopOrdersTableProps> = ({
                     </span>
                   </td>
 
-                  {/* Tamanho */}
+                  {/* Tamanho e Cor */}
                   <td className="py-3 px-3">
-                    <span className="px-2 py-1 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-black text-xs">
-                      {o.size}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-black text-xs">
+                        {o.size}
+                      </span>
+                      {o.color && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                            style={{ backgroundColor: getColorHex(o.color) }}
+                          />
+                          <span>{o.color}</span>
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Modalidade de Entrega */}

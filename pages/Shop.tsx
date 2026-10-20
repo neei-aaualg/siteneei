@@ -30,7 +30,16 @@ import {
   ChevronLeft,
   Shirt,
 } from 'lucide-react';
-import { ShopCampaign, SweatSize, DeliveryType, MerchProduct, sortSweatSizes } from '../types/shop';
+import {
+  ShopCampaign,
+  SweatSize,
+  DeliveryType,
+  MerchProduct,
+  sortSweatSizes,
+  DEFAULT_SIZE_GUIDE,
+  ORDERED_SWEAT_SIZES,
+  getColorHex,
+} from '../types/shop';
 import {
   fetchShopCampaign,
   submitCheckout,
@@ -44,20 +53,6 @@ import { StripePaymentWidget } from '../components/StripePaymentWidget';
 import { OrderTrackerModal } from '../components/OrderTrackerModal';
 import { Portal } from '../components/Portal';
 import { getPortugalDistricts, getCountiesForDistrict } from '../constants/portugalDistricts';
-
-// Tabela do Guia de Medidas (em centímetros)
-const SIZE_GUIDE: Record<
-  SweatSize,
-  { chest: number; length: number; sleeve: number; label: string }
-> = {
-  XS: { chest: 49, length: 64, sleeve: 60, label: 'Extra Pequeno' },
-  S: { chest: 52, length: 67, sleeve: 62, label: 'Pequeno' },
-  M: { chest: 55, length: 70, sleeve: 64, label: 'Médio (Mais comum)' },
-  L: { chest: 58, length: 73, sleeve: 66, label: 'Grande (Mais comum)' },
-  XL: { chest: 61, length: 76, sleeve: 68, label: 'Extra Grande' },
-  XXL: { chest: 64, length: 79, sleeve: 70, label: '2X Grande' },
-  '3XL': { chest: 67, length: 82, sleeve: 72, label: '3X Grande' },
-};
 
 export const Shop: React.FC = () => {
   const [campaign, setCampaign] = useState<ShopCampaign | null>(null);
@@ -84,7 +79,24 @@ export const Shop: React.FC = () => {
 
   // Seleções do comprador
   const [selectedSize, setSelectedSize] = useState<SweatSize>('M');
+  const [selectedColor, setSelectedColor] = useState<string>('Preto');
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup');
+
+  // Cores disponíveis para o artigo ativo
+  const isClothing = (activeCampaign?.category || 'Vestuário').toLowerCase() === 'vestuário';
+  const activeColors = useMemo(() => {
+    if (activeCampaign?.colors_available && activeCampaign.colors_available.length > 0) {
+      return activeCampaign.colors_available;
+    }
+    return isClothing ? ['Preto'] : [];
+  }, [activeCampaign?.colors_available, isClothing]);
+
+  // Sincroniza cor selecionada caso o produto ativo mude
+  useEffect(() => {
+    if (activeColors.length > 0 && !activeColors.includes(selectedColor)) {
+      setSelectedColor(activeColors[0]);
+    }
+  }, [activeColors, selectedColor]);
 
   // Modal Guia de Medidas
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
@@ -106,6 +118,7 @@ export const Shop: React.FC = () => {
     studentEmail?: string;
     phoneNumber?: string;
     size?: string;
+    color?: string;
     deliveryType?: DeliveryType;
     shippingAddress?: string;
     shippingPostalCode?: string;
@@ -240,6 +253,7 @@ export const Shop: React.FC = () => {
               studentEmail: res.order.student_email,
               phoneNumber: res.order.phone_number,
               size: res.order.size,
+              color: res.order.color,
               deliveryType: res.order.delivery_type,
               shippingAddress: res.order.shipping_address || undefined,
               shippingPostalCode: res.order.shipping_postal_code || undefined,
@@ -259,6 +273,7 @@ export const Shop: React.FC = () => {
                 studentEmail: prev?.studentEmail,
                 phoneNumber: prev?.phoneNumber,
                 size: st.size || prev?.size,
+                color: st.color || prev?.color,
                 deliveryType: st.deliveryType || prev?.deliveryType,
                 shippingCity: st.shippingCity || prev?.shippingCity,
                 totalAmount: st.totalAmount || prev?.totalAmount,
@@ -317,6 +332,8 @@ export const Shop: React.FC = () => {
       available: isAvailableToBuy && Boolean(c.is_active),
       isPreorder: true,
       sizes: c.sizes_available || ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+      colors: c.colors_available || ['Preto'],
+      sizeGuide: c.size_guide,
       allowShipping: c.allow_shipping,
       shippingFee: c.shipping_fee,
       pickupLocation: c.pickup_location,
@@ -507,6 +524,7 @@ export const Shop: React.FC = () => {
         student_email: trimmedEmail,
         phone_number: cleanPhone,
         size: selectedSize,
+        color: selectedColor,
         delivery_type: deliveryType,
         shipping_address: deliveryType === 'shipping' ? shippingAddress.trim() : undefined,
         shipping_postal_code: deliveryType === 'shipping' ? shippingPostalCode.trim() : undefined,
@@ -522,6 +540,7 @@ export const Shop: React.FC = () => {
         studentEmail: trimmedEmail,
         phoneNumber: cleanPhone,
         size: selectedSize,
+        color: selectedColor,
         deliveryType,
         shippingAddress: deliveryType === 'shipping' ? shippingAddress.trim() : null,
         shippingPostalCode: deliveryType === 'shipping' ? shippingPostalCode.trim() : null,
@@ -567,6 +586,7 @@ export const Shop: React.FC = () => {
             studentEmail: res.order.student_email,
             phoneNumber: res.order.phone_number,
             size: res.order.size,
+            color: res.order.color,
             deliveryType: res.order.delivery_type,
             shippingAddress: res.order.shipping_address || undefined,
             shippingPostalCode: res.order.shipping_postal_code || undefined,
@@ -610,6 +630,7 @@ export const Shop: React.FC = () => {
           studentEmail: res.order.student_email,
           phoneNumber: res.order.phone_number,
           size: res.order.size,
+          color: res.order.color,
           deliveryType: res.order.delivery_type,
           shippingAddress: res.order.shipping_address || undefined,
           shippingPostalCode: res.order.shipping_postal_code || undefined,
@@ -857,6 +878,23 @@ export const Shop: React.FC = () => {
                           </li>
                         ))}
                       </ul>
+
+                      {/* Mini-paleta de cores no cartão */}
+                      {prod.colors && prod.colors.length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/60">
+                          <span className="text-[11px] text-slate-400 font-medium">Cores:</span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {prod.colors.map((c) => (
+                              <span
+                                key={c}
+                                title={c}
+                                className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shadow-xs inline-block"
+                                style={{ backgroundColor: getColorHex(c) }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-3">
@@ -871,6 +909,11 @@ export const Shop: React.FC = () => {
                                 setSelectedSize(sorted[0]);
                               }
                             }
+                            if (prod.campaignData.colors_available?.length) {
+                              setSelectedColor(prod.campaignData.colors_available[0]);
+                            } else {
+                              setSelectedColor('Preto');
+                            }
                           }
                           setIsCheckoutOpen(true);
                         }}
@@ -880,14 +923,21 @@ export const Shop: React.FC = () => {
                         <span>Pré-encomendar</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setIsSizeGuideOpen(true)}
-                        className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-                        title="Ver Guia de Tamanhos"
-                      >
-                        <Ruler size={18} />
-                      </button>
+                      {((prod.category || 'Vestuário').toLowerCase() === 'vestuário') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (prod.campaignData) {
+                              setSelectedProductCampaign(prod.campaignData);
+                            }
+                            setIsSizeGuideOpen(true);
+                          }}
+                          className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                          title="Ver Guia de Tamanhos"
+                        >
+                          <Ruler size={18} />
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -1036,6 +1086,46 @@ export const Shop: React.FC = () => {
                         })}
                       </div>
                     </div>
+
+                    {/* 1b. Seleção de Cor */}
+                    {activeColors.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                            Cor:{' '}
+                            <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
+                              {selectedColor}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {activeColors.map((colorName) => {
+                            const isSelected = selectedColor === colorName;
+                            const hex = getColorHex(colorName);
+                            return (
+                              <button
+                                key={colorName}
+                                type="button"
+                                onClick={() => setSelectedColor(colorName)}
+                                className={`flex items-center gap-2 py-2 px-3.5 rounded-xl text-xs sm:text-sm font-semibold border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-500/30 font-bold shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                                }`}
+                              >
+                                <span
+                                  className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0 shadow-xs"
+                                  style={{ backgroundColor: hex }}
+                                />
+                                <span>{colorName}</span>
+                                {isSelected && <Check size={14} className="text-cyan-500 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 2. Modalidade de Entrega */}
                     <div>
@@ -1415,50 +1505,76 @@ export const Shop: React.FC = () => {
                   <X size={20} />
                 </button>
 
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
                   <Ruler className="text-cyan-500" size={22} />
-                  Guia de Tamanhos (cm)
+                  <span>Guia de Tamanhos (cm)</span>
                 </h3>
+                {activeCampaign?.item_name && (
+                  <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-2">
+                    {activeCampaign.item_name}
+                  </p>
+                )}
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-                  Medidas aproximadas com a peça esticada numa superfície plana.
+                  Medidas aproximadas com a peça esticada numa superfície plana. Clica num tamanho para o selecionar diretamente.
                 </p>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs sm:text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                        <th className="py-2.5 px-3">Tamanho</th>
-                        <th className="py-2.5 px-3">Peito (A)</th>
-                        <th className="py-2.5 px-3">Comprimento (B)</th>
-                        <th className="py-2.5 px-3">Manga (C)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
-                      {Object.entries(SIZE_GUIDE).map(([sz, dims]) => (
-                        <tr
-                          key={sz}
-                          className={
-                            selectedSize === sz
-                              ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
-                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                          }
-                        >
-                          <td className="py-2 px-3 flex items-center gap-1.5">
-                            <span>{sz}</span>
-                            {selectedSize === sz && (
-                              <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
-                                Escolhido
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-2 px-3">{dims.chest} cm</td>
-                          <td className="py-2 px-3">{dims.length} cm</td>
-                          <td className="py-2 px-3">{dims.sleeve} cm</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {(() => {
+                  const guideData = activeCampaign?.size_guide || DEFAULT_SIZE_GUIDE;
+                  const availableSizes = activeCampaign?.sizes_available?.length
+                    ? sortSweatSizes(activeCampaign.sizes_available)
+                    : ORDERED_SWEAT_SIZES;
+
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs sm:text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                            <th className="py-2.5 px-3">Tamanho</th>
+                            <th className="py-2.5 px-3">Peito (A)</th>
+                            <th className="py-2.5 px-3">Comprimento (B)</th>
+                            <th className="py-2.5 px-3">Manga (C)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
+                          {availableSizes.map((sz) => {
+                            const dims = guideData[sz] || DEFAULT_SIZE_GUIDE[sz as SweatSize] || { chest: 0, length: 0, sleeve: 0 };
+                            const isSelected = selectedSize === sz;
+                            return (
+                              <tr
+                                key={sz}
+                                onClick={() => setSelectedSize(sz)}
+                                className={`cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
+                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                                }`}
+                              >
+                                <td className="py-2 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold">{sz}</span>
+                                    {dims.label && (
+                                      <span className="text-[10px] text-slate-400 font-normal">
+                                        ({dims.label})
+                                      </span>
+                                    )}
+                                    {isSelected && (
+                                      <span className="text-[10px] bg-cyan-500 text-slate-950 px-1.5 py-0.2 rounded font-bold">
+                                        Escolhido
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3">{dims.chest} cm</td>
+                                <td className="py-2 px-3">{dims.length} cm</td>
+                                <td className="py-2 px-3">{dims.sleeve !== undefined && dims.sleeve !== null ? `${dims.sleeve} cm` : '—'}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                   <button
@@ -1564,6 +1680,7 @@ export const Shop: React.FC = () => {
                   const displayBuyerEmail = confirmedOrderDetails?.studentEmail || studentEmail;
                   const displayItemName = confirmedOrderDetails?.itemName || activeCampaign?.item_name || 'Sweat Oficial';
                   const displaySize = confirmedOrderDetails?.size || selectedSize;
+                  const displayColor = confirmedOrderDetails?.color || (isClothing ? selectedColor : undefined);
                   const displayDeliveryType = confirmedOrderDetails?.deliveryType || deliveryType;
                   const displayAddress = confirmedOrderDetails?.shippingAddress || (deliveryType === 'shipping' ? shippingAddress : '');
                   const displayPostal = confirmedOrderDetails?.shippingPostalCode || (deliveryType === 'shipping' ? shippingPostalCode : '');
@@ -1580,8 +1697,7 @@ export const Shop: React.FC = () => {
                       </h3>
                       <p className="text-slate-300 text-sm mb-6 leading-relaxed">
                         Muito obrigado, <strong className="text-white">{displayBuyerName}</strong>! O teu
-                        pagamento foi recebido e a tua peça <strong className="text-cyan-300">"{displayItemName}"</strong> de tamanho{' '}
-                        <strong className="text-cyan-300">{displaySize}</strong> já está reservada para
+                        pagamento foi recebido e a tua peça <strong className="text-cyan-300">"{displayItemName}"</strong> ({displaySize}{displayColor ? ` · ${displayColor}` : ''}) já está reservada para
                         produção.
                       </p>
 
@@ -1589,6 +1705,21 @@ export const Shop: React.FC = () => {
                         <div className="flex justify-between items-center text-xs text-slate-400">
                           <span>Artigo Encomendado:</span>
                           <span className="text-cyan-400 font-semibold">{displayItemName}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs text-slate-400">
+                          <span>Tamanho / Cor:</span>
+                          <span className="text-white font-semibold flex items-center gap-1.5">
+                            <span>{displaySize}</span>
+                            {displayColor && (
+                              <span className="inline-flex items-center gap-1 text-slate-300">
+                                <span
+                                  className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0 inline-block"
+                                  style={{ backgroundColor: getColorHex(displayColor) }}
+                                />
+                                <span>{displayColor}</span>
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center text-xs text-slate-400">
                           <span>Nº de Encomenda:</span>

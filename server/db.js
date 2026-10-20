@@ -145,6 +145,8 @@ db.exec(`
     allow_shipping INTEGER NOT NULL DEFAULT 1,
     pickup_location TEXT NOT NULL,
     sizes_available TEXT NOT NULL,
+    colors_available TEXT,
+    size_guide TEXT,
     features TEXT,
     category TEXT NOT NULL DEFAULT 'Vestuário',
     created_at TEXT NOT NULL
@@ -268,6 +270,16 @@ try {
 } catch (_) {
   // Já existe
 }
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN colors_available TEXT;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN size_guide TEXT;');
+} catch (_) {
+  // Já existe
+}
 
 // Limpeza de encomendas não confirmadas: encomendas pendentes web são limpas, mas encomendas criadas por admin são preservadas
 try {
@@ -275,6 +287,16 @@ try {
 } catch (e) {
   // Ignora se tabela ainda não existir
 }
+
+export const DEFAULT_SHOP_SIZE_GUIDE = {
+  XS: { chest: 49, length: 64, sleeve: 60, label: 'Extra Pequeno' },
+  S: { chest: 52, length: 67, sleeve: 62, label: 'Pequeno' },
+  M: { chest: 55, length: 70, sleeve: 64, label: 'Médio (Mais comum)' },
+  L: { chest: 58, length: 73, sleeve: 66, label: 'Grande (Mais comum)' },
+  XL: { chest: 61, length: 76, sleeve: 68, label: 'Extra Grande' },
+  XXL: { chest: 64, length: 79, sleeve: 70, label: '2X Grande' },
+  '3XL': { chest: 67, length: 82, sleeve: 72, label: '3X Grande' },
+};
 
 // Seed da Campanha de Pré-encomenda das Sweats (se ainda não existir)
 try {
@@ -285,9 +307,9 @@ try {
       `
       INSERT INTO shop_campaigns (
         id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, category, created_at
+        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, size_guide, features, category, created_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `
     ).run(
@@ -304,6 +326,8 @@ try {
       1,
       'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
       JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']),
+      JSON.stringify(['Preto', 'Branco']),
+      JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE),
       JSON.stringify([
         '80% Algodão cardado / 20% Poliéster (320g/m²)',
         'Bordado de alta definição NEEI · Engenharia Informática',
@@ -1269,6 +1293,33 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     // fallback
   }
 
+  let colors = ['Preto'];
+  if (row.colors_available) {
+    try {
+      const parsed = typeof row.colors_available === 'string' ? JSON.parse(row.colors_available) : row.colors_available;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        colors = parsed.map((c) => String(c).trim()).filter(Boolean);
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
+  let sizeGuide = null;
+  if (row.size_guide) {
+    try {
+      const parsed = typeof row.size_guide === 'string' ? JSON.parse(row.size_guide) : row.size_guide;
+      if (parsed && typeof parsed === 'object') {
+        sizeGuide = parsed;
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+  if (!sizeGuide && (row.category === 'Vestuário' || !row.category)) {
+    sizeGuide = DEFAULT_SHOP_SIZE_GUIDE;
+  }
+
   let features = [
     '80% Algodão cardado / 20% Poliéster (320g/m²)',
     'Bordado de alta definição NEEI · Engenharia Informática',
@@ -1309,6 +1360,8 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     allow_shipping: Boolean(row.allow_shipping),
     pickup_location: row.pickup_location,
     sizes_available: sizes,
+    colors_available: colors,
+    size_guide: sizeGuide,
     features,
     category: row.category || 'Vestuário',
     created_at: row.created_at,
@@ -1379,6 +1432,14 @@ export function createShopCampaign(data) {
         : CANONICAL_SHOP_SIZES)
   );
   const category = (data.category || 'Vestuário').trim();
+  const colors_available = JSON.stringify(
+    Array.isArray(data.colors_available) && data.colors_available.length > 0
+      ? data.colors_available.map((c) => String(c).trim()).filter(Boolean)
+      : ['Preto']
+  );
+  const size_guide = data.size_guide
+    ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
+    : (category === 'Vestuário' ? JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE) : null);
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : JSON.stringify([
@@ -1391,9 +1452,9 @@ export function createShopCampaign(data) {
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, features, category, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, size_guide, features, category, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1409,6 +1470,8 @@ export function createShopCampaign(data) {
     allow_shipping,
     pickup_location,
     sizes_available,
+    colors_available,
+    size_guide,
     features,
     category,
     now
@@ -1453,6 +1516,30 @@ export function updateShopCampaign(id, data) {
       sizes_available = JSON.stringify(CANONICAL_SHOP_SIZES);
     }
   }
+
+  let colors_available = current.colors_available;
+  if (data.colors_available !== undefined) {
+    try {
+      const parsed = Array.isArray(data.colors_available)
+        ? data.colors_available
+        : (typeof data.colors_available === 'string' ? JSON.parse(data.colors_available) : data.colors_available);
+      colors_available = JSON.stringify(
+        Array.isArray(parsed) && parsed.length > 0
+          ? parsed.map((c) => String(c).trim()).filter(Boolean)
+          : ['Preto']
+      );
+    } catch {
+      colors_available = JSON.stringify(['Preto']);
+    }
+  }
+
+  let size_guide = current.size_guide;
+  if (data.size_guide !== undefined) {
+    size_guide = data.size_guide
+      ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
+      : null;
+  }
+
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : current.features;
@@ -1462,7 +1549,7 @@ export function updateShopCampaign(id, data) {
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?, features = ?, category = ?
+      pickup_location = ?, sizes_available = ?, colors_available = ?, size_guide = ?, features = ?, category = ?
     WHERE id = ?
   `);
 
@@ -1479,6 +1566,8 @@ export function updateShopCampaign(id, data) {
     allow_shipping,
     pickup_location,
     sizes_available,
+    colors_available,
+    size_guide,
     features,
     category,
     id
@@ -1599,6 +1688,21 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     throw err;
   }
 
+  // Validação da cor
+  const availableColors =
+    Array.isArray(campaign.colors_available) && campaign.colors_available.length > 0
+      ? campaign.colors_available
+      : ['Preto'];
+  let color = (orderData.color || '').trim();
+  if (!color) {
+    color = availableColors[0] || 'Preto';
+  } else {
+    const matched = availableColors.find(
+      (c) => c.toLowerCase() === color.toLowerCase()
+    );
+    color = matched || color;
+  }
+
   // Validação dos dados do estudante
   const studentName = (orderData.student_name || '').trim();
   if (!studentName || studentName.length < 3) {
@@ -1675,7 +1779,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     phone_number: rawPhone,
     nif,
     size,
-    color: 'Preto',
+    color,
     delivery_type: deliveryType,
     shipping_address: shippingAddress,
     shipping_postal_code: shippingPostalCode,

@@ -11,8 +11,20 @@ import {
   Check,
   ListPlus,
   Trash2,
+  Palette,
+  Ruler,
+  RotateCcw,
 } from 'lucide-react';
-import { ShopCampaign, SweatSize, ProductFormData, ORDERED_SWEAT_SIZES } from '../../../types/shop';
+import {
+  ShopCampaign,
+  SweatSize,
+  ProductFormData,
+  ORDERED_SWEAT_SIZES,
+  DEFAULT_PRESET_COLORS,
+  DEFAULT_SIZE_GUIDE,
+  getColorHex,
+  SizeMeasurement,
+} from '../../../types/shop';
 import { Portal } from '../../Portal';
 
 interface ShopProductModalProps {
@@ -48,8 +60,82 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
   productError,
 }) => {
   const [newFeatureText, setNewFeatureText] = useState('');
+  const [newColorText, setNewColorText] = useState('');
 
   if (!isOpen) return null;
+
+  const isClothing = (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
+
+  const handleTogglePresetColor = (colorName: string) => {
+    setProductForm((prev) => {
+      const current = prev.colors_available || ['Preto'];
+      const exists = current.includes(colorName);
+      const next = exists
+        ? current.filter((c) => c !== colorName)
+        : [...current, colorName];
+      return {
+        ...prev,
+        colors_available: next.length > 0 ? next : [colorName],
+      };
+    });
+  };
+
+  const handleAddCustomColor = () => {
+    const trimmed = newColorText.trim();
+    if (!trimmed) return;
+    setProductForm((prev) => {
+      const current = prev.colors_available || [];
+      if (current.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+        return prev;
+      }
+      return {
+        ...prev,
+        colors_available: [...current, trimmed],
+      };
+    });
+    setNewColorText('');
+  };
+
+  const handleRemoveColor = (index: number) => {
+    setProductForm((prev) => {
+      const current = prev.colors_available || [];
+      const next = current.filter((_, i) => i !== index);
+      return {
+        ...prev,
+        colors_available: next,
+      };
+    });
+  };
+
+  const handleUpdateSizeGuide = (sz: string, field: keyof SizeMeasurement, val: any) => {
+    setProductForm((prev) => {
+      const currentGuide = prev.size_guide ? { ...prev.size_guide } : { ...DEFAULT_SIZE_GUIDE };
+      const currentItem =
+        currentGuide[sz] ||
+        DEFAULT_SIZE_GUIDE[sz as SweatSize] || {
+          chest: 50,
+          length: 70,
+          sleeve: 60,
+          label: '',
+        };
+      const parsedVal = field === 'label' ? val : (parseFloat(val) || 0);
+      currentGuide[sz] = {
+        ...currentItem,
+        [field]: parsedVal,
+      };
+      return {
+        ...prev,
+        size_guide: currentGuide,
+      };
+    });
+  };
+
+  const handleResetSizeGuide = () => {
+    setProductForm((prev) => ({
+      ...prev,
+      size_guide: { ...DEFAULT_SIZE_GUIDE },
+    }));
+  };
 
   const handleAddFeature = (text?: string) => {
     const feat = (text !== undefined ? text : newFeatureText).trim();
@@ -391,11 +477,221 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
               </div>
             </div>
 
-            {/* 5. Opções de Entrega & Visibilidade */}
+            {/* 5. Cores Disponíveis (se for vestuário) */}
+            {isClothing && (
+              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Palette size={13} className="text-cyan-500" />
+                    <span>5. Cores Disponíveis *</span>
+                  </h4>
+                  <span className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold">
+                    {productForm.colors_available?.length || 0} cor(es) configurada(s)
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Cores que os estudantes poderão escolher ao efetuar a encomenda desta peça na loja pública.
+                </p>
+
+                {/* Sugestões rápidas de cores predefinidas */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Cores Sugeridas (Clica para adicionar/remover):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DEFAULT_PRESET_COLORS.map((preset) => {
+                      const isSelected = productForm.colors_available?.includes(preset);
+                      const hex = getColorHex(preset);
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => handleTogglePresetColor(preset)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
+                              : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                          }`}
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                            style={{ backgroundColor: hex }}
+                          />
+                          <span>{preset}</span>
+                          {isSelected && <Check size={12} className="text-cyan-500" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Cores ativas selecionadas com remoção */}
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Cores Ativas para este Artigo:
+                  </span>
+                  {(!productForm.colors_available || productForm.colors_available.length === 0) ? (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                      Nenhuma cor ativa selecionada. Adiciona pelo menos uma cor (ex: Preto).
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {productForm.colors_available.map((c, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-xs"
+                        >
+                          <span
+                            className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                            style={{ backgroundColor: getColorHex(c) }}
+                          />
+                          <span>{c}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveColor(idx)}
+                            className="text-slate-400 hover:text-red-500 transition-colors ml-0.5 cursor-pointer"
+                            title={`Remover cor ${c}`}
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Adicionar cor personalizada */}
+                  <div className="flex gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                    <input
+                      type="text"
+                      value={newColorText}
+                      onChange={(e) => setNewColorText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddCustomColor();
+                        }
+                      }}
+                      placeholder="Outra cor (ex: Bege, Verde Oliva)..."
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomColor}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                    >
+                      <Plus size={13} />
+                      <span>Adicionar Cor</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 6. Guia de Tamanhos (Medidas em cm) se for vestuário */}
+            {isClothing && (
+              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <Ruler size={13} className="text-cyan-500" />
+                    <span>6. Guia de Tamanhos (Medidas em cm)</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleResetSizeGuide}
+                    className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                    title="Repor tabela com as medidas padrão da fábrica"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Repor Medidas Padrão</span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Ajusta as medidas em centímetros de cada tamanho para esta peça. O guia será apresentado aos estudantes no modal da loja.
+                </p>
+
+                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 font-bold">
+                        <th className="py-2.5 px-3 w-16">Tam.</th>
+                        <th className="py-2.5 px-3">Peito (A) cm</th>
+                        <th className="py-2.5 px-3">Comprimento (B) cm</th>
+                        <th className="py-2.5 px-3">Manga (C) cm</th>
+                        <th className="py-2.5 px-3">Nota / Observação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      {productForm.sizes_available.map((sz) => {
+                        const currentItem =
+                          productForm.size_guide?.[sz] ||
+                          DEFAULT_SIZE_GUIDE[sz] || {
+                            chest: 50,
+                            length: 70,
+                            sleeve: 60,
+                            label: '',
+                          };
+                        return (
+                          <tr key={sz} className="hover:bg-cyan-500/5 transition-colors">
+                            <td className="py-2 px-3 font-bold text-slate-900 dark:text-white">
+                              <span className="px-2 py-0.5 rounded-lg bg-cyan-600/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-black">
+                                {sz}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={currentItem.chest ?? ''}
+                                onChange={(e) => handleUpdateSizeGuide(sz, 'chest', e.target.value)}
+                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={currentItem.length ?? ''}
+                                onChange={(e) => handleUpdateSizeGuide(sz, 'length', e.target.value)}
+                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={currentItem.sleeve ?? ''}
+                                onChange={(e) => handleUpdateSizeGuide(sz, 'sleeve', e.target.value)}
+                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                value={currentItem.label || ''}
+                                onChange={(e) => handleUpdateSizeGuide(sz, 'label', e.target.value)}
+                                placeholder="Ex: Médio (Mais comum)"
+                                className="w-full min-w-[130px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* 7. Opções de Entrega & Visibilidade */}
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Truck size={13} className="text-cyan-500" />
-                <span>5. Opções de Entrega & Visibilidade</span>
+                <span>7. Opções de Entrega & Visibilidade</span>
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

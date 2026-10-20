@@ -30,6 +30,82 @@ export type OrderStatus =
   | 'delivered'
   | 'test';
 
+export interface SizeMeasurement {
+  chest: number; // Peito (cm)
+  length: number; // Comprimento (cm)
+  sleeve?: number; // Manga (cm)
+  label?: string; // e.g. "Médio (Mais comum)"
+}
+
+export type SizeGuideMap = Record<string, SizeMeasurement>;
+
+export const DEFAULT_SIZE_GUIDE: Record<SweatSize, SizeMeasurement> = {
+  XS: { chest: 49, length: 64, sleeve: 60, label: 'Extra Pequeno' },
+  S: { chest: 52, length: 67, sleeve: 62, label: 'Pequeno' },
+  M: { chest: 55, length: 70, sleeve: 64, label: 'Médio (Mais comum)' },
+  L: { chest: 58, length: 73, sleeve: 66, label: 'Grande (Mais comum)' },
+  XL: { chest: 61, length: 76, sleeve: 68, label: 'Extra Grande' },
+  XXL: { chest: 64, length: 79, sleeve: 70, label: '2X Grande' },
+  '3XL': { chest: 67, length: 82, sleeve: 72, label: '3X Grande' },
+};
+
+export const DEFAULT_PRESET_COLORS: string[] = [
+  'Preto',
+  'Branco',
+  'Cinzento',
+  'Azul Marinho',
+  'Azul Royal',
+  'Verde Garrafa',
+  'Bordeaux',
+  'Creme',
+  'Rosa',
+];
+
+/**
+ * Mapeia nomes comuns de cores para códigos HEX visuais
+ */
+export function getColorHex(colorName: string): string {
+  const trimmed = (colorName || '').trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+    return trimmed;
+  }
+  const normalized = trimmed.toLowerCase();
+  const map: Record<string, string> = {
+    'preto': '#0f172a',
+    'black': '#0f172a',
+    'branco': '#f8fafc',
+    'white': '#f8fafc',
+    'cinzento': '#64748b',
+    'cinza': '#64748b',
+    'grey': '#64748b',
+    'gray': '#64748b',
+    'azul marinho': '#0f2942',
+    'navy': '#0f2942',
+    'marinho': '#0f2942',
+    'azul': '#0284c7',
+    'blue': '#0284c7',
+    'azul royal': '#1d4ed8',
+    'verde': '#16a34a',
+    'verde escuro': '#14532d',
+    'verde garrafa': '#134e4a',
+    'green': '#16a34a',
+    'bordeaux': '#881337',
+    'bordo': '#881337',
+    'bordô': '#881337',
+    'vermelho': '#dc2626',
+    'red': '#dc2626',
+    'bege': '#d4b996',
+    'creme': '#fef3c7',
+    'rosa': '#f472b6',
+    'pink': '#f472b6',
+    'amarelo': '#eab308',
+    'laranja': '#ea580c',
+    'roxo': '#7c3aed',
+    'violeta': '#8b5cf6',
+  };
+  return map[normalized] || '#64748b';
+}
+
 export interface ShopCampaign {
   id: string;
   title: string;
@@ -46,6 +122,8 @@ export interface ShopCampaign {
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+  colors_available?: string[];
+  size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
   created_at?: string;
@@ -66,6 +144,8 @@ export interface AdminProductPayload {
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+  colors_available?: string[];
+  size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
 }
@@ -83,6 +163,8 @@ export interface ProductFormData {
   allow_shipping: boolean;
   pickup_location: string;
   sizes_available: SweatSize[];
+  colors_available: string[];
+  size_guide?: SizeGuideMap;
   features: string[];
   category: string;
 }
@@ -99,6 +181,8 @@ export interface MerchProduct {
   isPreorder?: boolean;
   available: boolean;
   sizes?: SweatSize[];
+  colors?: string[];
+  sizeGuide?: SizeGuideMap;
   allowShipping?: boolean;
   shippingFee?: number;
   pickupLocation?: string;
@@ -166,6 +250,7 @@ export interface CheckoutPayload {
   phone_number: string;
   nif?: string;
   size: SweatSize;
+  color?: string;
   delivery_type: DeliveryType;
   shipping_address?: string;
   shipping_postal_code?: string;
