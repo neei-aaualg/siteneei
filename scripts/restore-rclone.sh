@@ -17,6 +17,7 @@ fi
 
 RCLONE_REMOTE="${RCLONE_REMOTE:-r2-crypt}"
 RCLONE_BUCKET="${RCLONE_BUCKET:-siteneei-backups}"
+CONTAINER_FILTER="${CONTAINER_FILTER:-siteneei}"
 RESTORE_DIR="${RESTORE_DIR:-/tmp/neei-restore}"
 DEST_PATH="${RCLONE_REMOTE}:${RCLONE_BUCKET}/daily/"
 
@@ -81,9 +82,16 @@ echo "Ficheiro SQLite pronto: ${LOCAL_DB} (${RESTORED_SIZE})"
 # 4. Validar integridade e inspecionar conteúdo
 echo
 echo "[4/4] A validar integridade do ficheiro restaurado..."
-node -e "
+
+CONTAINER_ID=""
+if command -v docker > /dev/null 2>&1; then
+  CONTAINER_ID=$(docker ps --filter "name=${CONTAINER_FILTER}" --format "{{.ID}}" 2>/dev/null | head -n 1 || true)
+fi
+
+NODE_SCRIPT="
 import('node:sqlite').then(s => {
-  const db = new s.DatabaseSync('${LOCAL_DB}', { readOnly: true });
+  const target = process.argv[1];
+  const db = new s.DatabaseSync(target, { readOnly: true });
   const check = db.prepare('PRAGMA integrity_check;').all();
   if (!check || check[0]?.integrity_check !== 'ok') {
     console.error('ERRO: Base de dados corrompida!', check);
@@ -91,19 +99,42 @@ import('node:sqlite').then(s => {
   }
   console.log('✅ Integridade SQLite: OK');
 
-  // Conta registos principais para confirmação visual
   const tables = ['activities', 'registrations', 'shop_orders', 'collaborators'];
   for (const t of tables) {
     try {
       const count = db.prepare(\`SELECT COUNT(*) as c FROM \${t}\`).get();
       console.log(\`• Tabela \${t}: \${count.c} registos\`);
-    } catch (e) {
-      // Tabela pode não existir em versões antigas
-    }
+    } catch (e) {}
   }
   db.close();
 });
 "
+
+if command -v node > /dev/null 2>&1; then
+  node -e "$NODE_SCRIPT" "$LOCAL_DB"
+elif [ -n "$CONTAINER_ID" ]; then
+  echo "(A validar através do contentor Coolify '${CONTAINER_ID}')..."
+  docker cp "$LOCAL_DB" "${CONTAINER_ID}:/tmp/restore_verify.db"
+  docker exec "$CONTAINER_ID" node -e "$NODE_SCRIPT" /tmp/restore_verify.db
+  docker exec "$CONTAINER_ID" rm -f /tmp/restore_verify.db
+elif command -v sqlite3 > /dev/null 2>&1; then
+  echo "(A validar através do sqlite3 do sistema)..."
+  INTEGRITY=$(sqlite3 "$LOCAL_DB" "PRAGMA integrity_check;")
+  if [ "$INTEGRITY" = "ok" ]; then
+    echo "✅ Integridade SQLite: OK"
+    for t in activities registrations shop_orders collaborators; do
+      COUNT=$(sqlite3 "$LOCAL_DB" "SELECT COUNT(*) FROM $t;" 2>/dev/null || true)
+      if [ -n "$COUNT" ]; then
+        echo "• Tabela $t: $COUNT registos"
+      fi
+    done
+  else
+    echo "❌ Integridade SQLite falhou: $INTEGRITY"
+    exit 1
+  fi
+else
+  echo "ℹ️  'node' e 'sqlite3' não estão no host, mas o ficheiro SQLite foi restaurado com sucesso ($(du -h "$LOCAL_DB" | cut -f1))."
+fi
 
 echo
 echo "=========================================================="
