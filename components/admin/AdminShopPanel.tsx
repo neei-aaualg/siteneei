@@ -75,6 +75,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     pickup_location: 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
     sizes_available: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
     colors_available: ['Preto'],
+    color_images: {},
     size_guide: { ...DEFAULT_SIZE_GUIDE },
     features: [
       '80% Algodão cardado / 20% Poliéster (320g/m²)',
@@ -479,6 +480,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       ...defaultProductForm,
       deadline_date: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
       colors_available: ['Preto'],
+      color_images: {},
       size_guide: { ...DEFAULT_SIZE_GUIDE },
     });
     setIsProductModalOpen(true);
@@ -504,6 +506,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         prod.colors_available && prod.colors_available.length > 0
           ? [...prod.colors_available]
           : ['Preto'],
+      color_images: prod.color_images ? { ...prod.color_images } : {},
       size_guide: prod.size_guide ? { ...prod.size_guide } : { ...DEFAULT_SIZE_GUIDE },
       category: prod.category || 'Vestuário',
       features:
@@ -601,6 +604,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           ? productForm.colors_available
           : ['Preto'])
         : undefined,
+      color_images: isClothing ? (productForm.color_images || {}) : undefined,
       size_guide: isClothing ? (productForm.size_guide || DEFAULT_SIZE_GUIDE) : undefined,
     };
 

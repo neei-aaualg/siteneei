@@ -31,22 +31,23 @@ export type OrderStatus =
   | 'test';
 
 export interface SizeMeasurement {
-  chest: number; // Peito (cm)
-  length: number; // Comprimento (cm)
-  sleeve?: number; // Manga (cm)
+  chest: number; // Peito (A) (cm)
+  length: number; // Comprimento (B) (cm)
+  sleeve?: number; // Manga (C) (cm)
+  shoulder_to_wrist?: number; // Ombro ao Punho (D) (cm)
   label?: string; // e.g. "Médio (Mais comum)"
 }
 
 export type SizeGuideMap = Record<string, SizeMeasurement>;
 
 export const DEFAULT_SIZE_GUIDE: Record<SweatSize, SizeMeasurement> = {
-  XS: { chest: 49, length: 64, sleeve: 60, label: 'Extra Pequeno' },
-  S: { chest: 52, length: 67, sleeve: 62, label: 'Pequeno' },
-  M: { chest: 55, length: 70, sleeve: 64, label: 'Médio (Mais comum)' },
-  L: { chest: 58, length: 73, sleeve: 66, label: 'Grande (Mais comum)' },
-  XL: { chest: 61, length: 76, sleeve: 68, label: 'Extra Grande' },
-  XXL: { chest: 64, length: 79, sleeve: 70, label: '2X Grande' },
-  '3XL': { chest: 67, length: 82, sleeve: 72, label: '3X Grande' },
+  XS: { chest: 49, length: 64, sleeve: 60, shoulder_to_wrist: 70, label: 'Extra Pequeno' },
+  S: { chest: 52, length: 67, sleeve: 62, shoulder_to_wrist: 73, label: 'Pequeno' },
+  M: { chest: 55, length: 70, sleeve: 64, shoulder_to_wrist: 76, label: 'Médio (Mais comum)' },
+  L: { chest: 58, length: 73, sleeve: 66, shoulder_to_wrist: 79, label: 'Grande (Mais comum)' },
+  XL: { chest: 61, length: 76, sleeve: 68, shoulder_to_wrist: 82, label: 'Extra Grande' },
+  XXL: { chest: 64, length: 79, sleeve: 70, shoulder_to_wrist: 85, label: '2X Grande' },
+  '3XL': { chest: 67, length: 82, sleeve: 72, shoulder_to_wrist: 88, label: '3X Grande' },
 };
 
 export const DEFAULT_PRESET_COLORS: string[] = [
@@ -123,6 +124,7 @@ export interface ShopCampaign {
   pickup_location: string;
   sizes_available: SweatSize[];
   colors_available?: string[];
+  color_images?: Record<string, string>;
   size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
@@ -145,6 +147,7 @@ export interface AdminProductPayload {
   pickup_location: string;
   sizes_available: SweatSize[];
   colors_available?: string[];
+  color_images?: Record<string, string>;
   size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
@@ -164,6 +167,7 @@ export interface ProductFormData {
   pickup_location: string;
   sizes_available: SweatSize[];
   colors_available: string[];
+  color_images?: Record<string, string>;
   size_guide?: SizeGuideMap;
   features: string[];
   category: string;
@@ -182,6 +186,7 @@ export interface MerchProduct {
   available: boolean;
   sizes?: SweatSize[];
   colors?: string[];
+  colorImages?: Record<string, string>;
   sizeGuide?: SizeGuideMap;
   allowShipping?: boolean;
   shippingFee?: number;

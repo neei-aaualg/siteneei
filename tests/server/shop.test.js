@@ -1505,6 +1505,48 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     expect(foundExport).toBeTruthy();
     expect(foundExport.cor).toBe('Azul Marinho');
   });
+
+  it('persiste color_images e a nova medida D (shoulder_to_wrist) no size_guide', () => {
+    const product = db.createShopCampaign({
+      title: 'Hoodie NEEI 2026',
+      item_name: 'Hoodie',
+      category: 'Vestuário',
+      item_price: 30.0,
+      sizes_available: ['S', 'M'],
+      colors_available: ['Preto', 'Azul Marinho'],
+      color_images: {
+        'Preto': '/assets/hoodie_preto.jpg',
+        'Azul Marinho': '/assets/hoodie_azul.jpg',
+      },
+      size_guide: {
+        S: { chest: 50, length: 68, sleeve: 60, shoulder_to_wrist: 72, label: 'S Regular' },
+        M: { chest: 53, length: 71, sleeve: 62, shoulder_to_wrist: 75, label: 'M Regular' },
+      },
+    });
+
+    expect(product.color_images).toEqual({
+      'Preto': '/assets/hoodie_preto.jpg',
+      'Azul Marinho': '/assets/hoodie_azul.jpg',
+    });
+    expect(product.size_guide.S.shoulder_to_wrist).toBe(72);
+    expect(product.size_guide.M.shoulder_to_wrist).toBe(75);
+
+    // Atualização com nova imagem e alteração da medida D
+    const updated = db.updateShopCampaign(product.id, {
+      color_images: {
+        'Preto': '/assets/hoodie_preto_v2.jpg',
+      },
+      size_guide: {
+        ...product.size_guide,
+        S: { ...product.size_guide.S, shoulder_to_wrist: 73 },
+      },
+    });
+
+    expect(updated.color_images).toEqual({
+      'Preto': '/assets/hoodie_preto_v2.jpg',
+    });
+    expect(updated.size_guide.S.shoulder_to_wrist).toBe(73);
+  });
 });
 
 

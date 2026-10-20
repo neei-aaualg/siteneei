@@ -79,6 +79,11 @@ describe('ShopProductModal - Cores e Guia de Tamanhos', () => {
     expect(screen.getByText('Peito (A) cm')).toBeInTheDocument();
     expect(screen.getByText('Comprimento (B) cm')).toBeInTheDocument();
     expect(screen.getByText('Manga (C) cm')).toBeInTheDocument();
+    expect(screen.getByText('Ombro ao Punho (D) cm')).toBeInTheDocument();
+
+    // Verifica campos de foto por cor
+    expect(screen.getByPlaceholderText(/Foto para Preto/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Foto para Azul Marinho/i)).toBeInTheDocument();
   });
 
   it('permite adicionar e remover cores através do setProductForm', async () => {
@@ -304,7 +309,7 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
     item_price: 25.0,
     shipping_fee: 3.5,
     description: 'Edição limitada em preto e azul marinho.',
-    image_url: '',
+    image_url: '/assets/sweat_preto.jpg',
     deadline_date: '',
     allow_pickup: true,
     allow_shipping: true,
@@ -312,15 +317,19 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
     features: ['80% Algodão', 'Bordado de alta definição'],
     sizes_available: ['S', 'M', 'L'],
     colors_available: ['Preto', 'Azul Marinho'],
+    color_images: {
+      'Preto': '/assets/sweat_preto.jpg',
+      'Azul Marinho': '/assets/sweat_azul.jpg',
+    },
     size_guide: {
       ...DEFAULT_SIZE_GUIDE,
-      M: { chest: 56, length: 71, sleeve: 65, label: 'Médio Confortável' },
+      M: { chest: 56, length: 71, sleeve: 65, shoulder_to_wrist: 76, label: 'Médio Confortável' },
     },
     is_active: true,
     created_at: '2026-01-01',
   };
 
-  it('permite selecionar a cor e consultar o guia de tamanhos específico da peça no checkout', async () => {
+  it('permite alternar a foto na grelha e no modal com o seletor de cores, e consultar a medida D no guia de tamanhos', async () => {
     vi.spyOn(shopService, 'fetchShopCampaign').mockResolvedValue({
       campaign: mockClothingCampaign,
       campaigns: [mockClothingCampaign],
@@ -336,28 +345,47 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
       expect(screen.getByText('Sweat Oficial NEEI 2026')).toBeInTheDocument();
     });
 
+    // Imagem inicial da sweat no cartão (Preto por defeito)
+    const cardImg = screen.getByAltText('Sweat Oficial NEEI 2026');
+    expect(cardImg).toHaveAttribute('src', '/assets/sweat_preto.jpg');
+
+    // Clica no botão notório de cor "Azul Marinho" diretamente no cartão do produto
+    const cardAzulBtn = screen.getByTitle('Ver na cor Azul Marinho');
+    expect(cardAzulBtn).toBeInTheDocument();
+    await user.click(cardAzulBtn);
+
+    // A imagem do cartão troca dinamicamente para a foto da cor selecionada!
+    expect(cardImg).toHaveAttribute('src', '/assets/sweat_azul.jpg');
+
     // Clica no botão Pré-encomendar no produto
     const orderBtn = screen.getByRole('button', { name: /Pré-encomendar/i });
     await user.click(orderBtn);
 
-    // O modal abre com o seletor de cor
-    expect(screen.getByText(/Cor:/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Preto/i })).toBeInTheDocument();
-    const azulBtn = screen.getByRole('button', { name: /Azul Marinho/i });
-    expect(azulBtn).toBeInTheDocument();
+    // O modal abre com o seletor notório de cor e com a foto da cor selecionada no cartão
+    expect(screen.getByText(/Escolhe a Cor:/i)).toBeInTheDocument();
+    const modalImg = screen.getByAltText('Sweat Universitária - Azul Marinho');
+    expect(modalImg).toHaveAttribute('src', '/assets/sweat_azul.jpg');
 
-    // Seleciona a cor Azul Marinho
-    await user.click(azulBtn);
+    // Clica na cor "Preto" dentro do modal de checkout
+    const pretoBtns = screen.getAllByRole('button', { name: /Preto/i });
+    const modalPretoBtn = pretoBtns[pretoBtns.length - 1];
+    await user.click(modalPretoBtn);
+
+    // A imagem do modal atualiza para a foto correspondente à cor Preto
+    const updatedModalImg = screen.getByAltText('Sweat Universitária - Preto');
+    expect(updatedModalImg).toHaveAttribute('src', '/assets/sweat_preto.jpg');
 
     // Clica no botão Guia de Tamanhos dentro do modal
     const guideBtns = screen.getAllByRole('button', { name: /Guia de Tamanhos/i });
     await user.click(guideBtns[guideBtns.length - 1]);
 
-    // O modal de guia de tamanhos abre e apresenta a medida personalizada
+    // O modal de guia de tamanhos abre e apresenta a nova coluna D (Ombro ao Punho)
     expect(screen.getByText(/Guia de Tamanhos \(cm\)/i)).toBeInTheDocument();
-    expect(screen.getByText('Sweat Universitária')).toBeInTheDocument();
+    expect(screen.getByText('Ombro ao Punho (D)')).toBeInTheDocument();
+    expect(screen.getAllByText('Sweat Universitária').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('(Médio Confortável)')).toBeInTheDocument();
     expect(screen.getByText('56 cm')).toBeInTheDocument();
+    expect(screen.getByText('76 cm')).toBeInTheDocument(); // Medida D para o tamanho M
   });
 });
 

@@ -146,6 +146,7 @@ db.exec(`
     pickup_location TEXT NOT NULL,
     sizes_available TEXT NOT NULL,
     colors_available TEXT,
+    color_images TEXT,
     size_guide TEXT,
     features TEXT,
     category TEXT NOT NULL DEFAULT 'Vestuário',
@@ -280,6 +281,11 @@ try {
 } catch (_) {
   // Já existe
 }
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN color_images TEXT;');
+} catch (_) {
+  // Já existe
+}
 
 // Limpeza de encomendas não confirmadas: encomendas pendentes web são limpas, mas encomendas criadas por admin são preservadas
 try {
@@ -289,13 +295,13 @@ try {
 }
 
 export const DEFAULT_SHOP_SIZE_GUIDE = {
-  XS: { chest: 49, length: 64, sleeve: 60, label: 'Extra Pequeno' },
-  S: { chest: 52, length: 67, sleeve: 62, label: 'Pequeno' },
-  M: { chest: 55, length: 70, sleeve: 64, label: 'Médio (Mais comum)' },
-  L: { chest: 58, length: 73, sleeve: 66, label: 'Grande (Mais comum)' },
-  XL: { chest: 61, length: 76, sleeve: 68, label: 'Extra Grande' },
-  XXL: { chest: 64, length: 79, sleeve: 70, label: '2X Grande' },
-  '3XL': { chest: 67, length: 82, sleeve: 72, label: '3X Grande' },
+  XS: { chest: 49, length: 64, sleeve: 60, shoulder_to_wrist: 70, label: 'Extra Pequeno' },
+  S: { chest: 52, length: 67, sleeve: 62, shoulder_to_wrist: 73, label: 'Pequeno' },
+  M: { chest: 55, length: 70, sleeve: 64, shoulder_to_wrist: 76, label: 'Médio (Mais comum)' },
+  L: { chest: 58, length: 73, sleeve: 66, shoulder_to_wrist: 79, label: 'Grande (Mais comum)' },
+  XL: { chest: 61, length: 76, sleeve: 68, shoulder_to_wrist: 82, label: 'Extra Grande' },
+  XXL: { chest: 64, length: 79, sleeve: 70, shoulder_to_wrist: 85, label: '2X Grande' },
+  '3XL': { chest: 67, length: 82, sleeve: 72, shoulder_to_wrist: 88, label: '3X Grande' },
 };
 
 // Seed da Campanha de Pré-encomenda das Sweats (se ainda não existir)
@@ -307,9 +313,9 @@ try {
       `
       INSERT INTO shop_campaigns (
         id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, size_guide, features, category, created_at
+        is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, created_at
       ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `
     ).run(
@@ -327,6 +333,7 @@ try {
       'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)',
       JSON.stringify(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']),
       JSON.stringify(['Preto', 'Branco']),
+      JSON.stringify({}),
       JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE),
       JSON.stringify([
         '80% Algodão cardado / 20% Poliéster (320g/m²)',
@@ -1305,6 +1312,18 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     }
   }
 
+  let colorImages = {};
+  if (row.color_images) {
+    try {
+      const parsed = typeof row.color_images === 'string' ? JSON.parse(row.color_images) : row.color_images;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        colorImages = parsed;
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+
   let sizeGuide = null;
   if (row.size_guide) {
     try {
@@ -1361,6 +1380,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     pickup_location: row.pickup_location,
     sizes_available: sizes,
     colors_available: colors,
+    color_images: colorImages,
     size_guide: sizeGuide,
     features,
     category: row.category || 'Vestuário',
@@ -1437,6 +1457,9 @@ export function createShopCampaign(data) {
       ? data.colors_available.map((c) => String(c).trim()).filter(Boolean)
       : ['Preto']
   );
+  const color_images = data.color_images
+    ? (typeof data.color_images === 'string' ? data.color_images : JSON.stringify(data.color_images))
+    : JSON.stringify({});
   const size_guide = data.size_guide
     ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
     : (category === 'Vestuário' ? JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE) : null);
@@ -1452,9 +1475,9 @@ export function createShopCampaign(data) {
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, size_guide, features, category, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1471,6 +1494,7 @@ export function createShopCampaign(data) {
     pickup_location,
     sizes_available,
     colors_available,
+    color_images,
     size_guide,
     features,
     category,
@@ -1533,6 +1557,13 @@ export function updateShopCampaign(id, data) {
     }
   }
 
+  let color_images = current.color_images;
+  if (data.color_images !== undefined) {
+    color_images = data.color_images
+      ? (typeof data.color_images === 'string' ? data.color_images : JSON.stringify(data.color_images))
+      : JSON.stringify({});
+  }
+
   let size_guide = current.size_guide;
   if (data.size_guide !== undefined) {
     size_guide = data.size_guide
@@ -1549,7 +1580,7 @@ export function updateShopCampaign(id, data) {
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?, colors_available = ?, size_guide = ?, features = ?, category = ?
+      pickup_location = ?, sizes_available = ?, colors_available = ?, color_images = ?, size_guide = ?, features = ?, category = ?
     WHERE id = ?
   `);
 
@@ -1567,6 +1598,7 @@ export function updateShopCampaign(id, data) {
     pickup_location,
     sizes_available,
     colors_available,
+    color_images,
     size_guide,
     features,
     category,

@@ -99,10 +99,31 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
   const handleRemoveColor = (index: number) => {
     setProductForm((prev) => {
       const current = prev.colors_available || [];
+      const removedColor = current[index];
       const next = current.filter((_, i) => i !== index);
+      const nextImages = { ...(prev.color_images || {}) };
+      if (removedColor) {
+        delete nextImages[removedColor];
+      }
       return {
         ...prev,
         colors_available: next,
+        color_images: nextImages,
+      };
+    });
+  };
+
+  const handleUpdateColorImage = (colorName: string, imageUrl: string) => {
+    setProductForm((prev) => {
+      const nextImages = { ...(prev.color_images || {}) };
+      if (imageUrl.trim()) {
+        nextImages[colorName] = imageUrl.trim();
+      } else {
+        delete nextImages[colorName];
+      }
+      return {
+        ...prev,
+        color_images: nextImages,
       };
     });
   };
@@ -116,6 +137,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
           chest: 50,
           length: 70,
           sleeve: 60,
+          shoulder_to_wrist: 75,
           label: '',
         };
       const parsedVal = field === 'label' ? val : (parseFloat(val) || 0);
@@ -526,37 +548,72 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                   </div>
                 </div>
 
-                {/* Cores ativas selecionadas com remoção */}
-                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Cores Ativas para este Artigo:
-                  </span>
+                {/* Cores ativas selecionadas com foto e remoção */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                      Cores Ativas & Foto por Cor ({productForm.colors_available?.length || 0}):
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      Opcional: atribui fotos específicas para trocar a imagem na loja ao escolher a cor
+                    </span>
+                  </div>
+
                   {(!productForm.colors_available || productForm.colors_available.length === 0) ? (
                     <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
                       Nenhuma cor ativa selecionada. Adiciona pelo menos uma cor (ex: Preto).
                     </p>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {productForm.colors_available.map((c, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200 shadow-xs"
-                        >
-                          <span
-                            className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                            style={{ backgroundColor: getColorHex(c) }}
-                          />
-                          <span>{c}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveColor(idx)}
-                            className="text-slate-400 hover:text-red-500 transition-colors ml-0.5 cursor-pointer"
-                            title={`Remover cor ${c}`}
+                    <div className="space-y-2">
+                      {productForm.colors_available.map((c, idx) => {
+                        const colorImg = productForm.color_images?.[c] || '';
+                        return (
+                          <div
+                            key={c}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs"
                           >
-                            <X size={13} />
-                          </button>
-                        </span>
-                      ))}
+                            <div className="flex items-center gap-2 min-w-[130px] shrink-0">
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/20 dark:border-white/20 shrink-0 shadow-xs"
+                                style={{ backgroundColor: getColorHex(c) }}
+                              />
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                {c}
+                              </span>
+                            </div>
+
+                            <div className="flex-1 flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={colorImg}
+                                onChange={(e) => handleUpdateColorImage(c, e.target.value)}
+                                placeholder={`Foto para ${c} (ex: /assets/sweat_${c.toLowerCase()}.jpg ou URL)`}
+                                className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                              />
+
+                              {colorImg && (
+                                <img
+                                  src={colorImg}
+                                  alt={c}
+                                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveColor(idx)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                                title={`Remover cor ${c}`}
+                              >
+                                <X size={15} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -608,17 +665,18 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                 </div>
 
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Ajusta as medidas em centímetros de cada tamanho para esta peça. O guia será apresentado aos estudantes no modal da loja.
+                  Ajusta as medidas em centímetros de cada tamanho para esta peça: Peito (A), Comprimento (B), Manga (C) e Ombro ao Punho (D). O guia será apresentado aos estudantes no modal da loja.
                 </p>
 
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 font-bold">
-                        <th className="py-2.5 px-3 w-16">Tam.</th>
+                        <th className="py-2.5 px-3 w-14">Tam.</th>
                         <th className="py-2.5 px-3">Peito (A) cm</th>
                         <th className="py-2.5 px-3">Comprimento (B) cm</th>
                         <th className="py-2.5 px-3">Manga (C) cm</th>
+                        <th className="py-2.5 px-3">Ombro ao Punho (D) cm</th>
                         <th className="py-2.5 px-3">Nota / Observação</th>
                       </tr>
                     </thead>
@@ -630,6 +688,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                             chest: 50,
                             length: 70,
                             sleeve: 60,
+                            shoulder_to_wrist: 75,
                             label: '',
                           };
                         return (
@@ -666,6 +725,16 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                                 step="0.5"
                                 value={currentItem.sleeve ?? ''}
                                 onChange={(e) => handleUpdateSizeGuide(sz, 'sleeve', e.target.value)}
+                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                              />
+                            </td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.5"
+                                value={currentItem.shoulder_to_wrist ?? ''}
+                                onChange={(e) => handleUpdateSizeGuide(sz, 'shoulder_to_wrist', e.target.value)}
                                 className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
                               />
                             </td>
