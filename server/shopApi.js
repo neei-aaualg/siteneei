@@ -135,6 +135,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           payment_fee: String(order.payment_fee || 0),
           total_amount: String(order.total_amount),
           is_admin_preview: isAdminPreview ? '1' : '0',
+          bundle_selections: order.bundle_selections ? JSON.stringify(order.bundle_selections).slice(0, 500) : '',
         },
       });
 
@@ -160,6 +161,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         provider: paymentResult.provider,
         isSandbox: isPaymentSandbox(),
         isAdminPreview,
+        bundleSelections: order.bundle_selections,
       });
     }
 
@@ -302,6 +304,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         shippingPostalCode: order.shipping_postal_code || null,
         shippingCity: order.shipping_city || null,
         pickupLocation,
+        bundle_selections: order.bundle_selections,
       });
     }
 

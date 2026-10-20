@@ -83,6 +83,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       'Edição Oficial Limitada 2026',
     ],
     category: 'Vestuário',
+    is_bundle: false,
+    bundle_items: [],
   };
   const [productForm, setProductForm] = useState<ProductFormData>(defaultProductForm);
 
@@ -482,6 +484,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       colors_available: ['Preto'],
       color_images: {},
       size_guide: { ...DEFAULT_SIZE_GUIDE },
+      is_bundle: false,
+      bundle_items: [],
     });
     setIsProductModalOpen(true);
   };
@@ -489,6 +493,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const handleOpenEditProduct = (prod: ShopCampaign) => {
     setEditingProduct(prod);
     setProductError(null);
+    const isBundle = Boolean(prod.is_bundle || (prod.bundle_items && prod.bundle_items.length > 0) || prod.category === 'Pack');
     setProductForm({
       title: prod.title || '',
       description: prod.description || '',
@@ -508,7 +513,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           : ['Preto'],
       color_images: prod.color_images ? { ...prod.color_images } : {},
       size_guide: prod.size_guide ? { ...prod.size_guide } : { ...DEFAULT_SIZE_GUIDE },
-      category: prod.category || 'Vestuário',
+      category: prod.category || (isBundle ? 'Pack' : 'Vestuário'),
+      is_bundle: isBundle,
+      bundle_items: prod.bundle_items ? [...prod.bundle_items] : [],
       features:
         prod.features && prod.features.length > 0
           ? [...prod.features]
@@ -578,12 +585,19 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setProductError('O preço deve ser igual ou superior a 0.');
       return;
     }
-    if (productForm.sizes_available.length === 0) {
+
+    const isBundle = Boolean(productForm.is_bundle);
+    if (isBundle && (!productForm.bundle_items || productForm.bundle_items.length < 2)) {
+      setProductError('Um pack deve conter pelo menos 2 artigos selecionados.');
+      return;
+    }
+
+    if (!isBundle && productForm.sizes_available.length === 0) {
       setProductError('Deves selecionar pelo menos um tamanho disponível.');
       return;
     }
 
-    const isClothing = (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
+    const isClothing = !isBundle && (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
     if (isClothing && (!productForm.colors_available || productForm.colors_available.length === 0)) {
       setProductError('Deves selecionar pelo menos uma cor disponível para vestuário.');
       return;
@@ -597,7 +611,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       ...productForm,
       title,
       item_name: itemName,
-      category: productForm.category?.trim() || 'Vestuário',
+      is_bundle: isBundle,
+      bundle_items: isBundle ? productForm.bundle_items : undefined,
+      category: isBundle ? 'Pack' : (productForm.category?.trim() || 'Vestuário'),
       features: cleanedFeatures,
       colors_available: isClothing
         ? (productForm.colors_available && productForm.colors_available.length > 0
@@ -781,6 +797,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         onSubmit={handleSaveProductSubmit}
         savingProduct={savingProduct}
         productError={productError}
+        availableProducts={products}
       />
     </div>
   );

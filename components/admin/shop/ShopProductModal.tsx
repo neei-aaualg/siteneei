@@ -14,6 +14,7 @@ import {
   Palette,
   Ruler,
   RotateCcw,
+  Package,
 } from 'lucide-react';
 import {
   ShopCampaign,
@@ -37,6 +38,7 @@ interface ShopProductModalProps {
   onSubmit: (e: React.FormEvent) => void;
   savingProduct: boolean;
   productError: string | null;
+  availableProducts?: ShopCampaign[];
 }
 
 const FEATURE_SUGGESTIONS = [
@@ -58,6 +60,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
   onSubmit,
   savingProduct,
   productError,
+  availableProducts = [],
 }) => {
   const [newFeatureText, setNewFeatureText] = useState('');
   const [newColorText, setNewColorText] = useState('');
@@ -65,6 +68,55 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
   if (!isOpen) return null;
 
   const isClothing = (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
+
+  const eligibleProducts = (availableProducts || []).filter(
+    (p) => !p.is_bundle && p.id !== editingProduct?.id
+  );
+
+  const bundleItemConfigs = productForm.bundle_items || [];
+
+  const handleToggleBundleItem = (campaignId: string) => {
+    const targetProduct = eligibleProducts.find((p) => p.id === campaignId);
+    const exists = bundleItemConfigs.some((b) => b.campaign_id === campaignId);
+    if (exists) {
+      setProductForm((prev) => ({
+        ...prev,
+        bundle_items: (prev.bundle_items || []).filter((b) => b.campaign_id !== campaignId),
+      }));
+    } else {
+      setProductForm((prev) => ({
+        ...prev,
+        bundle_items: [
+          ...(prev.bundle_items || []),
+          {
+            campaign_id: campaignId,
+            item_name: targetProduct?.item_name || targetProduct?.title || 'Artigo',
+          },
+        ],
+      }));
+    }
+  };
+
+  const handleUpdateBundleItemName = (campaignId: string, customName: string) => {
+    setProductForm((prev) => ({
+      ...prev,
+      bundle_items: (prev.bundle_items || []).map((b) =>
+        b.campaign_id === campaignId ? { ...b, item_name: customName } : b
+      ),
+    }));
+  };
+
+  const bundleSelectedProducts = eligibleProducts.filter((p) =>
+    bundleItemConfigs.some((b) => b.campaign_id === p.id)
+  );
+  const sumIndividualPrices = bundleSelectedProducts.reduce(
+    (acc, p) => acc + (p.item_price || 0),
+    0
+  );
+  const bundlePrice = productForm.item_price || 0;
+  const bundleSavings = sumIndividualPrices > bundlePrice ? sumIndividualPrices - bundlePrice : 0;
+  const bundleDiscountPercent =
+    sumIndividualPrices > 0 ? Math.round((bundleSavings / sumIndividualPrices) * 100) : 0;
 
   const handleTogglePresetColor = (colorName: string) => {
     setProductForm((prev) => {
@@ -226,6 +278,183 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
           </div>
 
           <form onSubmit={onSubmit} className="space-y-5">
+            {/* Seletor Tipo: Artigo Único vs Pack */}
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+                  Tipo de Produto
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Cria uma peça individual ou um Pack promocional combinando artigos existentes.
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 p-1 bg-slate-200/60 dark:bg-slate-800/80 rounded-xl shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProductForm((prev) => ({
+                      ...prev,
+                      is_bundle: false,
+                      category: prev.category === 'Pack' ? 'Vestuário' : prev.category,
+                    }));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    !productForm.is_bundle
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Artigo Único
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProductForm((prev) => ({
+                      ...prev,
+                      is_bundle: true,
+                      category: 'Pack',
+                      bundle_items: prev.bundle_items || [],
+                    }));
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    productForm.is_bundle
+                      ? 'bg-cyan-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Package size={13} />
+                  <span>Pack / Conjunto</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Artigos incluídos no Pack (se is_bundle) */}
+            {productForm.is_bundle && (
+              <div className="space-y-3 p-4 rounded-2xl bg-cyan-50/50 dark:bg-cyan-950/20 border border-cyan-500/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
+                      <Package size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-cyan-950 dark:text-cyan-100">
+                        Artigos Incluídos no Pack (Mínimo 2 artigos) *
+                      </h4>
+                      <p className="text-[11px] text-cyan-800/80 dark:text-cyan-300/80">
+                        Seleciona as peças individuais do catálogo que fazem parte deste conjunto.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-700 dark:text-cyan-300">
+                    {bundleItemConfigs.length} selecionado(s)
+                  </span>
+                </div>
+
+                {eligibleProducts.length === 0 ? (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold py-2">
+                    Ainda não existem outros artigos individuais criados. Cria primeiro os artigos individuais (ex: Sweat, T-Shirt) para poder juntá-los num Pack.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {eligibleProducts.map((p) => {
+                      const isChecked = bundleItemConfigs.some((b) => b.campaign_id === p.id);
+                      const currentConfig = bundleItemConfigs.find((b) => b.campaign_id === p.id);
+                      return (
+                        <div
+                          key={p.id}
+                          className={`p-3 rounded-xl border transition-all ${
+                            isChecked
+                              ? 'bg-white dark:bg-slate-900 border-cyan-500 shadow-xs'
+                              : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-80'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="flex items-center gap-3 cursor-pointer flex-1">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleToggleBundleItem(p.id)}
+                                className="w-4 h-4 rounded text-cyan-600 accent-cyan-500 cursor-pointer"
+                              />
+                              {p.image_url && (
+                                <img
+                                  src={p.image_url}
+                                  alt={p.title}
+                                  className="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <div>
+                                <span className="text-xs font-bold text-slate-900 dark:text-white block">
+                                  {p.title}
+                                </span>
+                                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                                  Peça: <strong>{p.item_name}</strong> · Preço normal: <strong>{p.item_price.toFixed(2)} €</strong>
+                                  {p.colors_available && p.colors_available.length > 0 && ` · ${p.colors_available.length} cores`}
+                                  {p.sizes_available && p.sizes_available.length > 0 && ` · ${p.sizes_available.length} tamanhos`}
+                                </span>
+                              </div>
+                            </label>
+                            <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0">
+                              {p.item_price.toFixed(2)} €
+                            </span>
+                          </div>
+
+                          {isChecked && (
+                            <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                              <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                                Nome da peça no pack:
+                              </span>
+                              <input
+                                type="text"
+                                value={currentConfig?.item_name || ''}
+                                onChange={(e) => handleUpdateBundleItemName(p.id, e.target.value)}
+                                placeholder={p.item_name}
+                                className="flex-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Comparativo de Preço & Poupança */}
+                {bundleItemConfigs.length >= 2 && (
+                  <div className="p-3 rounded-xl bg-cyan-100/60 dark:bg-cyan-900/30 border border-cyan-300 dark:border-cyan-800 text-xs flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-cyan-900 dark:text-cyan-200 block font-medium">
+                        Soma dos artigos em separado: <strong className="font-mono">{sumIndividualPrices.toFixed(2)} €</strong>
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                        Configura o Preço do Pack na Secção 3 abaixo para definir o preço especial promocional.
+                      </span>
+                    </div>
+                    {bundlePrice > 0 && (
+                      <div className="text-right">
+                        {bundleSavings > 0 ? (
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-950/60 px-2.5 py-1 rounded-lg border border-emerald-400/40">
+                            Poupança: {bundleSavings.toFixed(2)} € ({bundleDiscountPercent}% OFF)
+                          </span>
+                        ) : bundlePrice === sumIndividualPrices ? (
+                          <span className="text-slate-600 dark:text-slate-400 font-medium">
+                            Preço igual à soma
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            Preço superior à soma
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* 1. Identificação do Produto */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -474,286 +703,308 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
               </div>
             </div>
 
-            {/* 4. Tamanhos Disponíveis */}
-            <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
-                4. Tamanhos Disponíveis *
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {ORDERED_SWEAT_SIZES.map((sz) => {
-                  const isSelected = productForm.sizes_available.includes(sz);
-                  return (
-                    <button
-                      key={sz}
-                      type="button"
-                      onClick={() => handleToggleSize(sz)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isSelected
-                        ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm'
-                        : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
-                        }`}
-                    >
-                      {sz} {isSelected && '✓'}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 5. Cores Disponíveis (se for vestuário) */}
-            {isClothing && (
+            {/* 4, 5, 6: Tamanhos, Cores e Guia de Medidas */}
+            {productForm.is_bundle ? (
               <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Palette size={13} className="text-cyan-500" />
-                    <span>5. Cores Disponíveis *</span>
-                  </h4>
-                  <span className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold">
-                    {productForm.colors_available?.length || 0} cor(es) configurada(s)
-                  </span>
+                <div className="p-4 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/20 border border-cyan-500/30 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-3">
+                  <Package size={20} className="text-cyan-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold text-sm block">
+                      4, 5 & 6. Personalização Dinâmica por Artigo no Checkout
+                    </span>
+                    <p className="text-[11px] text-cyan-800/90 dark:text-cyan-300/80 leading-relaxed">
+                      Como este produto é um <strong>Pack</strong> composto por vários artigos (ex: Casaco + T-Shirt), os tamanhos, cores disponíveis e tabelas de medidas são herdados automaticamente de cada peça individual.
+                    </p>
+                    <p className="text-[11px] text-cyan-800/90 dark:text-cyan-300/80 leading-relaxed">
+                      Ao comprar este pack, o estudante terá seletores independentes para escolher a cor e o tamanho específico de cada artigo.
+                    </p>
+                  </div>
                 </div>
-
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Cores que os estudantes poderão escolher ao efetuar a encomenda desta peça na loja pública.
-                </p>
-
-                {/* Sugestões rápidas de cores predefinidas */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Cores Sugeridas (Clica para adicionar/remover):
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {DEFAULT_PRESET_COLORS.map((preset) => {
-                      const isSelected = productForm.colors_available?.includes(preset);
-                      const hex = getColorHex(preset);
+              </div>
+            ) : (
+              <>
+                {/* 4. Tamanhos Disponíveis */}
+                <div className="space-y-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">
+                    4. Tamanhos Disponíveis *
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {ORDERED_SWEAT_SIZES.map((sz) => {
+                      const isSelected = productForm.sizes_available.includes(sz);
                       return (
                         <button
-                          key={preset}
+                          key={sz}
                           type="button"
-                          onClick={() => handleTogglePresetColor(preset)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
-                              : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                          }`}
+                          onClick={() => handleToggleSize(sz)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${isSelected
+                            ? 'bg-cyan-600 text-white border-cyan-500 shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                            }`}
                         >
-                          <span
-                            className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                            style={{ backgroundColor: hex }}
-                          />
-                          <span>{preset}</span>
-                          {isSelected && <Check size={12} className="text-cyan-500" />}
+                          {sz} {isSelected && '✓'}
                         </button>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Cores ativas selecionadas com foto e remoção */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                      Cores Ativas & Foto por Cor ({productForm.colors_available?.length || 0}):
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      Opcional: atribui fotos específicas para trocar a imagem na loja ao escolher a cor
-                    </span>
-                  </div>
-
-                  {(!productForm.colors_available || productForm.colors_available.length === 0) ? (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
-                      Nenhuma cor ativa selecionada. Adiciona pelo menos uma cor (ex: Preto).
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {productForm.colors_available.map((c, idx) => {
-                        const colorImg = productForm.color_images?.[c] || '';
-                        return (
-                          <div
-                            key={c}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs"
-                          >
-                            <div className="flex items-center gap-2 min-w-[130px] shrink-0">
-                              <span
-                                className="w-4 h-4 rounded-full border border-black/20 dark:border-white/20 shrink-0 shadow-xs"
-                                style={{ backgroundColor: getColorHex(c) }}
-                              />
-                              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                {c}
-                              </span>
-                            </div>
-
-                            <div className="flex-1 flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={colorImg}
-                                onChange={(e) => handleUpdateColorImage(c, e.target.value)}
-                                placeholder={`Foto para ${c} (ex: /assets/sweat_${c.toLowerCase()}.jpg ou URL)`}
-                                className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                              />
-
-                              {colorImg && (
-                                <img
-                                  src={colorImg}
-                                  alt={c}
-                                  className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
-                                />
-                              )}
-
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveColor(idx)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
-                                title={`Remover cor ${c}`}
-                              >
-                                <X size={15} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                {/* 5. Cores Disponíveis (se for vestuário) */}
+                {isClothing && (
+                  <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Palette size={13} className="text-cyan-500" />
+                        <span>5. Cores Disponíveis *</span>
+                      </h4>
+                      <span className="text-[11px] text-cyan-600 dark:text-cyan-400 font-semibold">
+                        {productForm.colors_available?.length || 0} cor(es) configurada(s)
+                      </span>
                     </div>
-                  )}
 
-                  {/* Adicionar cor personalizada */}
-                  <div className="flex gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                    <input
-                      type="text"
-                      value={newColorText}
-                      onChange={(e) => setNewColorText(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddCustomColor();
-                        }
-                      }}
-                      placeholder="Outra cor (ex: Bege, Verde Oliva)..."
-                      className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddCustomColor}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-                    >
-                      <Plus size={13} />
-                      <span>Adicionar Cor</span>
-                    </button>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Cores que os estudantes poderão escolher ao efetuar a encomenda desta peça na loja pública.
+                    </p>
+
+                    {/* Sugestões rápidas de cores predefinidas */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Cores Sugeridas (Clica para adicionar/remover):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {DEFAULT_PRESET_COLORS.map((preset) => {
+                          const isSelected = productForm.colors_available?.includes(preset);
+                          const hex = getColorHex(preset);
+                          return (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => handleTogglePresetColor(preset)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
+                                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                              }`}
+                            >
+                              <span
+                                className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                style={{ backgroundColor: hex }}
+                              />
+                              <span>{preset}</span>
+                              {isSelected && <Check size={12} className="text-cyan-500" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Cores ativas selecionadas com foto e remoção */}
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                          Cores Ativas & Foto por Cor ({productForm.colors_available?.length || 0}):
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          Opcional: atribui fotos específicas para trocar a imagem na loja ao escolher a cor
+                        </span>
+                      </div>
+
+                      {(!productForm.colors_available || productForm.colors_available.length === 0) ? (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                          Nenhuma cor ativa selecionada. Adiciona pelo menos uma cor (ex: Preto).
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          {productForm.colors_available.map((c, idx) => {
+                            const colorImg = productForm.color_images?.[c] || '';
+                            return (
+                              <div
+                                key={c}
+                                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs"
+                              >
+                                <div className="flex items-center gap-2 min-w-[130px] shrink-0">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-black/20 dark:border-white/20 shrink-0 shadow-xs"
+                                    style={{ backgroundColor: getColorHex(c) }}
+                                  />
+                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                    {c}
+                                  </span>
+                                </div>
+
+                                <div className="flex-1 flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={colorImg}
+                                    onChange={(e) => handleUpdateColorImage(c, e.target.value)}
+                                    placeholder={`Foto para ${c} (ex: /assets/sweat_${c.toLowerCase()}.jpg ou URL)`}
+                                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] font-mono text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                                  />
+
+                                  {colorImg && (
+                                    <img
+                                      src={colorImg}
+                                      alt={c}
+                                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                      onError={(e) => {
+                                        (e.target as HTMLElement).style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveColor(idx)}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                                    title={`Remover cor ${c}`}
+                                  >
+                                    <X size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Adicionar cor personalizada */}
+                      <div className="flex gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                        <input
+                          type="text"
+                          value={newColorText}
+                          onChange={(e) => setNewColorText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomColor();
+                            }
+                          }}
+                          placeholder="Outra cor (ex: Bege, Verde Oliva)..."
+                          className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomColor}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-600/10 hover:bg-cyan-600/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                        >
+                          <Plus size={13} />
+                          <span>Adicionar Cor</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* 6. Guia de Tamanhos (Medidas em cm) se for vestuário */}
-            {isClothing && (
-              <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                    <Ruler size={13} className="text-cyan-500" />
-                    <span>6. Guia de Tamanhos (Medidas em cm)</span>
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={handleResetSizeGuide}
-                    className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
-                    title="Repor tabela com as medidas padrão da fábrica"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Repor Medidas Padrão</span>
-                  </button>
-                </div>
+                {/* 6. Guia de Tamanhos (Medidas em cm) se for vestuário */}
+                {isClothing && (
+                  <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Ruler size={13} className="text-cyan-500" />
+                        <span>6. Guia de Tamanhos (Medidas em cm)</span>
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={handleResetSizeGuide}
+                        className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                        title="Repor tabela com as medidas padrão da fábrica"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Repor Medidas Padrão</span>
+                      </button>
+                    </div>
 
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Ajusta as medidas em centímetros de cada tamanho para esta peça: Peito (A), Comprimento (B), Manga (C) e Ombro ao Punho (D). O guia será apresentado aos estudantes no modal da loja.
-                </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Ajusta as medidas em centímetros de cada tamanho para esta peça: Peito (A), Comprimento (B), Manga (C) e Ombro ao Punho (D). O guia será apresentado aos estudantes no modal da loja.
+                    </p>
 
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 font-bold">
-                        <th className="py-2.5 px-3 w-14">Tam.</th>
-                        <th className="py-2.5 px-3">Peito (A) cm</th>
-                        <th className="py-2.5 px-3">Comprimento (B) cm</th>
-                        <th className="py-2.5 px-3">Manga (C) cm</th>
-                        <th className="py-2.5 px-3">Ombro ao Punho (D) cm</th>
-                        <th className="py-2.5 px-3">Nota / Observação</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                      {productForm.sizes_available.map((sz) => {
-                        const currentItem =
-                          productForm.size_guide?.[sz] ||
-                          DEFAULT_SIZE_GUIDE[sz] || {
-                            chest: 50,
-                            length: 70,
-                            sleeve: 60,
-                            shoulder_to_wrist: 75,
-                            label: '',
-                          };
-                        return (
-                          <tr key={sz} className="hover:bg-cyan-500/5 transition-colors">
-                            <td className="py-2 px-3 font-bold text-slate-900 dark:text-white">
-                              <span className="px-2 py-0.5 rounded-lg bg-cyan-600/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-black">
-                                {sz}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={currentItem.chest ?? ''}
-                                onChange={(e) => handleUpdateSizeGuide(sz, 'chest', e.target.value)}
-                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={currentItem.length ?? ''}
-                                onChange={(e) => handleUpdateSizeGuide(sz, 'length', e.target.value)}
-                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={currentItem.sleeve ?? ''}
-                                onChange={(e) => handleUpdateSizeGuide(sz, 'sleeve', e.target.value)}
-                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={currentItem.shoulder_to_wrist ?? ''}
-                                onChange={(e) => handleUpdateSizeGuide(sz, 'shoulder_to_wrist', e.target.value)}
-                                className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                value={currentItem.label || ''}
-                                onChange={(e) => handleUpdateSizeGuide(sz, 'label', e.target.value)}
-                                placeholder="Ex: Médio (Mais comum)"
-                                className="w-full min-w-[130px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:border-cyan-500"
-                              />
-                            </td>
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 font-bold">
+                            <th className="py-2.5 px-3 w-14">Tam.</th>
+                            <th className="py-2.5 px-3">Peito (A) cm</th>
+                            <th className="py-2.5 px-3">Comprimento (B) cm</th>
+                            <th className="py-2.5 px-3">Manga (C) cm</th>
+                            <th className="py-2.5 px-3">Ombro ao Punho (D) cm</th>
+                            <th className="py-2.5 px-3">Nota / Observação</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                          {productForm.sizes_available.map((sz) => {
+                            const currentItem =
+                              productForm.size_guide?.[sz] ||
+                              DEFAULT_SIZE_GUIDE[sz] || {
+                                chest: 50,
+                                length: 70,
+                                sleeve: 60,
+                                shoulder_to_wrist: 75,
+                                label: '',
+                              };
+                            return (
+                              <tr key={sz} className="hover:bg-cyan-500/5 transition-colors">
+                                <td className="py-2 px-3 font-bold text-slate-900 dark:text-white">
+                                  <span className="px-2 py-0.5 rounded-lg bg-cyan-600/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 font-black">
+                                    {sz}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={currentItem.chest ?? ''}
+                                    onChange={(e) => handleUpdateSizeGuide(sz, 'chest', e.target.value)}
+                                    className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={currentItem.length ?? ''}
+                                    onChange={(e) => handleUpdateSizeGuide(sz, 'length', e.target.value)}
+                                    className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={currentItem.sleeve ?? ''}
+                                    onChange={(e) => handleUpdateSizeGuide(sz, 'sleeve', e.target.value)}
+                                    className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={currentItem.shoulder_to_wrist ?? ''}
+                                    onChange={(e) => handleUpdateSizeGuide(sz, 'shoulder_to_wrist', e.target.value)}
+                                    className="w-20 px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-xs focus:outline-none focus:border-cyan-500"
+                                  />
+                                </td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    value={currentItem.label || ''}
+                                    onChange={(e) => handleUpdateSizeGuide(sz, 'label', e.target.value)}
+                                    placeholder="Ex: Médio (Mais comum)"
+                                    className="w-full min-w-[130px] px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:border-cyan-500"
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* 7. Opções de Entrega & Visibilidade */}

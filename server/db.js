@@ -150,6 +150,8 @@ db.exec(`
     size_guide TEXT,
     features TEXT,
     category TEXT NOT NULL DEFAULT 'Vestuário',
+    is_bundle INTEGER NOT NULL DEFAULT 0,
+    bundle_items TEXT,
     created_at TEXT NOT NULL
   );
 
@@ -183,6 +185,7 @@ db.exec(`
     paid_at TEXT,
     is_admin_created INTEGER NOT NULL DEFAULT 0,
     admin_notes TEXT,
+    bundle_selections TEXT,
     FOREIGN KEY (campaign_id) REFERENCES shop_campaigns(id)
   );
 
@@ -283,6 +286,21 @@ try {
 }
 try {
   db.exec('ALTER TABLE shop_campaigns ADD COLUMN color_images TEXT;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN bundle_items TEXT;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN is_bundle INTEGER NOT NULL DEFAULT 0;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_orders ADD COLUMN bundle_selections TEXT;');
 } catch (_) {
   // Já existe
 }
@@ -1356,6 +1374,19 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     }
   }
 
+  let bundleItems = [];
+  if (row.bundle_items) {
+    try {
+      const parsed = typeof row.bundle_items === 'string' ? JSON.parse(row.bundle_items) : row.bundle_items;
+      if (Array.isArray(parsed)) {
+        bundleItems = parsed;
+      }
+    } catch (e) {
+      // fallback
+    }
+  }
+  const isBundle = Boolean(row.is_bundle || (bundleItems && bundleItems.length > 0) || row.category === 'Pack');
+
   const isSweatsAvailable = isSweatsAvailableEnv();
   const isTestShopAllowed = isShowTestShopEnv();
   const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
@@ -1383,7 +1414,9 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     color_images: colorImages,
     size_guide: sizeGuide,
     features,
-    category: row.category || 'Vestuário',
+    category: row.category || (isBundle ? 'Pack' : 'Vestuário'),
+    is_bundle: isBundle,
+    bundle_items: bundleItems,
     created_at: row.created_at,
     isAdminPreview: isTestingMode,
   };
@@ -1471,13 +1504,19 @@ export function createShopCampaign(data) {
       'Corte unissexo confortável com cordões reforçados',
       allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
     ]);
+  const is_bundle = data.is_bundle !== undefined
+    ? (data.is_bundle ? 1 : 0)
+    : (Array.isArray(data.bundle_items) && data.bundle_items.length > 0 ? 1 : 0);
+  const bundle_items = data.bundle_items
+    ? (typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items))
+    : JSON.stringify([]);
 
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, is_bundle, bundle_items, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1498,6 +1537,8 @@ export function createShopCampaign(data) {
     size_guide,
     features,
     category,
+    is_bundle,
+    bundle_items,
     now
   );
 
@@ -1574,13 +1615,23 @@ export function updateShopCampaign(id, data) {
   const features = data.features !== undefined
     ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
     : current.features;
-  const category = data.category !== undefined ? data.category.trim() : (current.category || 'Vestuário');
+  const is_bundle = data.is_bundle !== undefined
+    ? (data.is_bundle ? 1 : 0)
+    : (data.bundle_items !== undefined
+      ? (Array.isArray(data.bundle_items) && data.bundle_items.length > 0 ? 1 : 0)
+      : current.is_bundle);
+  const bundle_items = data.bundle_items !== undefined
+    ? (typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items))
+    : current.bundle_items;
+  const category = data.category !== undefined
+    ? data.category.trim()
+    : (is_bundle ? 'Pack' : (current.category || 'Vestuário'));
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?, colors_available = ?, color_images = ?, size_guide = ?, features = ?, category = ?
+      pickup_location = ?, sizes_available = ?, colors_available = ?, color_images = ?, size_guide = ?, features = ?, category = ?, is_bundle = ?, bundle_items = ?
     WHERE id = ?
   `);
 
@@ -1602,6 +1653,8 @@ export function updateShopCampaign(id, data) {
     size_guide,
     features,
     category,
+    is_bundle,
+    bundle_items,
     id
   );
 
@@ -1710,29 +1763,97 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     throw err;
   }
 
-  // Validação do tamanho
-  const size = (orderData.size || '').toUpperCase().trim();
-  if (!campaign.sizes_available.includes(size)) {
-    const err = new Error(
-      `Tamanho inválido. Opções disponíveis: ${campaign.sizes_available.join(', ')}`
-    );
-    err.statusCode = 400;
-    throw err;
-  }
+  const isBundle = Boolean(
+    campaign.is_bundle ||
+    (campaign.bundle_items && campaign.bundle_items.length > 0) ||
+    campaign.category === 'Pack'
+  );
 
-  // Validação da cor
-  const availableColors =
-    Array.isArray(campaign.colors_available) && campaign.colors_available.length > 0
-      ? campaign.colors_available
-      : ['Preto'];
+  let size = (orderData.size || '').toUpperCase().trim();
   let color = (orderData.color || '').trim();
-  if (!color) {
-    color = availableColors[0] || 'Preto';
+  let bundleSelections = null;
+
+  if (isBundle && campaign.bundle_items && campaign.bundle_items.length > 0) {
+    const rawSelections = orderData.bundle_selections || orderData.bundleSelections || [];
+    let parsedSelections = [];
+    try {
+      parsedSelections = typeof rawSelections === 'string' ? JSON.parse(rawSelections) : rawSelections;
+    } catch {
+      parsedSelections = [];
+    }
+
+    const validatedSelections = [];
+    const sizeSummaries = [];
+    const colorSummaries = [];
+
+    for (const itemConfig of campaign.bundle_items) {
+      const childCampaign = getShopCampaignById(itemConfig.campaign_id, isTestingMode);
+      const childName = itemConfig.item_name || (childCampaign ? (childCampaign.item_name || childCampaign.title) : itemConfig.campaign_id);
+
+      const userSel = Array.isArray(parsedSelections)
+        ? parsedSelections.find((s) => s.campaign_id === itemConfig.campaign_id || s.item_name === childName)
+        : null;
+
+      let itemSize = (userSel && userSel.size ? String(userSel.size).toUpperCase().trim() : '') ||
+        (childCampaign && childCampaign.sizes_available?.[0]) || 'M';
+      let itemColor = (userSel && userSel.color ? String(userSel.color).trim() : '') ||
+        (childCampaign && childCampaign.colors_available?.[0]) || 'Preto';
+
+      if (childCampaign && childCampaign.sizes_available && childCampaign.sizes_available.length > 0) {
+        if (!childCampaign.sizes_available.includes(itemSize)) {
+          itemSize = childCampaign.sizes_available[0];
+        }
+      }
+
+      if (childCampaign && childCampaign.colors_available && childCampaign.colors_available.length > 0) {
+        const matched = childCampaign.colors_available.find((c) => c.toLowerCase() === itemColor.toLowerCase());
+        itemColor = matched || childCampaign.colors_available[0];
+      }
+
+      validatedSelections.push({
+        campaign_id: itemConfig.campaign_id,
+        item_name: childName,
+        size: itemSize,
+        color: itemColor,
+      });
+
+      sizeSummaries.push(`${childName}: ${itemSize}`);
+      colorSummaries.push(`${childName}: ${itemColor}`);
+    }
+
+    bundleSelections = validatedSelections;
+    size = sizeSummaries.join(' | ') || (orderData.size ? String(orderData.size) : 'Pack');
+    color = colorSummaries.join(' | ') || (orderData.color ? String(orderData.color) : 'Pack');
   } else {
-    const matched = availableColors.find(
-      (c) => c.toLowerCase() === color.toLowerCase()
-    );
-    color = matched || color;
+    // Validação do tamanho
+    if (campaign.sizes_available && campaign.sizes_available.length > 0) {
+      if (!campaign.sizes_available.includes(size)) {
+        if (orderData.size) {
+          const err = new Error(
+            `Tamanho inválido. Opções disponíveis: ${campaign.sizes_available.join(', ')}`
+          );
+          err.statusCode = 400;
+          throw err;
+        }
+        size = campaign.sizes_available[0] || 'M';
+      }
+    } else {
+      size = size || 'Único';
+    }
+
+    // Validação da cor
+    const availableColors =
+      Array.isArray(campaign.colors_available) && campaign.colors_available.length > 0
+        ? campaign.colors_available
+        : ['Preto'];
+    if (!color) {
+      color = availableColors[0] || 'Preto';
+    } else {
+      const matched = availableColors.find(
+        (c) => c.toLowerCase() === color.toLowerCase()
+      );
+      color = matched || color;
+    }
   }
 
   // Validação dos dados do estudante
@@ -1832,6 +1953,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     paid_at: null,
     createdAtMs: Date.now(),
     isAdminPreview: Boolean(isTestingMode),
+    bundle_selections: bundleSelections,
   };
 
   pendingOrdersCache.set(orderId, pendingOrder);
@@ -1916,12 +2038,12 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
       id, campaign_id, item_name, student_name, student_email, phone_number, nif,
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
       item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
-      payment_ref, order_status, email_sent, moloni_status, created_at, paid_at
+      payment_ref, order_status, email_sent, moloni_status, created_at, paid_at, bundle_selections
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, 'paid', ?,
-      ?, ?, 0, 'none', ?, ?
+      ?, ?, 0, 'none', ?, ?, ?
     )
   `);
 
@@ -1947,7 +2069,10 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
     actualPaymentRef,
     orderStatus,
     orderData.created_at || now,
-    actualPaidAt
+    actualPaidAt,
+    orderData.bundle_selections
+      ? (typeof orderData.bundle_selections === 'string' ? orderData.bundle_selections : JSON.stringify(orderData.bundle_selections))
+      : null
   );
 
   pendingOrdersCache.delete(orderData.id);
@@ -2003,6 +2128,9 @@ export function getShopOrderById(orderId) {
     moloni_status: row.moloni_status,
     is_admin_created: Boolean(row.is_admin_created),
     admin_notes: row.admin_notes || null,
+    bundle_selections: row.bundle_selections
+      ? (typeof row.bundle_selections === 'string' ? JSON.parse(row.bundle_selections) : row.bundle_selections)
+      : undefined,
     created_at: row.created_at,
     paid_at: row.paid_at,
   };
@@ -2216,6 +2344,9 @@ export function getAllShopOrders(filters = {}) {
     email_sent: Boolean(row.email_sent),
     is_admin_created: Boolean(row.is_admin_created),
     admin_notes: row.admin_notes || null,
+    bundle_selections: row.bundle_selections
+      ? (typeof row.bundle_selections === 'string' ? JSON.parse(row.bundle_selections) : row.bundle_selections)
+      : undefined,
   }));
 }
 

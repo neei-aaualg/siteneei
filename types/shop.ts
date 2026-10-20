@@ -107,6 +107,18 @@ export function getColorHex(colorName: string): string {
   return map[normalized] || '#64748b';
 }
 
+export interface BundleItemConfig {
+  campaign_id: string;
+  item_name?: string;
+}
+
+export interface BundleItemSelection {
+  campaign_id: string;
+  item_name: string;
+  size?: SweatSize | string;
+  color?: string;
+}
+
 export interface ShopCampaign {
   id: string;
   title: string;
@@ -128,6 +140,8 @@ export interface ShopCampaign {
   size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
+  is_bundle?: boolean;
+  bundle_items?: BundleItemConfig[];
   created_at?: string;
   isAdminPreview?: boolean;
 }
@@ -151,6 +165,8 @@ export interface AdminProductPayload {
   size_guide?: SizeGuideMap;
   features?: string[];
   category?: string;
+  is_bundle?: boolean;
+  bundle_items?: BundleItemConfig[];
 }
 
 export interface ProductFormData {
@@ -171,6 +187,8 @@ export interface ProductFormData {
   size_guide?: SizeGuideMap;
   features: string[];
   category: string;
+  is_bundle?: boolean;
+  bundle_items?: BundleItemConfig[];
 }
 
 export interface MerchProduct {
@@ -191,6 +209,9 @@ export interface MerchProduct {
   allowShipping?: boolean;
   shippingFee?: number;
   pickupLocation?: string;
+  isBundle?: boolean;
+  bundleItems?: BundleItemConfig[];
+  bundleProducts?: MerchProduct[];
   campaignData?: ShopCampaign;
 }
 
@@ -202,7 +223,7 @@ export interface ShopOrder {
   student_email: string;
   phone_number: string;
   nif?: string | null;
-  size: SweatSize;
+  size: SweatSize | string;
   color: string;
   delivery_type: DeliveryType;
   shipping_address?: string | null;
@@ -220,6 +241,7 @@ export interface ShopOrder {
   email_sent_at?: string | null;
   is_admin_created?: boolean;
   admin_notes?: string | null;
+  bundle_selections?: BundleItemSelection[];
   created_at: string;
   paid_at?: string | null;
 }
@@ -231,7 +253,7 @@ export interface AdminCreateOrderPayload {
   student_email: string;
   phone_number: string;
   nif?: string;
-  size: SweatSize;
+  size: SweatSize | string;
   color?: string;
   delivery_type: DeliveryType;
   shipping_address?: string;
@@ -245,6 +267,7 @@ export interface AdminCreateOrderPayload {
   order_status?: OrderStatus;
   send_email?: boolean;
   admin_notes?: string;
+  bundle_selections?: BundleItemSelection[];
 }
 
 export interface CheckoutPayload {
@@ -254,12 +277,13 @@ export interface CheckoutPayload {
   student_email: string;
   phone_number: string;
   nif?: string;
-  size: SweatSize;
+  size?: SweatSize | string;
   color?: string;
   delivery_type: DeliveryType;
   shipping_address?: string;
   shipping_postal_code?: string;
   shipping_city?: string;
+  bundle_selections?: BundleItemSelection[];
 }
 
 export interface CheckoutResponse {
@@ -284,8 +308,9 @@ export interface OrderStatusResponse {
   itemName?: string;
   studentEmail?: string;
   phoneNumber?: string;
-  size: SweatSize;
+  size: SweatSize | string;
   color?: string;
+  bundle_selections?: BundleItemSelection[];
   itemPrice?: number;
   shippingFee?: number;
   paymentFee?: number;

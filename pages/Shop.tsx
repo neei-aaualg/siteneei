@@ -40,6 +40,7 @@ import {
   DEFAULT_SIZE_GUIDE,
   ORDERED_SWEAT_SIZES,
   getColorHex,
+  BundleItemSelection,
 } from '../types/shop';
 import {
   fetchShopCampaign,
@@ -83,6 +84,14 @@ export const Shop: React.FC = () => {
   const [selectedColor, setSelectedColor] = useState<string>('Preto');
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup');
 
+  // Seleções específicas para artigos de um Pack: Record<campaign_id, { size: SweatSize | string; color?: string }>
+  const [bundleSelections, setBundleSelections] = useState<
+    Record<string, { size: SweatSize | string; color?: string }>
+  >({});
+
+  // Campanha alvo para o Guia de Medidas (permite abrir guia de peça específica de um pack)
+  const [sizeGuideCampaign, setSizeGuideCampaign] = useState<ShopCampaign | null>(null);
+
   // Pré-visualização de cor selecionada por produto na grelha do catálogo
   const [previewColors, setPreviewColors] = useState<Record<string, string>>({});
 
@@ -93,6 +102,41 @@ export const Shop: React.FC = () => {
     }
     return activeCampaign?.raw_image_url || activeCampaign?.image_url || '/assets/sweat_mockup.jpg';
   }, [activeCampaign, selectedColor]);
+
+  // Artigos resolvidos do Pack caso o artigo ativo seja um bundle
+  const bundleResolvedItems = useMemo(() => {
+    if (!activeCampaign?.is_bundle || !activeCampaign.bundle_items) return [];
+    return activeCampaign.bundle_items.map((bi) => {
+      const orig = campaignsList.find((c) => c.id === bi.campaign_id);
+      return {
+        campaign_id: bi.campaign_id,
+        item_name: bi.item_name || orig?.item_name || orig?.title || 'Artigo',
+        originalCampaign: orig || null,
+        sizes_available: orig?.sizes_available?.length
+          ? orig.sizes_available
+          : ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
+        colors_available: orig?.colors_available?.length ? orig.colors_available : ['Preto'],
+        color_images: orig?.color_images || {},
+        size_guide: orig?.size_guide || DEFAULT_SIZE_GUIDE,
+        category: orig?.category || 'Vestuário',
+        image_url: orig?.raw_image_url || orig?.image_url || '/assets/sweat_mockup.jpg',
+        item_price: orig?.item_price || 0,
+      };
+    });
+  }, [activeCampaign, campaignsList]);
+
+  // Poupança calculada do Pack comparando a soma dos preços individuais com o preço do pack
+  const bundleSavingsInfo = useMemo(() => {
+    if (!activeCampaign?.is_bundle || bundleResolvedItems.length < 2) return null;
+    const sumIndividual = bundleResolvedItems.reduce((acc, item) => acc + item.item_price, 0);
+    const bundlePrice = activeCampaign.item_price;
+    if (sumIndividual > bundlePrice) {
+      const savings = sumIndividual - bundlePrice;
+      const percent = Math.round((savings / sumIndividual) * 100);
+      return { sumIndividual, savings, percent };
+    }
+    return null;
+  }, [activeCampaign, bundleResolvedItems]);
 
   // Cores disponíveis para o artigo ativo
   const isClothing = (activeCampaign?.category || 'Vestuário').toLowerCase() === 'vestuário';
@@ -136,6 +180,7 @@ export const Shop: React.FC = () => {
     shippingPostalCode?: string;
     shippingCity?: string;
     totalAmount?: number;
+    bundle_selections?: BundleItemSelection[];
   } | null>(null);
 
   const districtsList = useMemo(() => getPortugalDistricts(), []);
@@ -529,6 +574,18 @@ export const Shop: React.FC = () => {
       const fullLocality =
         deliveryType === 'shipping' ? `${shippingCounty}, ${shippingDistrict}` : undefined;
 
+      const bundleSelectionsPayload = activeCampaign?.is_bundle
+        ? bundleResolvedItems.map((item) => {
+            const sel = bundleSelections[item.campaign_id];
+            return {
+              campaign_id: item.campaign_id,
+              item_name: item.item_name,
+              size: sel?.size || item.sizes_available[0] || 'M',
+              color: sel?.color || item.colors_available[0] || 'Preto',
+            };
+          })
+        : undefined;
+
       // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
       const res = await createPaymentIntent({
         campaign_id: activeCampaign?.id,
@@ -544,6 +601,7 @@ export const Shop: React.FC = () => {
         shipping_city: fullLocality,
         adminPreview: isAdminPreview,
         adminToken: isAdminPreview ? adminToken : undefined,
+        bundle_selections: bundleSelectionsPayload,
       });
 
       const orderDataToSave = {
@@ -559,6 +617,7 @@ export const Shop: React.FC = () => {
         shippingPostalCode: deliveryType === 'shipping' ? shippingPostalCode.trim() : null,
         shippingCity: fullLocality || null,
         totalAmount: res.totalAmount,
+        bundle_selections: bundleSelectionsPayload,
       };
 
       setConfirmedOrderDetails(orderDataToSave);
@@ -896,8 +955,34 @@ export const Shop: React.FC = () => {
                           ))}
                         </ul>
 
-                        {/* Seletor minimalista de cores no cartão */}
-                        {prod.colors && prod.colors.length > 0 && (
+                        {/* Se for Pack, lista os artigos incluídos no conjunto */}
+                        {prod.campaignData?.is_bundle && prod.campaignData.bundle_items && prod.campaignData.bundle_items.length > 0 && (
+                          <div className="mt-3 p-3 rounded-2xl bg-cyan-50/20 dark:bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                                <Package size={12} />
+                                Artigos Incluídos no Pack ({prod.campaignData.bundle_items.length})
+                              </span>
+                              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">
+                                Pack Especial
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              {prod.campaignData.bundle_items.map((bi, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
+                                  <span className="truncate">{bi.item_name || 'Artigo'}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5 italic">
+                              Cores e tamanhos selecionados individualmente para cada peça.
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Seletor minimalista de cores no cartão (apenas para artigos individuais) */}
+                        {!prod.campaignData?.is_bundle && prod.colors && prod.colors.length > 0 && (
                           <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {prod.colors.map((c) => {
@@ -936,18 +1021,35 @@ export const Shop: React.FC = () => {
                           onClick={() => {
                             if (prod.campaignData) {
                               setSelectedProductCampaign(prod.campaignData);
-                              if (prod.campaignData.sizes_available?.length) {
-                                const sorted = sortSweatSizes(prod.campaignData.sizes_available);
-                                if (!sorted.includes(selectedSize)) {
-                                  setSelectedSize(sorted[0]);
-                                }
-                              }
-                              if (currentCardColor && prod.campaignData.colors_available?.includes(currentCardColor)) {
-                                setSelectedColor(currentCardColor);
-                              } else if (prod.campaignData.colors_available?.length) {
-                                setSelectedColor(prod.campaignData.colors_available[0]);
+                              if (prod.campaignData.is_bundle && prod.campaignData.bundle_items) {
+                                const initBundle: Record<string, { size: SweatSize | string; color?: string }> = {};
+                                prod.campaignData.bundle_items.forEach((bi) => {
+                                  const orig = campaignsList.find((c) => c.id === bi.campaign_id);
+                                  const availableSizes = orig?.sizes_available?.length
+                                    ? sortSweatSizes(orig.sizes_available)
+                                    : ['M'];
+                                  const defaultSize = availableSizes.includes('M') ? 'M' : availableSizes[0] || 'M';
+                                  const defaultColor = orig?.colors_available?.length ? orig.colors_available[0] : 'Preto';
+                                  initBundle[bi.campaign_id] = {
+                                    size: defaultSize,
+                                    color: defaultColor,
+                                  };
+                                });
+                                setBundleSelections(initBundle);
                               } else {
-                                setSelectedColor('Preto');
+                                if (prod.campaignData.sizes_available?.length) {
+                                  const sorted = sortSweatSizes(prod.campaignData.sizes_available);
+                                  if (!sorted.includes(selectedSize)) {
+                                    setSelectedSize(sorted[0]);
+                                  }
+                                }
+                                if (currentCardColor && prod.campaignData.colors_available?.includes(currentCardColor)) {
+                                  setSelectedColor(currentCardColor);
+                                } else if (prod.campaignData.colors_available?.length) {
+                                  setSelectedColor(prod.campaignData.colors_available[0]);
+                                } else {
+                                  setSelectedColor('Preto');
+                                }
                               }
                             }
                             setIsCheckoutOpen(true);
@@ -955,15 +1057,21 @@ export const Shop: React.FC = () => {
                           className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer"
                         >
                           <ShoppingBag size={18} />
-                          <span>Pré-encomendar</span>
+                          <span>{prod.campaignData?.is_bundle ? 'Comprar Pack' : 'Pré-encomendar'}</span>
                         </button>
 
-                        {((prod.category || 'Vestuário').toLowerCase() === 'vestuário') && (
+                        {((prod.category || 'Vestuário').toLowerCase() === 'vestuário' || prod.campaignData?.is_bundle) && (
                           <button
                             type="button"
                             onClick={() => {
                               if (prod.campaignData) {
                                 setSelectedProductCampaign(prod.campaignData);
+                                if (prod.campaignData.is_bundle && prod.campaignData.bundle_items?.length) {
+                                  const firstItem = campaignsList.find((c) => c.id === prod.campaignData?.bundle_items?.[0]?.campaign_id);
+                                  setSizeGuideCampaign(firstItem || prod.campaignData);
+                                } else {
+                                  setSizeGuideCampaign(prod.campaignData);
+                                }
                               }
                               setIsSizeGuideOpen(true);
                             }}
@@ -1088,17 +1196,30 @@ export const Shop: React.FC = () => {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
-                          {activeCampaign?.category || 'Vestuário'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
+                            {activeCampaign?.is_bundle ? 'Pack Promocional' : activeCampaign?.category || 'Vestuário'}
+                          </span>
+                          {activeCampaign?.is_bundle && (
+                            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">
+                              {bundleResolvedItems.length} Peças
+                            </span>
+                          )}
+                        </div>
                         <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                           {activeCampaign?.item_name}
                         </h4>
-                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                            <span>Tamanho: <strong>{selectedSize}</strong></span>
-                          </span>
-                        </div>
+                        {!activeCampaign?.is_bundle ? (
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                              <span>Tamanho: <strong>{selectedSize}</strong></span>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                            Inclui: {bundleResolvedItems.map((b) => b.item_name).join(' + ')}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1107,7 +1228,7 @@ export const Shop: React.FC = () => {
                       <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs leading-relaxed shadow-xs max-h-24 overflow-y-auto">
                         <div className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 font-bold mb-1 text-[11px] uppercase tracking-wider sticky top-0 bg-transparent">
                           <Info size={13} className="shrink-0" />
-                          <span>Descrição Detalhada do Artigo</span>
+                          <span>Descrição Detalhada</span>
                         </div>
                         <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
                           {activeCampaign.description}
@@ -1115,74 +1236,248 @@ export const Shop: React.FC = () => {
                       </div>
                     )}
 
-                    {/* 1. Seleção de Tamanho */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                          Tamanho:{' '}
-                          <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
-                            {selectedSize}
-                          </span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setIsSizeGuideOpen(true)}
-                          className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
-                        >
-                          <Ruler size={13} />
-                          Guia de Tamanhos
-                        </button>
-                      </div>
+                    {/* Seleção de Tamanho e Cor: Se for Pack, configura cada artigo individualmente */}
+                    {activeCampaign?.is_bundle ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                            <Package size={15} className="text-cyan-500" />
+                            <span>Configura os artigos do teu Pack ({bundleResolvedItems.length} peças)</span>
+                          </label>
+                          {bundleSavingsInfo && (
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                              Poupa {bundleSavingsInfo.savings.toFixed(2)}€ ({bundleSavingsInfo.percent}% OFF)
+                            </span>
+                          )}
+                        </div>
 
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                        {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
-                          const isSelected = selectedSize === sz;
-                          return (
-                            <button
-                              key={sz}
-                              type="button"
-                              onClick={() => setSelectedSize(sz)}
-                              className={`py-1.5 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
-                                ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
-                                : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
-                                }`}
-                            >
-                              {sz}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                        <div className="space-y-3">
+                          {bundleResolvedItems.map((item, index) => {
+                            const currentSel = bundleSelections[item.campaign_id] || {
+                              size: item.sizes_available[0] || 'M',
+                              color: item.colors_available[0] || 'Preto',
+                            };
+                            const itemColor = currentSel.color || item.colors_available[0] || 'Preto';
+                            const itemImage =
+                              (itemColor && item.color_images?.[itemColor]) || item.image_url;
+                            const isClothingItem = item.category.toLowerCase() === 'vestuário';
 
-                    {/* 1b. Seleção Minimalista de Cor */}
-                    {activeColors.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {activeColors.map((colorName) => {
-                            const isSelected = selectedColor === colorName;
-                            const hex = getColorHex(colorName);
                             return (
-                              <button
-                                key={colorName}
-                                type="button"
-                                onClick={() => setSelectedColor(colorName)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
-                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                                }`}
+                              <div
+                                key={item.campaign_id}
+                                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs"
                               >
-                                <span
-                                  className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                                  style={{ backgroundColor: hex }}
-                                />
-                                <span>{colorName}</span>
-                                {isSelected && <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />}
-                              </button>
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs">
+                                      <img
+                                        src={itemImage}
+                                        alt={item.item_name}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block truncate">
+                                        Peça {index + 1} · {item.category}
+                                      </span>
+                                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                        {item.item_name}
+                                      </h5>
+                                    </div>
+                                  </div>
+
+                                  {isClothingItem && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setSizeGuideCampaign(item.originalCampaign || null);
+                                        setIsSizeGuideOpen(true);
+                                      }}
+                                      className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer shrink-0"
+                                    >
+                                      <Ruler size={12} />
+                                      <span>Guia Medidas</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Seletor de Tamanho para esta peça */}
+                                <div>
+                                  <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                    Tamanho:{' '}
+                                    <strong className="text-cyan-600 dark:text-cyan-400">
+                                      {currentSel.size}
+                                    </strong>
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {sortSweatSizes(item.sizes_available).map((sz) => {
+                                      const isSel = currentSel.size === sz;
+                                      return (
+                                        <button
+                                          key={sz}
+                                          type="button"
+                                          onClick={() => {
+                                            setBundleSelections((prev) => ({
+                                              ...prev,
+                                              [item.campaign_id]: {
+                                                ...prev[item.campaign_id],
+                                                size: sz,
+                                                color:
+                                                  prev[item.campaign_id]?.color ||
+                                                  item.colors_available[0] ||
+                                                  'Preto',
+                                              },
+                                            }));
+                                          }}
+                                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                            isSel
+                                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs'
+                                              : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                                          }`}
+                                        >
+                                          {sz}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Seletor de Cor para esta peça */}
+                                {item.colors_available.length > 0 && (
+                                  <div>
+                                    <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                      Cor:{' '}
+                                      <strong className="text-cyan-600 dark:text-cyan-400">
+                                        {itemColor}
+                                      </strong>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {item.colors_available.map((c) => {
+                                        const isSel = itemColor === c;
+                                        const hex = getColorHex(c);
+                                        return (
+                                          <button
+                                            key={c}
+                                            type="button"
+                                            onClick={() => {
+                                              setBundleSelections((prev) => ({
+                                                ...prev,
+                                                [item.campaign_id]: {
+                                                  ...prev[item.campaign_id],
+                                                  size:
+                                                    prev[item.campaign_id]?.size ||
+                                                    item.sizes_available[0] ||
+                                                    'M',
+                                                  color: c,
+                                                },
+                                              }));
+                                            }}
+                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
+                                              isSel
+                                                ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
+                                                : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                            }`}
+                                          >
+                                            <span
+                                              className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                              style={{ backgroundColor: hex }}
+                                            />
+                                            <span>{c}</span>
+                                            {isSel && (
+                                              <Check
+                                                size={11}
+                                                className="text-cyan-500 stroke-[3] shrink-0"
+                                              />
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        {/* 1. Seleção de Tamanho */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                              Tamanho:{' '}
+                              <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
+                                {selectedSize}
+                              </span>
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSizeGuideCampaign(activeCampaign);
+                                setIsSizeGuideOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                            >
+                              <Ruler size={13} />
+                              Guia de Tamanhos
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                            {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
+                              const isSelected = selectedSize === sz;
+                              return (
+                                <button
+                                  key={sz}
+                                  type="button"
+                                  onClick={() => setSelectedSize(sz)}
+                                  className={`py-1.5 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
+                                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                                  }`}
+                                >
+                                  {sz}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 1b. Seleção Minimalista de Cor */}
+                        {activeColors.length > 0 && (
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {activeColors.map((colorName) => {
+                                const isSelected = selectedColor === colorName;
+                                const hex = getColorHex(colorName);
+                                return (
+                                  <button
+                                    key={colorName}
+                                    type="button"
+                                    onClick={() => setSelectedColor(colorName)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
+                                        : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                    }`}
+                                  >
+                                    <span
+                                      className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                      style={{ backgroundColor: hex }}
+                                    />
+                                    <span>{colorName}</span>
+                                    {isSelected && (
+                                      <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     {/* 2. Modalidade de Entrega */}
@@ -1371,9 +1666,25 @@ export const Shop: React.FC = () => {
                     {/* Resumo de Valores */}
                     <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                        <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">{(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span></span>
+                        <span>
+                          {activeCampaign?.item_name || 'Sweat Oficial'}
+                          {!activeCampaign?.is_bundle
+                            ? ` (${selectedSize})`
+                            : ` (${bundleResolvedItems.length} peças)`}
+                        </span>
+                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                          {(activeCampaign?.item_price ?? 0).toFixed(2)}€{' '}
+                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                            (+ taxas)
+                          </span>
+                        </span>
                       </div>
+                      {bundleSavingsInfo && (
+                        <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-xl border border-emerald-400/30">
+                          <span>Poupança do Pack ({bundleSavingsInfo.percent}% OFF):</span>
+                          <span>-{bundleSavingsInfo.savings.toFixed(2)}€</span>
+                        </div>
+                      )}
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>
                           Portes:{' '}
@@ -1558,7 +1869,10 @@ export const Shop: React.FC = () => {
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                 <button
                   type="button"
-                  onClick={() => setIsSizeGuideOpen(false)}
+                  onClick={() => {
+                    setIsSizeGuideOpen(false);
+                    setSizeGuideCampaign(null);
+                  }}
                   className="absolute top-5 right-5 p-1 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white"
                 >
                   <X size={20} />
@@ -1568,9 +1882,9 @@ export const Shop: React.FC = () => {
                   <Ruler className="text-cyan-500" size={22} />
                   <span>Guia de Tamanhos (cm)</span>
                 </h3>
-                {activeCampaign?.item_name && (
+                {(sizeGuideCampaign?.item_name || activeCampaign?.item_name) && (
                   <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-2">
-                    {activeCampaign.item_name}
+                    {sizeGuideCampaign?.item_name || activeCampaign?.item_name}
                   </p>
                 )}
                 <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
@@ -1585,9 +1899,10 @@ export const Shop: React.FC = () => {
                 </div>
 
                 {(() => {
-                  const guideData = activeCampaign?.size_guide || DEFAULT_SIZE_GUIDE;
-                  const availableSizes = activeCampaign?.sizes_available?.length
-                    ? sortSweatSizes(activeCampaign.sizes_available)
+                  const targetCampaign = sizeGuideCampaign || activeCampaign;
+                  const guideData = targetCampaign?.size_guide || DEFAULT_SIZE_GUIDE;
+                  const availableSizes = targetCampaign?.sizes_available?.length
+                    ? sortSweatSizes(targetCampaign.sizes_available)
                     : ORDERED_SWEAT_SIZES;
 
                   return (
@@ -1646,7 +1961,10 @@ export const Shop: React.FC = () => {
                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
                   <button
                     type="button"
-                    onClick={() => setIsSizeGuideOpen(false)}
+                    onClick={() => {
+                      setIsSizeGuideOpen(false);
+                      setSizeGuideCampaign(null);
+                    }}
                     className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs transition-colors cursor-pointer"
                   >
                     Entendido
@@ -1773,21 +2091,50 @@ export const Shop: React.FC = () => {
                           <span>Artigo Encomendado:</span>
                           <span className="text-cyan-400 font-semibold">{displayItemName}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs text-slate-400">
-                          <span>Tamanho / Cor:</span>
-                          <span className="text-white font-semibold flex items-center gap-1.5">
-                            <span>{displaySize}</span>
-                            {displayColor && (
-                              <span className="inline-flex items-center gap-1 text-slate-300">
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0 inline-block"
-                                  style={{ backgroundColor: getColorHex(displayColor) }}
-                                />
-                                <span>{displayColor}</span>
-                              </span>
-                            )}
-                          </span>
-                        </div>
+                        {confirmedOrderDetails?.bundle_selections && confirmedOrderDetails.bundle_selections.length > 0 ? (
+                          <div className="pt-1.5 border-t border-slate-800/80 space-y-1.5">
+                            <span className="text-[10px] uppercase font-bold text-cyan-400 block">
+                              Itens Escolhidos no Pack ({confirmedOrderDetails.bundle_selections.length}):
+                            </span>
+                            <div className="space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                              {confirmedOrderDetails.bundle_selections.map((bs, i) => (
+                                <div key={i} className="flex justify-between items-center text-xs">
+                                  <span className="text-slate-300 font-medium">{bs.item_name}</span>
+                                  <span className="text-white font-semibold flex items-center gap-1.5">
+                                    <span className="px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 font-bold text-[10px]">
+                                      {bs.size}
+                                    </span>
+                                    {bs.color && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] text-slate-300">
+                                        <span
+                                          className="w-2 h-2 rounded-full border border-black/20 shrink-0"
+                                          style={{ backgroundColor: getColorHex(bs.color) }}
+                                        />
+                                        <span>{bs.color}</span>
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between items-center text-xs text-slate-400">
+                            <span>Tamanho / Cor:</span>
+                            <span className="text-white font-semibold flex items-center gap-1.5">
+                              <span>{displaySize}</span>
+                              {displayColor && (
+                                <span className="inline-flex items-center gap-1 text-slate-300">
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0 inline-block"
+                                    style={{ backgroundColor: getColorHex(displayColor) }}
+                                  />
+                                  <span>{displayColor}</span>
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center text-xs text-slate-400">
                           <span>Nº de Encomenda:</span>
                           <button

@@ -155,45 +155,77 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                     </div>
                   )}
 
-                  {/* Tamanhos */}
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                      Tamanhos Disponíveis
-                    </span>
-                    <div className="flex flex-wrap gap-1">
-                      {sortSweatSizes(prod.sizes_available).map((sz) => (
-                        <span
-                          key={sz}
-                          className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"
-                        >
-                          {sz}
+                  {/* Pack / Bundle Items */}
+                  {prod.is_bundle ? (
+                    <div className="p-2.5 rounded-xl bg-cyan-50/20 dark:bg-cyan-950/40 border border-cyan-500/30 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                          <Package size={12} />
+                          Artigos no Pack ({prod.bundle_items?.length || 0})
                         </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Cores Disponíveis */}
-                  {prod.colors_available && prod.colors_available.length > 0 && (
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-1">
-                        <Palette size={11} className="text-cyan-500" />
-                        Cores Disponíveis ({prod.colors_available.length})
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {prod.colors_available.map((c) => (
-                          <span
-                            key={c}
-                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300"
-                          >
-                            <span
-                              className="w-2 h-2 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                              style={{ backgroundColor: getColorHex(c) }}
-                            />
-                            <span>{c}</span>
-                          </span>
-                        ))}
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">
+                          Pack
+                        </span>
                       </div>
+                      <div className="space-y-1">
+                        {prod.bundle_items && prod.bundle_items.length > 0 ? (
+                          prod.bundle_items.map((bi, i) => (
+                            <div key={i} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0" />
+                              <span className="line-clamp-1">{bi.item_name || 'Artigo'}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-slate-400">Sem artigos configurados</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block pt-0.5 italic">
+                        Tamanhos e cores configurados individualmente por peça.
+                      </span>
                     </div>
+                  ) : (
+                    <>
+                      {/* Tamanhos */}
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                          Tamanhos Disponíveis
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {sortSweatSizes(prod.sizes_available).map((sz) => (
+                            <span
+                              key={sz}
+                              className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                            >
+                              {sz}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Cores Disponíveis */}
+                      {prod.colors_available && prod.colors_available.length > 0 && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1 mb-1">
+                            <Palette size={11} className="text-cyan-500" />
+                            Cores Disponíveis ({prod.colors_available.length})
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {prod.colors_available.map((c) => (
+                              <span
+                                key={c}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-semibold text-slate-700 dark:text-slate-300"
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                  style={{ backgroundColor: getColorHex(c) }}
+                                />
+                                <span>{c}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

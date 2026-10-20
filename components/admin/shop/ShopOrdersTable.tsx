@@ -365,9 +365,16 @@ export const ShopOrdersTable: React.FC<ShopOrdersTableProps> = ({
 
                   {/* Artigo / Peça - Mostra o nome que tinha quando foi vendida */}
                   <td className="py-3 px-3">
-                    <span className="font-semibold text-slate-800 dark:text-slate-100 block">
-                      {o.item_name || 'Sweat Oficial Engenharia Informática'}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-slate-800 dark:text-slate-100 block">
+                        {o.item_name || 'Sweat Oficial Engenharia Informática'}
+                      </span>
+                      {o.bundle_selections && o.bundle_selections.length > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 text-[9px] font-black uppercase">
+                          Pack
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400 block font-mono">
                       {o.campaign_id}
                     </span>
@@ -390,20 +397,51 @@ export const ShopOrdersTable: React.FC<ShopOrdersTableProps> = ({
 
                   {/* Tamanho e Cor */}
                   <td className="py-3 px-3">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-2 py-0.5 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-black text-xs">
-                        {o.size}
-                      </span>
-                      {o.color && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                            style={{ backgroundColor: getColorHex(o.color) }}
-                          />
-                          <span>{o.color}</span>
+                    {o.bundle_selections && o.bundle_selections.length > 0 ? (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 inline-block">
+                          Pack ({o.bundle_selections.length} artigos)
                         </span>
-                      )}
-                    </div>
+                        <div className="space-y-1">
+                          {o.bundle_selections.map((bs, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 text-[11px] font-medium text-slate-800 dark:text-slate-200">
+                              <span className="font-semibold text-slate-900 dark:text-white line-clamp-1 max-w-[130px]">
+                                {bs.item_name}:
+                              </span>
+                              {bs.size && (
+                                <span className="px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-bold text-[10px]">
+                                  {bs.size}
+                                </span>
+                              )}
+                              {bs.color && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                                  <span
+                                    className="w-2 h-2 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                    style={{ backgroundColor: getColorHex(bs.color) }}
+                                  />
+                                  <span>{bs.color}</span>
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-lg bg-cyan-100 dark:bg-cyan-950 text-cyan-800 dark:text-cyan-300 font-black text-xs">
+                          {o.size}
+                        </span>
+                        {o.color && (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                              style={{ backgroundColor: getColorHex(o.color) }}
+                            />
+                            <span>{o.color}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
 
                   {/* Modalidade de Entrega */}
