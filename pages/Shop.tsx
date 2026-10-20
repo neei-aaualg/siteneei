@@ -853,16 +853,6 @@ export const Shop: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    {/* Badge da cor visualizada na imagem */}
-                    {currentCardColor && (
-                      <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-950/85 backdrop-blur-md border border-cyan-500/30 text-white text-xs font-bold shadow-md">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full border border-white/40 shrink-0"
-                          style={{ backgroundColor: getColorHex(currentCardColor) }}
-                        />
-                        <span>{currentCardColor}</span>
-                      </div>
-                    )}
                     <div className="absolute bottom-3.5 right-3.5 bg-slate-950/85 backdrop-blur-md border border-cyan-500/30 text-white font-black text-lg px-3.5 py-1 rounded-xl shadow-lg flex items-baseline gap-1">
                       <span>{prod.price.toFixed(2)}€</span>
                       <span className="text-[10px] font-semibold text-cyan-300 tracking-normal">(+ taxas)</span>
@@ -906,22 +896,10 @@ export const Shop: React.FC = () => {
                           ))}
                         </ul>
 
-                        {/* Seletor notório de cores no cartão com troca dinâmica de foto */}
+                        {/* Seletor minimalista de cores no cartão */}
                         {prod.colors && prod.colors.length > 0 && (
-                          <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800/80">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                                <Palette size={14} className="text-cyan-500 shrink-0" />
-                                <span>Cor:</span>
-                                <span className="text-cyan-600 dark:text-cyan-400 font-black">
-                                  {currentCardColor}
-                                </span>
-                              </span>
-                              <span className="text-[11px] text-slate-400">
-                                Clica para alternar foto
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
+                          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               {prod.colors.map((c) => {
                                 const isCardColorSelected = currentCardColor === c;
                                 const hex = getColorHex(c);
@@ -933,20 +911,17 @@ export const Shop: React.FC = () => {
                                       e.stopPropagation();
                                       setPreviewColors((prev) => ({ ...prev, [prod.id]: c }));
                                     }}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${isCardColorSelected
-                                      ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-500/40 shadow-md scale-105'
-                                      : 'bg-slate-50 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:border-cyan-400 hover:scale-102'
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isCardColorSelected
+                                      ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 shadow-xs'
+                                      : 'bg-slate-50 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
                                       }`}
                                     title={`Ver na cor ${c}`}
                                   >
                                     <span
-                                      className="w-4 h-4 rounded-full border border-black/25 dark:border-white/30 shadow-xs shrink-0"
+                                      className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
                                       style={{ backgroundColor: hex }}
                                     />
                                     <span>{c}</span>
-                                    {isCardColorSelected && (
-                                      <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />
-                                    )}
                                   </button>
                                 );
                               })}
@@ -1111,9 +1086,6 @@ export const Shop: React.FC = () => {
                           alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
                           className="w-full h-full object-cover object-center transition-all duration-300"
                         />
-                        <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-slate-950/85 backdrop-blur-xs text-[9px] font-bold text-white border border-white/20">
-                          {selectedColor}
-                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
@@ -1123,13 +1095,6 @@ export const Shop: React.FC = () => {
                           {activeCampaign?.item_name}
                         </h4>
                         <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                              style={{ backgroundColor: getColorHex(selectedColor) }}
-                            />
-                            <span>Cor: <strong>{selectedColor}</strong></span>
-                          </span>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                             <span>Tamanho: <strong>{selectedSize}</strong></span>
                           </span>
@@ -1189,52 +1154,30 @@ export const Shop: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 1b. Seleção Notória de Cor */}
+                    {/* 1b. Seleção Minimalista de Cor */}
                     {activeColors.length > 0 && (
-                      <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 border border-cyan-500/25 shadow-xs space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <Palette size={15} className="text-cyan-500" />
-                            <span>Escolhe a Cor:</span>
-                            <span className="text-cyan-600 dark:text-cyan-400 font-black">
-                              {selectedColor}
-                            </span>
-                          </label>
-                          <span className="text-[11px] text-slate-400">
-                            {activeColors.length} {activeColors.length === 1 ? 'cor disponível' : 'cores disponíveis'}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {activeColors.map((colorName) => {
                             const isSelected = selectedColor === colorName;
                             const hex = getColorHex(colorName);
-                            const hasSpecificPhoto = !!(activeCampaign?.color_images?.[colorName]);
                             return (
                               <button
                                 key={colorName}
                                 type="button"
                                 onClick={() => setSelectedColor(colorName)}
-                                className={`relative flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer ${isSelected
-                                  ? 'bg-white dark:bg-slate-900 border-cyan-500 ring-2 ring-cyan-500/50 shadow-md text-cyan-700 dark:text-cyan-300 font-bold scale-[1.02]'
-                                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-400/60 hover:bg-slate-50 dark:hover:bg-slate-900/60'
-                                  }`}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
+                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                }`}
                               >
                                 <span
-                                  className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm shrink-0 ring-1 ring-black/20 dark:ring-white/20"
+                                  className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
                                   style={{ backgroundColor: hex }}
                                 />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between">
-                                    <span className="truncate text-xs sm:text-sm font-bold">{colorName}</span>
-                                    {isSelected && <Check size={14} className="text-cyan-500 shrink-0 stroke-[3]" />}
-                                  </div>
-                                  {hasSpecificPhoto && (
-                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium block truncate">
-                                      Foto exclusiva
-                                    </span>
-                                  )}
-                                </div>
+                                <span>{colorName}</span>
+                                {isSelected && <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />}
                               </button>
                             );
                           })}

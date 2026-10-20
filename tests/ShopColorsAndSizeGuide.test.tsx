@@ -361,8 +361,8 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
     const orderBtn = screen.getByRole('button', { name: /Pré-encomendar/i });
     await user.click(orderBtn);
 
-    // O modal abre com o seletor notório de cor e com a foto da cor selecionada no cartão
-    expect(screen.getByText(/Escolhe a Cor:/i)).toBeInTheDocument();
+    // O modal abre com o seletor minimalista de cor e com a foto da cor selecionada no cartão
+    expect(screen.getAllByRole('button', { name: /Azul Marinho/i }).length).toBeGreaterThanOrEqual(1);
     const modalImg = screen.getByAltText('Sweat Universitária - Azul Marinho');
     expect(modalImg).toHaveAttribute('src', '/assets/sweat_azul.jpg');
 
