@@ -157,15 +157,17 @@ BACKUP_SCRIPT_PATH="${CURRENT_SCRIPT_DIR}/backup-rclone.sh"
 if [[ $EUID -eq 0 ]]; then
   CRON_FILE="/etc/cron.d/neei-backup"
   cat <<EOF > "$CRON_FILE"
-# Backup diário da base de dados do Portal NEEI às 03:30 da madrugada
+# Backup da base de dados do Portal NEEI duas vezes ao dia: às 03:30 e às 16:00
 30 3 * * * root ${BACKUP_SCRIPT_PATH} >> /var/log/neei-backup.log 2>&1
+0 16 * * * root ${BACKUP_SCRIPT_PATH} >> /var/log/neei-backup.log 2>&1
 EOF
   chmod 644 "$CRON_FILE"
-  echo "✅ Tarefa agendada instalada em: ${CRON_FILE} (executa diariamente às 03:30)"
+  echo "✅ Tarefas agendadas instaladas em: ${CRON_FILE} (executa diariamente às 03:30 e às 16:00)"
 else
   echo
-  echo "ℹ️  Para agendar o backup diário no teu utilizador, adiciona a seguinte linha ao 'crontab -e':"
+  echo "ℹ️  Para agendar o backup no teu utilizador, adiciona as seguintes linhas ao 'crontab -e':"
   echo "30 3 * * * ${BACKUP_SCRIPT_PATH} >> /tmp/neei-backup.log 2>&1"
+  echo "0 16 * * * ${BACKUP_SCRIPT_PATH} >> /tmp/neei-backup.log 2>&1"
 fi
 
 echo

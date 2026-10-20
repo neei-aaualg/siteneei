@@ -45,16 +45,16 @@ Para responder à criticidade da informação armazenada no Portal NEEI (dados d
 
 Todos os scripts e testes necessários foram implementados diretamente no repositório:
 
-| Ficheiro / Módulo             | Finalidade e Descrição                                                                                                                                 |
-| :---------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/backup-db.js`        | Executa o snapshot atómico SQLite através de `node:sqlite` (`VACUUM INTO`) e valida a integridade com `PRAGMA integrity_check`.                        |
-| `scripts/backup-rclone.sh`    | Script principal para a VPS: gera snapshot, compacta (`gzip`), transfere cifrado via Rclone, purga backups com mais de 30 dias e notifica via Discord. |
-| `scripts/restore-rclone.sh`   | Utilitário de Disaster Recovery: lista os backups na cloud, descarrega, desencripta, descompacta e valida a saúde das tabelas.                         |
-| `scripts/setup-rclone-vps.sh` | Instalador interativo para a VPS: instala o Rclone, configura os remotes S3 + Crypt, testa a ligação e agenda o Cron diário às 03:30.                  |
-| `.backup.env.example`         | Ficheiro modelo com as variáveis de ambiente de backup.                                                                                                |
-| `Dockerfile`                  | Atualizado para incluir a diretoria `scripts/` no contentor de produção.                                                                               |
-| `package.json`                | Adicionado o comando `npm run db:backup`.                                                                                                              |
-| `tests/backupDb.test.ts`      | Testes unitários automatizados para garantia de integridade (integrado no `vitest`).                                                                   |
+| Ficheiro / Módulo             | Finalidade e Descrição                                                                                                                                        |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/backup-db.js`        | Executa o snapshot atómico SQLite através de `node:sqlite` (`VACUUM INTO`) e valida a integridade com `PRAGMA integrity_check`.                               |
+| `scripts/backup-rclone.sh`    | Script principal para a VPS: gera snapshot, compacta (`gzip`), transfere cifrado via Rclone, purga backups com mais de 30 dias e notifica via Discord.        |
+| `scripts/restore-rclone.sh`   | Utilitário de Disaster Recovery: lista os backups na cloud, descarrega, desencripta, descompacta e valida a saúde das tabelas.                                |
+| `scripts/setup-rclone-vps.sh` | Instalador interativo para a VPS: instala o Rclone, configura os remotes S3 + Crypt, testa a ligação e agenda o Cron duas vezes ao dia (às 03:30 e às 16:00). |
+| `.backup.env.example`         | Ficheiro modelo com as variáveis de ambiente de backup.                                                                                                       |
+| `Dockerfile`                  | Atualizado para incluir a diretoria `scripts/` no contentor de produção.                                                                                      |
+| `package.json`                | Adicionado o comando `npm run db:backup`.                                                                                                                     |
+| `tests/backupDb.test.ts`      | Testes unitários automatizados para garantia de integridade (integrado no `vitest`).                                                                          |
 
 ---
 
@@ -112,7 +112,7 @@ O assistente irá:
 4. Solicitar opcionalmente o Webhook URL do Discord do NEEI.
 5. Criar o ficheiro `/etc/rclone/rclone.conf` com permissões `600` e encriptação AES-256 configurada.
 6. Realizar um teste automático de escrita, leitura e eliminação no bucket para confirmar que está 100% funcional.
-7. Instalar a rotina diária no Cron (`/etc/cron.d/neei-backup`) para correr às 03:30 da madrugada.
+7. Instalar a rotina no Cron (`/etc/cron.d/neei-backup`) para correr duas vezes ao dia: às 03:30 da madrugada e às 16:00 da tarde.
 
 ---
 
