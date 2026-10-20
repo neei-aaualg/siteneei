@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ==============================================================================
 # NEEI Web Portal - Assistente de Configuração do Rclone + Cloudflare R2
-# Configura o armazenamento S3 no Cloudflare R2 e a camada de cifra AES-256
+# Compatível com POSIX sh (Alpine Linux, BusyBox, Debian, Ubuntu, etc.)
 # ==============================================================================
 
-set -euo pipefail
+set -eu
 
 echo "=================================================================="
 echo "    NEEI Web Portal - Assistente de Setup de Backup Rclone + R2   "
@@ -12,25 +12,35 @@ echo "=================================================================="
 echo
 
 # 1. Verifica privilégios de root
-if [[ $EUID -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
    echo "[AVISO] Recomenda-se executar este instalador como root (ou com sudo) para configurar o cron e ficheiros protegidos."
    echo
 fi
 
 # 2. Verifica instalação do rclone
-if ! command -v rclone &> /dev/null; then
+if ! command -v rclone > /dev/null 2>&1; then
   echo "[!] O comando 'rclone' não foi detetado no sistema."
-  read -rp "Deseja instalar o rclone automaticamente agora? (s/N): " INSTALL_RCLONE
-  if [[ "$INSTALL_RCLONE" =~ ^[sSyY]$ ]]; then
-    echo "A descarregar e instalar o rclone oficial..."
-    curl https://rclone.org/install.sh | bash
-  else
-    echo "Instalação cancelada. Por favor instala o rclone manualmente ('sudo apt-get install rclone' ou 'curl https://rclone.org/install.sh | bash') e corre novamente este script."
-    exit 1
-  fi
+  printf "Deseja instalar o rclone automaticamente agora? (s/N): "
+  read -r INSTALL_RCLONE
+  case "$INSTALL_RCLONE" in
+    [sSyY]*)
+      echo "A instalar o rclone..."
+      if command -v apk > /dev/null 2>&1; then
+        apk add --no-cache rclone curl
+      elif command -v apt-get > /dev/null 2>&1; then
+        apt-get update && apt-get install -y rclone curl
+      else
+        curl https://rclone.org/install.sh | sh
+      fi
+      ;;
+    *)
+      echo "Instalação cancelada. Por favor instala o rclone manualmente ('apk add rclone' ou 'apt install rclone') e corre novamente este script."
+      exit 1
+      ;;
+  esac
 fi
 
-echo "✅ Rclone detetado: $(rclone version | head -n 1)"
+echo "✅ Rclone detetado: $(rclone version 2>/dev/null | head -n 1)"
 echo
 
 # 3. Solicitação dos dados da Cloudflare e Criptografia
@@ -38,11 +48,20 @@ echo "Por favor insere os dados da tua conta Cloudflare R2:"
 echo "(Podes consultar estes dados no painel da Cloudflare -> R2 -> Manage R2 API Tokens)"
 echo
 
-read -rp "1. Cloudflare Account ID: " CF_ACCOUNT_ID
-read -rp "2. R2 Access Key ID: " CF_ACCESS_KEY_ID
-read -rsp "3. R2 Secret Access Key: " CF_SECRET_ACCESS_KEY
-echo
-read -rp "4. Nome do Bucket R2 [por omissão: siteneei-backups]: " CF_BUCKET_NAME
+printf "1. Cloudflare Account ID: "
+read -r CF_ACCOUNT_ID
+
+printf "2. R2 Access Key ID: "
+read -r CF_ACCESS_KEY_ID
+
+printf "3. R2 Secret Access Key: "
+stty -echo 2>/dev/null || true
+read -r CF_SECRET_ACCESS_KEY
+stty echo 2>/dev/null || true
+printf "\n"
+
+printf "4. Nome do Bucket R2 [por omissão: siteneei-backups]: "
+read -r CF_BUCKET_NAME
 CF_BUCKET_NAME="${CF_BUCKET_NAME:-siteneei-backups}"
 
 echo
@@ -52,23 +71,32 @@ echo "IMPORTANTE: Guarda esta password num gestor seguro (ex.: Bitwarden/1Passwo
 echo "Sem ela, os backups na Cloudflare tornam-se IMPOSSÍVEIS de recuperar!"
 echo
 
-read -rsp "5. Password Mestra de Cifra: " MASTER_PASS
-echo
-read -rsp "   Confirma a Password Mestra: " MASTER_PASS_CONFIRM
-echo
+printf "5. Password Mestra de Cifra: "
+stty -echo 2>/dev/null || true
+read -r MASTER_PASS
+stty echo 2>/dev/null || true
+printf "\n"
 
-if [[ "$MASTER_PASS" != "$MASTER_PASS_CONFIRM" ]]; then
+printf "   Confirma a Password Mestra: "
+stty -echo 2>/dev/null || true
+read -r MASTER_PASS_CONFIRM
+stty echo 2>/dev/null || true
+printf "\n"
+
+if [ "$MASTER_PASS" != "$MASTER_PASS_CONFIRM" ]; then
   echo "❌ As passwords introduzidas não coincidem! Abortando."
   exit 1
 fi
 
-if [[ ${#MASTER_PASS} -lt 12 ]]; then
+PASS_LEN=$(printf "%s" "$MASTER_PASS" | wc -m)
+if [ "$PASS_LEN" -lt 12 ]; then
   echo "❌ A password deve ter pelo menos 12 caracteres para segurança adequada."
   exit 1
 fi
 
 echo
-read -rp "6. Discord Webhook URL para alertas (opcional, prime Enter para ignorar): " DISCORD_URL
+printf "6. Discord Webhook URL para alertas (opcional, prime Enter para ignorar): "
+read -r DISCORD_URL
 
 # 4. Ofuscação de passwords para o rclone
 OBSCURED_PASS=$(rclone obscure "$MASTER_PASS")
@@ -82,7 +110,7 @@ echo
 echo "A configurar o ficheiro ${RCLONE_CONF_FILE}..."
 
 # Faz backup de conf anterior se existir
-if [[ -f "$RCLONE_CONF_FILE" ]]; then
+if [ -f "$RCLONE_CONF_FILE" ]; then
   cp "$RCLONE_CONF_FILE" "${RCLONE_CONF_FILE}.bak.$(date +%s)"
 fi
 
@@ -108,7 +136,7 @@ chmod 600 "$RCLONE_CONF_FILE"
 echo "✅ Configuração do Rclone gerada com permissões seguras (600)."
 
 # Se executado como root, também disponibiliza em /etc/rclone/rclone.conf para o cron do sistema
-if [[ $EUID -eq 0 ]]; then
+if [ "$(id -u)" -eq 0 ]; then
   mkdir -p /etc/rclone
   cp "$RCLONE_CONF_FILE" /etc/rclone/rclone.conf
   chmod 600 /etc/rclone/rclone.conf
@@ -121,7 +149,7 @@ TEST_FILE="/tmp/neei_rclone_test_$(date +%s).txt"
 echo "NEEI Backup Connectivity Test $(date)" > "$TEST_FILE"
 
 if rclone copy "$TEST_FILE" "r2-crypt:__connectivity_test/" && \
-   rclone ls "r2-crypt:__connectivity_test/" > /dev/null && \
+   rclone ls "r2-crypt:__connectivity_test/" > /dev/null 2>&1 && \
    rclone delete "r2-crypt:__connectivity_test/" && \
    rclone rmdirs "r2-crypt:__connectivity_test/" --leave-root; then
   rm -f "$TEST_FILE"
@@ -134,7 +162,7 @@ fi
 
 # 7. Criação do ficheiro de ambiente /etc/neei-backup.env
 ENV_FILE="/etc/neei-backup.env"
-if [[ $EUID -ne 0 ]]; then
+if [ "$(id -u)" -ne 0 ]; then
   ENV_FILE="$(dirname "$0")/../.backup.env"
 fi
 
@@ -151,10 +179,10 @@ chmod 600 "$ENV_FILE"
 echo "✅ Ficheiro de variáveis criado em: ${ENV_FILE}"
 
 # 8. Instalação do Cron Job (se for root)
-CURRENT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CURRENT_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_SCRIPT_PATH="${CURRENT_SCRIPT_DIR}/backup-rclone.sh"
 
-if [[ $EUID -eq 0 ]]; then
+if [ "$(id -u)" -eq 0 ]; then
   CRON_FILE="/etc/cron.d/neei-backup"
   cat <<EOF > "$CRON_FILE"
 # Backup da base de dados do Portal NEEI duas vezes ao dia: às 03:30 e às 16:00

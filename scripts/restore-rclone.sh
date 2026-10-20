@@ -1,17 +1,18 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ==============================================================================
 # NEEI Web Portal - Procedimento de Restauro e Disaster Recovery
 # Descarrega cópia cifrada do Cloudflare R2, desencripta e valida integridade
+# Compatível com POSIX sh (Alpine Linux, BusyBox, Debian, Ubuntu, etc.)
 # ==============================================================================
 
-set -euo pipefail
+set -eu
 
-if [[ -f "/etc/neei-backup.env" ]]; then
+if [ -f "/etc/neei-backup.env" ]; then
   # shellcheck source=/dev/null
-  source "/etc/neei-backup.env"
-elif [[ -f "$(dirname "$0")/../.backup.env" ]]; then
+  . "/etc/neei-backup.env"
+elif [ -f "$(dirname "$0")/../.backup.env" ]; then
   # shellcheck source=/dev/null
-  source "$(dirname "$0")/../.backup.env"
+  . "$(dirname "$0")/../.backup.env"
 fi
 
 RCLONE_REMOTE="${RCLONE_REMOTE:-r2-crypt}"
@@ -29,9 +30,9 @@ echo
 
 # 1. Listar backups disponíveis
 echo "[1/4] A consultar backups disponíveis no Cloudflare R2..."
-AVAILABLE_FILES=$(rclone lsf "$DEST_PATH" | sort -r || true)
+AVAILABLE_FILES=$(rclone lsf "$DEST_PATH" 2>/dev/null | sort -r || true)
 
-if [[ -z "$AVAILABLE_FILES" ]]; then
+if [ -z "$AVAILABLE_FILES" ]; then
   echo "ERRO: Nenhum ficheiro de backup encontrado em ${DEST_PATH}!"
   exit 1
 fi
@@ -42,7 +43,7 @@ echo
 
 TARGET_FILE="${1:-}"
 
-if [[ -z "$TARGET_FILE" ]]; then
+if [ -z "$TARGET_FILE" ]; then
   TARGET_FILE=$(echo "$AVAILABLE_FILES" | head -n 1)
   echo "Nenhum ficheiro especificado. A selecionar o mais recente: ${TARGET_FILE}"
 else
@@ -59,7 +60,7 @@ echo
 echo "[2/4] A descarregar e desencriptar através do Rclone Crypt..."
 rclone copy "${DEST_PATH}${TARGET_FILE}" "$RESTORE_DIR" --progress
 
-if [[ ! -f "$LOCAL_GZ" ]]; then
+if [ ! -f "$LOCAL_GZ" ]; then
   echo "ERRO: O ficheiro ${LOCAL_GZ} não foi descarregado com sucesso!"
   exit 1
 fi
@@ -69,7 +70,7 @@ echo
 echo "[3/4] A descompactar ficheiro gzip..."
 gzip -d -c "$LOCAL_GZ" > "$LOCAL_DB"
 
-if [[ ! -s "$LOCAL_DB" ]]; then
+if [ ! -s "$LOCAL_DB" ]; then
   echo "ERRO: O ficheiro descompactado está vazio!"
   exit 1
 fi

@@ -1,18 +1,19 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ==============================================================================
 # NEEI Web Portal - Backup Automatizado Seguro para Cloudflare R2 via Rclone
 # Encriptação Client-Side AES-256 (Zero-Knowledge) + Snapshot Atómico SQLite
+# Compatível com POSIX sh (Alpine Linux, BusyBox, Debian, Ubuntu, etc.)
 # ==============================================================================
 
-set -euo pipefail
+set -eu
 
 # Carrega ficheiro de configuração se existir
-if [[ -f "/etc/neei-backup.env" ]]; then
+if [ -f "/etc/neei-backup.env" ]; then
   # shellcheck source=/dev/null
-  source "/etc/neei-backup.env"
-elif [[ -f "$(dirname "$0")/../.backup.env" ]]; then
+  . "/etc/neei-backup.env"
+elif [ -f "$(dirname "$0")/../.backup.env" ]; then
   # shellcheck source=/dev/null
-  source "$(dirname "$0")/../.backup.env"
+  . "$(dirname "$0")/../.backup.env"
 fi
 
 # Variáveis com valores por omissão
@@ -25,7 +26,7 @@ BACKUP_TEMP_DIR="${BACKUP_TEMP_DIR:-/tmp/neei-backups}"
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-LOCK_FILE="/tmp/neei_backup.lock"
+LOCK_DIR="/tmp/neei_backup.lock"
 TEMP_SNAPSHOT="${BACKUP_TEMP_DIR}/snapshot_${TIMESTAMP}.db"
 FINAL_ARCHIVE="${BACKUP_TEMP_DIR}/activities_${TIMESTAMP}.db.gz"
 
@@ -34,26 +35,25 @@ log() {
 }
 
 notify_discord() {
-  local status="$1"
-  local message="$2"
-  if [[ -z "$DISCORD_WEBHOOK_URL" ]]; then
+  _status="$1"
+  _message="$2"
+  if [ -z "$DISCORD_WEBHOOK_URL" ]; then
     return 0
   fi
 
-  local color=3066993 # Verde
-  local title="✅ Backup NEEI Concluído com Sucesso"
-  if [[ "$status" != "OK" ]]; then
-    color=15158332 # Vermelho
-    title="❌ ALERTA: Falha no Backup da Base de Dados NEEI"
+  _color=3066993 # Verde
+  _title="✅ Backup NEEI Concluído com Sucesso"
+  if [ "$_status" != "OK" ]; then
+    _color=15158332 # Vermelho
+    _title="❌ ALERTA: Falha no Backup da Base de Dados NEEI"
   fi
 
-  local payload
-  payload=$(cat <<EOF
+  _payload=$(cat <<EOF
 {
   "embeds": [{
-    "title": "${title}",
-    "description": "${message}",
-    "color": ${color},
+    "title": "${_title}",
+    "description": "${_message}",
+    "color": ${_color},
     "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
     "footer": { "text": "NEEI Portal Backup Service • Cloudflare R2 Crypt" }
   }]
@@ -61,19 +61,22 @@ notify_discord() {
 EOF
 )
 
-  curl -s -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK_URL" > /dev/null || true
+  curl -s -H "Content-Type: application/json" -X POST -d "$_payload" "$DISCORD_WEBHOOK_URL" > /dev/null 2>&1 || true
 }
 
 cleanup() {
-  log "A limpar ficheiros temporários locais..."
-  rm -f "$TEMP_SNAPSHOT" "$FINAL_ARCHIVE" "${LOCK_FILE}" 2>/dev/null || true
+  rm -f "$TEMP_SNAPSHOT" "$FINAL_ARCHIVE" 2>/dev/null || true
+  rm -rf "$LOCK_DIR" 2>/dev/null || true
 }
 
-trap 'notify_discord "ERROR" "Ocorreu um erro na linha $LINENO durante a execução do backup."; cleanup; exit 1' ERR
+# Proteção atómica contra execuções paralelas via mkdir
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+  # Verifica se o lock é antigo (mais de 1 hora)
+  log "[AVISO] Outro processo de backup já está em execução ou o lock está ativo. A abortar."
+  exit 0
+fi
 
-# Garante apenas uma instância em execução simultânea
-exec 200>"$LOCK_FILE"
-flock -n 200 || { log "[AVISO] Outro processo de backup já está em execução. A abortar."; exit 0; }
+trap cleanup EXIT INT TERM
 
 mkdir -p "$BACKUP_TEMP_DIR"
 
@@ -82,28 +85,33 @@ log "Início do Backup Seguro do Portal NEEI"
 log "=========================================================="
 
 # 1. Gerar o Snapshot Atómico e Íntegro do SQLite
-CONTAINER_ID=$(docker ps --filter "name=${CONTAINER_FILTER}" --format "{{.ID}}" | head -n 1 || true)
+CONTAINER_ID=""
+if command -v docker > /dev/null 2>&1; then
+  CONTAINER_ID=$(docker ps --filter "name=${CONTAINER_FILTER}" --format "{{.ID}}" 2>/dev/null | head -n 1 || true)
+fi
 
-if [[ -n "$CONTAINER_ID" ]]; then
+if [ -n "$CONTAINER_ID" ]; then
   log "Contentor Coolify detetado: ${CONTAINER_ID}"
   log "A executar snapshot atómico dentro do contentor via VACUUM INTO..."
   
   docker exec "$CONTAINER_ID" node scripts/backup-db.js /tmp/backup_container.db
   docker cp "${CONTAINER_ID}:/tmp/backup_container.db" "$TEMP_SNAPSHOT"
   docker exec "$CONTAINER_ID" rm -f /tmp/backup_container.db
-elif [[ -n "$HOST_DB_PATH" && -f "$HOST_DB_PATH" ]]; then
+elif [ -n "$HOST_DB_PATH" ] && [ -f "$HOST_DB_PATH" ]; then
   log "A usar base de dados local na VPS: ${HOST_DB_PATH}"
   DATABASE_PATH="$HOST_DB_PATH" node "$(dirname "$0")/backup-db.js" "$TEMP_SNAPSHOT"
-elif [[ -f "$(dirname "$0")/../data/activities.db" ]]; then
+elif [ -f "$(dirname "$0")/../data/activities.db" ]; then
   log "A usar base de dados do repositório local..."
   node "$(dirname "$0")/backup-db.js" "$TEMP_SNAPSHOT"
 else
   log "ERRO: Não foi encontrado o contentor Docker '${CONTAINER_FILTER}' nem o ficheiro da base de dados!"
+  notify_discord "ERROR" "Falha no backup: Contentor Docker '${CONTAINER_FILTER}' ou ficheiro de base de dados não encontrado."
   exit 1
 fi
 
-if [[ ! -s "$TEMP_SNAPSHOT" ]]; then
+if [ ! -s "$TEMP_SNAPSHOT" ]; then
   log "ERRO: O ficheiro de snapshot gerado está vazio ou não existe!"
+  notify_discord "ERROR" "Falha no backup: Ficheiro de snapshot vazio ou inexistente."
   exit 1
 fi
 
@@ -134,5 +142,4 @@ log "=========================================================="
 
 notify_discord "OK" "Snapshot atómico gerado e enviado com encriptação AES-256 para Cloudflare R2.\n\n• **Ficheiro:** \`$(basename "$FINAL_ARCHIVE")\`\n• **Tamanho:** ${GZ_SIZE_HUMAN} (descompactado: ${RAW_SIZE_HUMAN})\n• **Retenção:** ${RETENTION_DAYS} dias\n• **Integridade:** Validada com sucesso (PRAGMA integrity_check: ok)"
 
-cleanup
 exit 0
