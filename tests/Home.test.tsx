@@ -13,11 +13,9 @@ describe('Home - Destaques do Mandato', () => {
     );
 
     expect(screen.getByText('Destaques do Mandato')).toBeInTheDocument();
-    expect(screen.getByText('Apresentação do Calendário de Atividades e Sweats')).toBeInTheDocument();
+    expect(screen.getByText('Calendário de Atividades e Sweats')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Apresentação do calendário oficial de atividades planeados para os estudantes.'
-      )
+      screen.getByText('Apresentação do calendário oficial de atividades e sweats até Novembro.')
     ).toBeInTheDocument();
   });
 });

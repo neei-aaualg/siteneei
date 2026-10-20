@@ -55,7 +55,8 @@ describe('Header', () => {
     expect(screen.getByText('Sobre')).toBeInTheDocument();
     expect(screen.getByText('Vagas')).toBeInTheDocument();
     expect(screen.getByText('Constrói e personaliza o teu currículo')).toBeInTheDocument();
-    expect(screen.getAllByText('CV Builder').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('CV Builder').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('NEEI-CV').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Links')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');

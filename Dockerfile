@@ -38,6 +38,7 @@ VOLUME ["/app/data"]
 COPY --chown=node:node --from=builder /app/build ./build
 COPY --chown=node:node server.js ./
 COPY --chown=node:node server ./server
+COPY --chown=node:node scripts ./scripts
 
 # Executa com o utilizador seguro não-root
 USER node
