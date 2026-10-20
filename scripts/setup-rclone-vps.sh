@@ -122,7 +122,6 @@ provider = Cloudflare
 access_key_id = ${CF_ACCESS_KEY_ID}
 secret_access_key = ${CF_SECRET_ACCESS_KEY}
 endpoint = https://${CF_ACCOUNT_ID}.r2.cloudflarestorage.com
-acl = private
 
 [r2-crypt]
 type = crypt
