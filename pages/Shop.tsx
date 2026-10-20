@@ -933,11 +933,10 @@ export const Shop: React.FC = () => {
                                       e.stopPropagation();
                                       setPreviewColors((prev) => ({ ...prev, [prod.id]: c }));
                                     }}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${
-                                      isCardColorSelected
-                                        ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-500/40 shadow-md scale-105'
-                                        : 'bg-slate-50 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:border-cyan-400 hover:scale-102'
-                                    }`}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer shadow-xs ${isCardColorSelected
+                                      ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-2 ring-cyan-500/40 shadow-md scale-105'
+                                      : 'bg-slate-50 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700/80 hover:border-cyan-400 hover:scale-102'
+                                      }`}
                                     title={`Ver na cor ${c}`}
                                   >
                                     <span
@@ -1001,92 +1000,99 @@ export const Shop: React.FC = () => {
                         )}
                       </div>
                     </>
-                ) : (
-                  <>
-                    <div>
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-                        <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
-                          {prod.category || 'Vestuário'}
-                        </span>
-                        <span className="font-semibold text-cyan-600 dark:text-cyan-400">
-                          Em Breve
-                        </span>
+                  ) : (
+                    <>
+                      <div>
+                        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
+                          <span className="uppercase tracking-wider font-bold text-cyan-600 dark:text-cyan-400">
+                            {prod.category || 'Vestuário'}
+                          </span>
+                          <span className="font-semibold text-cyan-600 dark:text-cyan-400">
+                            Em Breve
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                          {prod.name}
+                        </h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
+                          As sweats oficiais do curso de Engenharia Informática{' '}
+                          <strong>ficarão disponíveis brevemente</strong>!
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                          Acompanha o nosso Instagram oficial para mais informações, datas de abertura
+                          e detalhes do lançamento oficial.
+                        </p>
                       </div>
-                      <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                        {prod.name}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 mt-3 leading-relaxed">
-                        As sweats oficiais do curso de Engenharia Informática{' '}
-                        <strong>ficarão disponíveis brevemente</strong>!
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-                        Acompanha o nosso Instagram oficial para mais informações, datas de abertura
-                        e detalhes do lançamento oficial.
-                      </p>
-                    </div>
 
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                      <a
-                        href="https://instagram.com/neeiualg"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:opacity-95 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-600/25 transition-all cursor-pointer"
-                      >
-                        <Instagram size={18} />
-                        <span>Acompanhar no Instagram (@neeiualg)</span>
-                        <ExternalLink size={14} className="opacity-80" />
-                      </a>
-                    </div>
-                  </>
-                )}
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                        <a
+                          href="https://instagram.com/neeiualg"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:opacity-95 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-600/25 transition-all cursor-pointer"
+                        >
+                          <Instagram size={18} />
+                          <span>Acompanhar no Instagram (@neeiualg)</span>
+                          <ExternalLink size={14} className="opacity-80" />
+                        </a>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
 
         {/* Modal / Ecrã de Checkout (Pré-encomenda da Sweat) */}
         {isCheckoutOpen && (
           <Portal>
-            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative my-8 animate-in fade-in zoom-in-95 duration-200">
-                {/* Botão Fechar */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCheckoutOpen(false);
-                    setCheckoutStep(1);
-                    setStripeClientSecret(null);
-                    setFormError(null);
-                  }}
-                  className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X size={20} />
-                </button>
-
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold">
-                    {checkoutStep === 1 ? <ShoppingBag size={20} /> : <CreditCard size={20} />}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                      {checkoutStep === 1
-                        ? activeCampaign
-                          ? `Pré-encomenda · ${activeCampaign.item_name}`
-                          : 'Pré-encomenda de Merch'
-                        : 'Escolhe o método de pagamento'}
-                    </h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
-                        1. Dados
-                      </span>
-                      <ChevronRight size={12} className="text-slate-500" />
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 2 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-500'}`}>
-                        2. Pagamento
-                      </span>
+            <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <div className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-900/60 rounded-3xl max-w-xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl relative my-auto animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                {/* Header Fixo do Modal */}
+                <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800/80 shrink-0 bg-white/95 dark:bg-[#0c1724]/95 backdrop-blur-xs z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 flex items-center justify-center font-bold shrink-0">
+                      {checkoutStep === 1 ? <ShoppingBag size={18} /> : <CreditCard size={18} />}
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                        {checkoutStep === 1
+                          ? activeCampaign
+                            ? `Pré-encomenda · ${activeCampaign.item_name}`
+                            : 'Pré-encomenda de Merch'
+                          : 'Escolhe o método de pagamento'}
+                      </h2>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 1 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-700 text-slate-400'}`}>
+                          1. Dados
+                        </span>
+                        <ChevronRight size={11} className="text-slate-500" />
+                        <span className={`text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${checkoutStep === 2 ? 'bg-cyan-500/20 text-cyan-400' : 'bg-slate-800 text-slate-500'}`}>
+                          2. Pagamento
+                        </span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Botão Fechar */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCheckoutOpen(false);
+                      setCheckoutStep(1);
+                      setStripeClientSecret(null);
+                      setFormError(null);
+                    }}
+                    className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                    title="Fechar janela"
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
+
+                {/* Conteúdo com scroll interno suave */}
+                <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain">
 
                 {!sweatsAvailable && !isAdminPreview ? (
                   <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
@@ -1096,46 +1102,46 @@ export const Shop: React.FC = () => {
                   /* =========================================================================
                      PASSO 1: FORMULÁRIO DE DADOS & SELEÇÃO
                      ========================================================================= */
-                  <form onSubmit={handleCheckout} className="space-y-6">
+                  <form onSubmit={handleCheckout} className="space-y-4">
                     {/* Cartão de Pré-visualização do Artigo com Foto Dinâmica por Cor */}
-                    <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
-                      <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-md">
+                    <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm">
                         <img
                           src={activeModalImage}
                           alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
                           className="w-full h-full object-cover object-center transition-all duration-300"
                         />
-                        <span className="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-md bg-slate-950/85 backdrop-blur-xs text-[10px] font-bold text-white border border-white/20">
+                        <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-slate-950/85 backdrop-blur-xs text-[9px] font-bold text-white border border-white/20">
                           {selectedColor}
                         </span>
                       </div>
-                      <div className="flex-1 text-center sm:text-left">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
                           {activeCampaign?.category || 'Vestuário'}
                         </span>
-                        <h4 className="text-lg font-bold text-slate-900 dark:text-white">
+                        <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
                           {activeCampaign?.item_name}
                         </h4>
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                             <span
-                              className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20"
+                              className="w-2.5 h-2.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
                               style={{ backgroundColor: getColorHex(selectedColor) }}
                             />
                             <span>Cor: <strong>{selectedColor}</strong></span>
                           </span>
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                             <span>Tamanho: <strong>{selectedSize}</strong></span>
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Descrição Detalhada do Artigo (apresentada ao clicar em Pré-encomendar) */}
+                    {/* Descrição Detalhada do Artigo (compacta com scroll se longa) */}
                     {activeCampaign?.description && (
-                      <div className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs sm:text-sm leading-relaxed shadow-sm">
-                        <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold mb-1.5 text-xs uppercase tracking-wider">
-                          <Info size={15} />
+                      <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs leading-relaxed shadow-xs max-h-24 overflow-y-auto">
+                        <div className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 font-bold mb-1 text-[11px] uppercase tracking-wider sticky top-0 bg-transparent">
+                          <Info size={13} className="shrink-0" />
                           <span>Descrição Detalhada do Artigo</span>
                         </div>
                         <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
@@ -1146,8 +1152,8 @@ export const Shop: React.FC = () => {
 
                     {/* 1. Seleção de Tamanho */}
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
                           Tamanho:{' '}
                           <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
                             {selectedSize}
@@ -1163,7 +1169,7 @@ export const Shop: React.FC = () => {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
                         {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
                           const isSelected = selectedSize === sz;
                           return (
@@ -1171,7 +1177,7 @@ export const Shop: React.FC = () => {
                               key={sz}
                               type="button"
                               onClick={() => setSelectedSize(sz)}
-                              className={`py-2 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
+                              className={`py-1.5 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
                                 ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
                                 : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
                                 }`}
@@ -1185,21 +1191,21 @@ export const Shop: React.FC = () => {
 
                     {/* 1b. Seleção Notória de Cor */}
                     {activeColors.length > 0 && (
-                      <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 border border-cyan-500/25 shadow-xs space-y-2.5">
+                      <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-br from-cyan-500/5 via-transparent to-purple-500/5 border border-cyan-500/25 shadow-xs space-y-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                            <Palette size={16} className="text-cyan-500" />
+                          <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <Palette size={15} className="text-cyan-500" />
                             <span>Escolhe a Cor:</span>
-                            <span className="text-cyan-600 dark:text-cyan-400 font-black text-base">
+                            <span className="text-cyan-600 dark:text-cyan-400 font-black">
                               {selectedColor}
                             </span>
                           </label>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-[11px] text-slate-400">
                             {activeColors.length} {activeColors.length === 1 ? 'cor disponível' : 'cores disponíveis'}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {activeColors.map((colorName) => {
                             const isSelected = selectedColor === colorName;
                             const hex = getColorHex(colorName);
@@ -1209,23 +1215,22 @@ export const Shop: React.FC = () => {
                                 key={colorName}
                                 type="button"
                                 onClick={() => setSelectedColor(colorName)}
-                                className={`relative flex items-center gap-3 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-white dark:bg-slate-900 border-cyan-500 ring-2 ring-cyan-500/50 shadow-md text-cyan-700 dark:text-cyan-300 font-bold scale-[1.02]'
-                                    : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-400/60 hover:bg-slate-50 dark:hover:bg-slate-900/60'
-                                }`}
+                                className={`relative flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all cursor-pointer ${isSelected
+                                  ? 'bg-white dark:bg-slate-900 border-cyan-500 ring-2 ring-cyan-500/50 shadow-md text-cyan-700 dark:text-cyan-300 font-bold scale-[1.02]'
+                                  : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-cyan-400/60 hover:bg-slate-50 dark:hover:bg-slate-900/60'
+                                  }`}
                               >
                                 <span
-                                  className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 shadow-md shrink-0 ring-1 ring-black/20 dark:ring-white/20"
+                                  className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm shrink-0 ring-1 ring-black/20 dark:ring-white/20"
                                   style={{ backgroundColor: hex }}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between">
                                     <span className="truncate text-xs sm:text-sm font-bold">{colorName}</span>
-                                    {isSelected && <Check size={16} className="text-cyan-500 shrink-0 stroke-[3]" />}
+                                    {isSelected && <Check size={14} className="text-cyan-500 shrink-0 stroke-[3]" />}
                                   </div>
                                   {hasSpecificPhoto && (
-                                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium block">
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-medium block truncate">
                                       Foto exclusiva
                                     </span>
                                   )}
@@ -1239,30 +1244,30 @@ export const Shop: React.FC = () => {
 
                     {/* 2. Modalidade de Entrega */}
                     <div>
-                      <label className="text-sm font-bold text-slate-800 dark:text-slate-200 block mb-2">
+                      <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
                         Como queres receber a tua encomenda?
                       </label>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
                         <button
                           type="button"
                           onClick={() => setDeliveryType('pickup')}
-                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
                             ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
                             : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                             }`}
                         >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-                              <MapPin size={16} className="text-cyan-500" />
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                              <MapPin size={15} className="text-cyan-500" />
                               <span>Gabinete NEEI</span>
                             </div>
-                            <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.2 rounded-full">
                               Grátis
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                             {activeCampaign?.pickup_location || 'Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.'}
                           </p>
                         </button>
@@ -1271,21 +1276,21 @@ export const Shop: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setDeliveryType('shipping')}
-                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
+                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
                             ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
                             : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                             }`}
                         >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-white">
-                              <Truck size={16} className="text-cyan-500" />
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                              <Truck size={15} className="text-cyan-500" />
                               <span>Envio CTT Nacional</span>
                             </div>
-                            <span className="text-xs font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.2 rounded-full">
                               +{(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
                             Recebe em qualquer morada de Portugal Continental ou Ilhas.
                           </p>
                         </button>
@@ -1294,7 +1299,7 @@ export const Shop: React.FC = () => {
 
                     {/* Campos de Morada se Envio por Correio */}
                     {deliveryType === 'shipping' && (
-                      <div className="p-4 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-3 animate-in fade-in duration-150">
+                      <div className="p-3.5 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-2.5 animate-in fade-in duration-150">
                         <div>
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                             Morada de Envio *
@@ -1305,12 +1310,12 @@ export const Shop: React.FC = () => {
                             value={shippingAddress}
                             onChange={(e) => setShippingAddress(e.target.value)}
                             placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                           />
                         </div>
 
                         {/* Código Postal + Distrito + Concelho */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                           <div>
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                               Código Postal *
@@ -1322,7 +1327,7 @@ export const Shop: React.FC = () => {
                               value={shippingPostalCode}
                               onChange={handlePostalCodeChange}
                               placeholder="8000-000"
-                              className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
                             />
                             <span className="text-[10px] text-slate-400 block mt-0.5">Formato 0000-000</span>
                           </div>
@@ -1334,7 +1339,7 @@ export const Shop: React.FC = () => {
                             <select
                               value={shippingDistrict}
                               onChange={handleDistrictChange}
-                              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
                             >
                               {districtsList.map((dist) => (
                                 <option key={dist} value={dist}>
@@ -1351,7 +1356,7 @@ export const Shop: React.FC = () => {
                             <select
                               value={shippingCounty}
                               onChange={(e) => setShippingCounty(e.target.value)}
-                              className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
                             >
                               {availableCounties.map((c) => (
                                 <option key={c} value={c}>
@@ -1365,8 +1370,8 @@ export const Shop: React.FC = () => {
                     )}
 
                     {/* 3. Dados Pessoais do Aluno */}
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         <div>
                           <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                             Nome Completo *
@@ -1377,7 +1382,7 @@ export const Shop: React.FC = () => {
                             value={studentName}
                             onChange={handleNameChange}
                             placeholder="Teu nome completo"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                           />
                           <span className="text-[10px] text-slate-400 block mt-0.5">Apenas letras e espaços</span>
                         </div>
@@ -1391,7 +1396,7 @@ export const Shop: React.FC = () => {
                             value={studentEmail}
                             onChange={(e) => setStudentEmail(e.target.value)}
                             placeholder="aXXXXX@ualg.pt"
-                            className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                           />
                           <span className="text-[10px] text-slate-400 block mt-0.5">Onde receberás o comprovativo</span>
                         </div>
@@ -1415,13 +1420,13 @@ export const Shop: React.FC = () => {
                           value={phoneNumber}
                           onChange={handlePhoneChange}
                           placeholder="912345678"
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
+                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
                         />
                       </div>
                     </div>
 
                     {/* Resumo de Valores */}
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
                       <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                         <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
                         <span className="font-medium text-slate-800 dark:text-slate-200">{(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span></span>
@@ -1449,14 +1454,14 @@ export const Shop: React.FC = () => {
                       </div>
                       <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
                         <span>Total a Pagar</span>
-                        <span className="text-xl font-black text-cyan-600 dark:text-cyan-400">
+                        <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">
                           {totalPrice.toFixed(2)}€
                         </span>
                       </div>
                     </div>
 
                     {formError && (
-                      <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
                         <AlertCircle size={16} className="flex-shrink-0" />
                         <span>{formError}</span>
                       </div>
@@ -1466,7 +1471,7 @@ export const Shop: React.FC = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full py-3.5 px-5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                      className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
                     >
                       {submitting ? (
                         <>
@@ -1597,6 +1602,7 @@ export const Shop: React.FC = () => {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </Portal>
@@ -1661,11 +1667,10 @@ export const Shop: React.FC = () => {
                               <tr
                                 key={sz}
                                 onClick={() => setSelectedSize(sz)}
-                                className={`cursor-pointer transition-colors ${
-                                  isSelected
-                                    ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
-                                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
-                                }`}
+                                className={`cursor-pointer transition-colors ${isSelected
+                                  ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-300 font-bold'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                                  }`}
                               >
                                 <td className="py-2 px-3">
                                   <div className="flex items-center gap-1.5">
