@@ -15,6 +15,7 @@ import {
   Ruler,
   RotateCcw,
   Package,
+  ArrowUpDown,
 } from 'lucide-react';
 import {
   ShopCampaign,
@@ -380,7 +381,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                                 <img
                                   src={p.image_url}
                                   alt={p.title}
-                                  className="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                  className="w-10 h-10 rounded-lg object-contain bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0 p-0.5"
                                   onError={(e) => {
                                     (e.target as HTMLElement).style.display = 'none';
                                   }}
@@ -565,6 +566,55 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                   placeholder="/assets/sweat_mockup.jpg ou https://..."
                   className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
                 />
+
+                {/* Pré-visualização da Imagem Completa */}
+                {productForm.image_url && (
+                  <div className="mt-2.5 flex items-center gap-3 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800">
+                    <div className="w-16 h-16 rounded-xl bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden shrink-0 flex items-center justify-center p-1.5 shadow-xs">
+                      <img
+                        src={productForm.image_url}
+                        alt="Preview do Artigo"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="font-semibold text-slate-700 dark:text-slate-200 block">Pré-visualização da Foto</span>
+                      Exibição completa da peça em formato integral sem cortes.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Prioridade / Posição na Loja */}
+              <div className="pt-1">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1 flex items-center gap-1.5">
+                  <ArrowUpDown size={13} className="text-cyan-500" />
+                  <span>Posição / Prioridade na Loja Merch</span>
+                </label>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input
+                    type="number"
+                    min={0}
+                    value={productForm.display_order ?? productForm.priority ?? ''}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setProductForm((prev) => ({
+                        ...prev,
+                        display_order: isNaN(val) ? 0 : val,
+                        priority: isNaN(val) ? 0 : val,
+                      }));
+                    }}
+                    placeholder="0 (Padrão)"
+                    className="w-full sm:w-32 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                  />
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-tight">
+                    <strong className="text-cyan-600 dark:text-cyan-400">1</strong> = 1.º lugar no topo, <strong className="text-cyan-600 dark:text-cyan-400">2</strong> = 2.º lugar, etc. <br className="hidden sm:inline" />
+                    Valor <strong className="text-slate-700 dark:text-slate-300">0</strong> = ordem padrão por data no final do catálogo.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -844,7 +894,7 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                                     <img
                                       src={colorImg}
                                       alt={c}
-                                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-800 shrink-0"
+                                      className="w-8 h-8 rounded-lg object-contain bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0 p-0.5"
                                       onError={(e) => {
                                         (e.target as HTMLElement).style.display = 'none';
                                       }}

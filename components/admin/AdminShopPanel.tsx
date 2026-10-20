@@ -85,6 +85,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     category: 'Vestuário',
     is_bundle: false,
     bundle_items: [],
+    display_order: 0,
+    priority: 0,
   };
   const [productForm, setProductForm] = useState<ProductFormData>(defaultProductForm);
 
@@ -153,7 +155,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setOrders(ordersData.orders || []);
       setStats(statsData);
       const prods = productsData.products || [];
-      setProducts(prods);
+      setProducts(sortProductsByPriority(prods));
 
       if (campaignData) {
         if (campaignData.showTestShop !== undefined) {
@@ -486,6 +488,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       size_guide: { ...DEFAULT_SIZE_GUIDE },
       is_bundle: false,
       bundle_items: [],
+      display_order: 0,
+      priority: 0,
     });
     setIsProductModalOpen(true);
   };
@@ -516,6 +520,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       category: prod.category || (isBundle ? 'Pack' : 'Vestuário'),
       is_bundle: isBundle,
       bundle_items: prod.bundle_items ? [...prod.bundle_items] : [],
+      display_order: prod.display_order ?? prod.priority ?? 0,
+      priority: prod.display_order ?? prod.priority ?? 0,
       features:
         prod.features && prod.features.length > 0
           ? [...prod.features]
@@ -541,6 +547,30 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       );
     } catch (err: any) {
       alert(err.message || 'Falha ao alterar estado do produto');
+    }
+  };
+
+  const sortProductsByPriority = (prods: ShopCampaign[]) => {
+    return [...prods].sort((a, b) => {
+      const prioA = (a.display_order && a.display_order > 0) ? a.display_order : ((a.priority && a.priority > 0) ? a.priority : 999999);
+      const prioB = (b.display_order && b.display_order > 0) ? b.display_order : ((b.priority && b.priority > 0) ? b.priority : 999999);
+      if (prioA !== prioB) return prioA - prioB;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+  };
+
+  const handleUpdateProductPriority = async (prod: ShopCampaign, newPriority: number) => {
+    try {
+      const priorityVal = Math.max(0, newPriority);
+      await updateAdminProduct(token, prod.id, { display_order: priorityVal, priority: priorityVal });
+      setProducts((prev) =>
+        sortProductsByPriority(
+          prev.map((p) => (p.id === prod.id ? { ...p, display_order: priorityVal, priority: priorityVal } : p))
+        )
+      );
+      showFeedback(prod.id, `Prioridade atualizada para #${priorityVal > 0 ? priorityVal : 'Padrão'}`);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao atualizar prioridade');
     }
   };
 
@@ -629,12 +659,14 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       if (editingProduct) {
         const res = await updateAdminProduct(token, editingProduct.id, payload);
         setProducts((prev) =>
-          prev.map((p) => (p.id === editingProduct.id ? res.product : p))
+          sortProductsByPriority(
+            prev.map((p) => (p.id === editingProduct.id ? res.product : p))
+          )
         );
         showFeedback(editingProduct.id, 'Produto e características atualizados com sucesso!');
       } else {
         const res = await createAdminProduct(token, payload);
-        setProducts((prev) => [res.product, ...prev]);
+        setProducts((prev) => sortProductsByPriority([res.product, ...prev]));
         showFeedback('product-created', 'Novo produto adicionado à loja com sucesso!');
       }
       setIsProductModalOpen(false);
@@ -763,6 +795,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             onOpenEdit={handleOpenEditProduct}
             onToggleActive={handleToggleProductActive}
             onDelete={handleDeleteProduct}
+            onUpdatePriority={handleUpdateProductPriority}
           />
         </div>
       )}

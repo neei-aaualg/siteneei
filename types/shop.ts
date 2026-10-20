@@ -142,6 +142,8 @@ export interface ShopCampaign {
   category?: string;
   is_bundle?: boolean;
   bundle_items?: BundleItemConfig[];
+  display_order?: number;
+  priority?: number;
   created_at?: string;
   isAdminPreview?: boolean;
 }
@@ -167,6 +169,8 @@ export interface AdminProductPayload {
   category?: string;
   is_bundle?: boolean;
   bundle_items?: BundleItemConfig[];
+  display_order?: number;
+  priority?: number;
 }
 
 export interface ProductFormData {
@@ -189,6 +193,8 @@ export interface ProductFormData {
   category: string;
   is_bundle?: boolean;
   bundle_items?: BundleItemConfig[];
+  display_order?: number;
+  priority?: number;
 }
 
 export interface MerchProduct {
@@ -213,6 +219,8 @@ export interface MerchProduct {
   bundleItems?: BundleItemConfig[];
   bundleProducts?: MerchProduct[];
   campaignData?: ShopCampaign;
+  displayOrder?: number;
+  priority?: number;
 }
 
 export interface ShopOrder {

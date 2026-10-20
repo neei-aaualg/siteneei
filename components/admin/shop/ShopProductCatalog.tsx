@@ -10,6 +10,9 @@ import {
   ToggleRight,
   ListPlus,
   Palette,
+  ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { ShopCampaign, sortSweatSizes, getColorHex } from '../../../types/shop';
 
@@ -19,6 +22,7 @@ interface ShopProductCatalogProps {
   onOpenEdit: (prod: ShopCampaign) => void;
   onToggleActive: (prod: ShopCampaign) => void;
   onDelete: (prod: ShopCampaign) => void;
+  onUpdatePriority?: (prod: ShopCampaign, newPriority: number) => void;
 }
 
 export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
@@ -27,6 +31,7 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
   onOpenEdit,
   onToggleActive,
   onDelete,
+  onUpdatePriority,
 }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -37,9 +42,9 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
             Catálogo de Produtos à Venda ({products.length})
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
-            Adiciona, edita preços, características/features e gere a visibilidade dos artigos.
+            Adiciona, edita preços, características/features, prioridade e visibilidade dos artigos.
             <span className="block mt-0.5 text-cyan-600 dark:text-cyan-400 font-semibold">
-              Garantia de integridade: Peças já vendidas mantêm permanentemente o nome histórico que tinham quando foram compradas, mesmo após alterações no catálogo.
+              Prioridade na Loja: produtos com número 1 aparecem no topo da loja, seguidos de 2, 3, etc.
             </span>
           </p>
         </div>
@@ -69,17 +74,34 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
               className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-cyan-950/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between"
             >
               <div>
-                {/* Imagem do Produto */}
-                <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center">
+                {/* Imagem do Produto (formato integral sem corte) */}
+                <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center p-3">
                   {prod.image_url ? (
                     <img
                       src={prod.raw_image_url || prod.image_url}
                       alt={prod.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.src.includes('sweat_mockup.jpg')) {
+                          target.src = '/assets/sweat_mockup.jpg';
+                        }
+                      }}
                     />
                   ) : (
                     <ImageIcon size={32} className="text-slate-600" />
                   )}
+                  {/* Badge de Prioridade de Exibição */}
+                  <div className="absolute top-2.5 left-2.5">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-950/90 text-cyan-300 text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow border border-cyan-500/40 flex items-center gap-1">
+                      <ArrowUpDown size={11} className="text-cyan-400" />
+                      <span>
+                        {prod.display_order && prod.display_order > 0
+                          ? `#${prod.display_order} na Loja`
+                          : (prod.priority && prod.priority > 0 ? `#${prod.priority} na Loja` : 'Padrão')}
+                      </span>
+                    </span>
+                  </div>
                   <div className="absolute top-2.5 right-2.5">
                     {prod.is_active ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[10px] font-black uppercase tracking-wider backdrop-blur-sm shadow">
@@ -230,8 +252,42 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                 </div>
               </div>
 
+              {/* Barra de Ajuste Rápido de Prioridade */}
+              <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                  <ArrowUpDown size={12} className="text-cyan-500" />
+                  Prioridade na Loja:
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => onUpdatePriority?.(prod, Math.max(1, ((prod.display_order ?? prod.priority ?? 0) || 1) - 1))}
+                    className="p-1 rounded bg-slate-200 dark:bg-slate-800 hover:bg-cyan-500 hover:text-white transition-colors cursor-pointer"
+                    title="Aumentar prioridade (mover para mais perto do topo)"
+                  >
+                    <ChevronUp size={13} />
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    value={prod.display_order ?? prod.priority ?? 0}
+                    onChange={(e) => onUpdatePriority?.(prod, parseInt(e.target.value, 10) || 0)}
+                    className="w-12 text-center py-0.5 px-1 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono font-bold text-xs text-cyan-600 dark:text-cyan-400 focus:outline-none focus:border-cyan-500"
+                    title="1 = topo da loja, 2 = segundo, etc. (0 = padrão)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onUpdatePriority?.(prod, ((prod.display_order ?? prod.priority ?? 0) || 0) + 1)}
+                    className="p-1 rounded bg-slate-200 dark:bg-slate-800 hover:bg-cyan-500 hover:text-white transition-colors cursor-pointer"
+                    title="Diminuir prioridade"
+                  >
+                    <ChevronDown size={13} />
+                  </button>
+                </div>
+              </div>
+
               {/* Ações */}
-              <div className="p-4 pt-0 border-t border-slate-100 dark:border-slate-800/80 mt-3 flex items-center justify-between gap-2">
+              <div className="p-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => onToggleActive(prod)}

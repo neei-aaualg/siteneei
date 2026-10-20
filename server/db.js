@@ -152,6 +152,7 @@ db.exec(`
     category TEXT NOT NULL DEFAULT 'Vestuário',
     is_bundle INTEGER NOT NULL DEFAULT 0,
     bundle_items TEXT,
+    display_order INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   );
 
@@ -301,6 +302,11 @@ try {
 }
 try {
   db.exec('ALTER TABLE shop_orders ADD COLUMN bundle_selections TEXT;');
+} catch (_) {
+  // Já existe
+}
+try {
+  db.exec('ALTER TABLE shop_campaigns ADD COLUMN display_order INTEGER NOT NULL DEFAULT 0;');
 } catch (_) {
   // Já existe
 }
@@ -1417,6 +1423,8 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     category: row.category || (isBundle ? 'Pack' : 'Vestuário'),
     is_bundle: isBundle,
     bundle_items: bundleItems,
+    display_order: Number(row.display_order) || 0,
+    priority: Number(row.display_order) || 0,
     created_at: row.created_at,
     isAdminPreview: isTestingMode,
   };
@@ -1429,7 +1437,9 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
  */
 export function getActiveShopCampaign(isAdminPreview = false) {
   const row = db
-    .prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1')
+    .prepare(
+      'SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY CASE WHEN display_order IS NULL OR display_order = 0 THEN 999999 ELSE display_order END ASC, created_at DESC LIMIT 1'
+    )
     .get();
 
   return formatShopCampaignRow(row, isAdminPreview);
@@ -1448,7 +1458,11 @@ export function getShopCampaignById(id, isAdminPreview = false) {
  * Obtém todas as campanhas / produtos existentes na base de dados
  */
 export function getAllShopCampaigns() {
-  const rows = db.prepare('SELECT * FROM shop_campaigns ORDER BY created_at DESC').all();
+  const rows = db
+    .prepare(
+      'SELECT * FROM shop_campaigns ORDER BY CASE WHEN display_order IS NULL OR display_order = 0 THEN 999999 ELSE display_order END ASC, created_at DESC'
+    )
+    .all();
   return rows.map((r) => formatShopCampaignRow(r, false));
 }
 
@@ -1456,7 +1470,11 @@ export function getAllShopCampaigns() {
  * Obtém todas as campanhas / produtos ativos para a loja pública
  */
 export function getActiveShopCampaigns(isAdminPreview = false) {
-  const rows = db.prepare('SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY created_at DESC').all();
+  const rows = db
+    .prepare(
+      'SELECT * FROM shop_campaigns WHERE is_active = 1 ORDER BY CASE WHEN display_order IS NULL OR display_order = 0 THEN 999999 ELSE display_order END ASC, created_at DESC'
+    )
+    .all();
   return rows.map((r) => formatShopCampaignRow(r, isAdminPreview));
 }
 
@@ -1510,13 +1528,14 @@ export function createShopCampaign(data) {
   const bundle_items = data.bundle_items
     ? (typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items))
     : JSON.stringify([]);
+  const display_order = Number(data.display_order ?? data.priority ?? 0) || 0;
 
   db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
-      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, is_bundle, bundle_items, created_at
+      is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, is_bundle, bundle_items, display_order, created_at
     ) VALUES (
-      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
   `).run(
     id,
@@ -1539,6 +1558,7 @@ export function createShopCampaign(data) {
     category,
     is_bundle,
     bundle_items,
+    display_order,
     now
   );
 
@@ -1626,12 +1646,15 @@ export function updateShopCampaign(id, data) {
   const category = data.category !== undefined
     ? data.category.trim()
     : (is_bundle ? 'Pack' : (current.category || 'Vestuário'));
+  const display_order = data.display_order !== undefined
+    ? (Number(data.display_order) || 0)
+    : (data.priority !== undefined ? (Number(data.priority) || 0) : (Number(current.display_order) || 0));
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
       title = ?, description = ?, item_name = ?, item_price = ?, shipping_fee = ?,
       image_url = ?, deadline_date = ?, is_active = ?, allow_pickup = ?, allow_shipping = ?,
-      pickup_location = ?, sizes_available = ?, colors_available = ?, color_images = ?, size_guide = ?, features = ?, category = ?, is_bundle = ?, bundle_items = ?
+      pickup_location = ?, sizes_available = ?, colors_available = ?, color_images = ?, size_guide = ?, features = ?, category = ?, is_bundle = ?, bundle_items = ?, display_order = ?
     WHERE id = ?
   `);
 
@@ -1655,6 +1678,7 @@ export function updateShopCampaign(id, data) {
     category,
     is_bundle,
     bundle_items,
+    display_order,
     id
   );
 

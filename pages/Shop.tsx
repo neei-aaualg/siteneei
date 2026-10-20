@@ -362,7 +362,14 @@ export const Shop: React.FC = () => {
     if (list.length === 0) return [];
 
     const isAvailableToBuy = sweatsAvailable || isAdminPreview;
-    return list.map((c) => ({
+    const sortedList = [...list].sort((a, b) => {
+      const prioA = (a.display_order && a.display_order > 0) ? a.display_order : ((a.priority && a.priority > 0) ? a.priority : 999999);
+      const prioB = (b.display_order && b.display_order > 0) ? b.display_order : ((b.priority && b.priority > 0) ? b.priority : 999999);
+      if (prioA !== prioB) return prioA - prioB;
+      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+    });
+
+    return sortedList.map((c) => ({
       id: c.id,
       name: c.title || c.item_name || 'Sweat Oficial Engenharia Informática',
       category: c.category || 'Vestuário',
@@ -395,6 +402,8 @@ export const Shop: React.FC = () => {
       allowShipping: c.allow_shipping,
       shippingFee: c.shipping_fee,
       pickupLocation: c.pickup_location,
+      displayOrder: c.display_order ?? c.priority ?? 0,
+      priority: c.display_order ?? c.priority ?? 0,
       campaignData: c,
     }));
   }, [campaignsList, campaign, sweatsAvailable, isAdminPreview]);
@@ -893,12 +902,18 @@ export const Shop: React.FC = () => {
                 className="bg-white dark:bg-[#0c1724] border border-slate-200 dark:border-cyan-950/80 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all flex flex-col group"
               >
                 {prod.available ? (
-                  /* Com foto quando disponível */
-                  <div className="relative aspect-square overflow-hidden bg-slate-900">
+                  /* Com foto quando disponível (ajustada em formato integral sem cortes) */
+                  <div className="relative aspect-square overflow-hidden bg-slate-900 flex items-center justify-center p-3 sm:p-5">
                     <img
                       src={cardImage}
                       alt={prod.name}
-                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.src.includes('sweat_mockup.jpg')) {
+                          target.src = '/assets/sweat_mockup.jpg';
+                        }
+                      }}
                     />
                     <div className="absolute top-3.5 left-3.5 flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md bg-emerald-600/90 text-white border border-emerald-400/40">
@@ -1188,11 +1203,17 @@ export const Shop: React.FC = () => {
                   <form onSubmit={handleCheckout} className="space-y-4">
                     {/* Cartão de Pré-visualização do Artigo com Foto Dinâmica por Cor */}
                     <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm p-1.5 flex items-center justify-center">
                         <img
                           src={activeModalImage}
                           alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
-                          className="w-full h-full object-cover object-center transition-all duration-300"
+                          className="w-full h-full object-contain object-center transition-all duration-300"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            if (!target.src.includes('sweat_mockup.jpg')) {
+                              target.src = '/assets/sweat_mockup.jpg';
+                            }
+                          }}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -1269,11 +1290,17 @@ export const Shop: React.FC = () => {
                               >
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs">
+                                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs p-1 flex items-center justify-center">
                                       <img
                                         src={itemImage}
                                         alt={item.item_name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                          const target = e.currentTarget;
+                                          if (!target.src.includes('sweat_mockup.jpg')) {
+                                            target.src = '/assets/sweat_mockup.jpg';
+                                          }
+                                        }}
                                       />
                                     </div>
                                     <div className="min-w-0">
