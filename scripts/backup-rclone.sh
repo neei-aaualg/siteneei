@@ -6,6 +6,7 @@
 # ==============================================================================
 
 set -eu
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:$PATH"
 
 # Carrega ficheiro de configuração se existir
 if [ -f "/etc/neei-backup.env" ]; then
@@ -71,9 +72,15 @@ cleanup() {
 
 # Proteção atómica contra execuções paralelas via mkdir
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  # Verifica se o lock é antigo (mais de 1 hora)
-  log "[AVISO] Outro processo de backup já está em execução ou o lock está ativo. A abortar."
-  exit 0
+  # Se o lock for antigo (> 60 minutos), remove stale lock e prossegue
+  if [ -d "$LOCK_DIR" ] && [ -n "$(find "$LOCK_DIR" -maxdepth 0 -mmin +60 2>/dev/null)" ]; then
+    log "[AVISO] Lock antigo (>60min) detetado em $LOCK_DIR. A remover e prosseguir com novo backup..."
+    rm -rf "$LOCK_DIR"
+    mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+  else
+    log "[AVISO] Outro processo de backup já está em execução ou o lock está ativo. A abortar."
+    exit 0
+  fi
 fi
 
 trap cleanup EXIT INT TERM
