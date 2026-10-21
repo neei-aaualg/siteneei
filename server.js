@@ -27,7 +27,6 @@ const apiLimiter = createRateLimiter({ windowMs: 60_000, max: 120 });
 const analyzeLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 const adminLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 const loginLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
-const trackLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
 
 function sendTooManyRequests(res, retryAfterSec) {
   setSecurityHeaders(res);
@@ -242,23 +241,10 @@ function serveStaticFile(req, res, filePath) {
     if (err || !stats.isFile()) {
       // Se for um pedido de asset estático (ex.: imagem, estilo, script), devolve 404 em vez de index.html
       const ext = path.extname(filePath).toLowerCase();
-      const isStaticAssetType =
-        [
-          '.png',
-          '.jpg',
-          '.jpeg',
-          '.webp',
-          '.svg',
-          '.gif',
-          '.ico',
-          '.css',
-          '.js',
-          '.mjs',
-          '.woff',
-          '.woff2',
-          '.ttf',
-          '.json',
-        ].includes(ext) || filePath.includes(path.join(BUILD_DIR, 'assets'));
+      const isStaticAssetType = [
+        '.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.ico',
+        '.css', '.js', '.mjs', '.woff', '.woff2', '.ttf', '.json'
+      ].includes(ext) || filePath.includes(path.join(BUILD_DIR, 'assets'));
 
       if (isStaticAssetType) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -326,11 +312,6 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Proteção contra enumeração de encomendas (A1)
-  if (pathname.startsWith('/api/shop/order-status/') || pathname.startsWith('/api/shop/track/')) {
-    if (isRateLimited(req, res, trackLimiter)) return;
-  }
-
   // Limitação de taxa para endpoints de escrita
   if (
     req.method === 'POST' ||
@@ -344,8 +325,12 @@ const server = http.createServer(async (req, res) => {
       if (isRateLimited(req, res, loginLimiter)) return;
     } else if (pathname.startsWith('/api/admin/')) {
       if (isRateLimited(req, res, adminLimiter)) return;
-    } else if (pathname === '/api/webhooks/stripe') {
-      // Sem rate-limit estrito para webhook de pagamentos assinado da Stripe
+    } else if (
+      pathname === '/api/webhooks/stripe' ||
+      pathname === '/api/webhooks/ifthenpay' ||
+      pathname === '/api/shop/webhook'
+    ) {
+      // Sem rate-limit estrito para webhook de pagamentos do gateway
     } else if (pathname.startsWith('/api/')) {
       if (isRateLimited(req, res, apiLimiter)) return;
     }
@@ -355,7 +340,8 @@ const server = http.createServer(async (req, res) => {
   if (
     pathname.startsWith('/api/shop/') ||
     pathname.startsWith('/api/admin/shop/') ||
-    pathname === '/api/webhooks/stripe'
+    pathname === '/api/webhooks/stripe' ||
+    pathname === '/api/webhooks/ifthenpay'
   ) {
     const handled = await handleShopApi(req, res, pathname, url.searchParams);
     if (handled !== false) return;

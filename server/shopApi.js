@@ -45,19 +45,6 @@ import {
 } from './services/paymentService.js';
 import { getStripeClient, isStripeSandbox } from './services/stripeService.js';
 
-function formatBundleSelectionsForMetadata(bundleSelections) {
-  if (!bundleSelections) return '';
-  if (Array.isArray(bundleSelections)) {
-    return bundleSelections
-      .map((item) =>
-        `${item.name || item.item_name || 'Item'}: ${item.size || ''}/${item.color || ''}`.trim()
-      )
-      .join(', ')
-      .slice(0, 500);
-  }
-  return '';
-}
-
 /**
  * Roteador de endpoints da Loja e Encomendas de Sweats
  * Devolve true se o pedido foi tratado, ou false se a rota não corresponder
@@ -86,9 +73,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       return sendJson(res, 200, {
         campaign,
         campaigns,
-        sweatsAvailable: isAdminPreview
-          ? true
-          : Boolean(campaign.is_available) && isSweatsAvailable,
+        sweatsAvailable: isAdminPreview ? true : Boolean(campaign.is_available) && isSweatsAvailable,
         isSandbox: isPaymentSandbox(),
         isAdminPreview,
         showTestShop: isTestShopAllowed,
@@ -112,7 +97,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const isTestShopAllowed = isShowTestShopEnv();
       const isAdmin =
-        verifyAdminToken(req) || (body.adminToken && verifyAdminTokenString(body.adminToken));
+        verifyAdminToken(req) ||
+        (body.adminToken && verifyAdminTokenString(body.adminToken));
       const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
       // Apenas prepara em memória e valida dados (não grava na BD)
@@ -149,7 +135,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           payment_fee: String(order.payment_fee || 0),
           total_amount: String(order.total_amount),
           is_admin_preview: isAdminPreview ? '1' : '0',
-          bundle_selections: formatBundleSelectionsForMetadata(order.bundle_selections),
+          bundle_selections: order.bundle_selections ? JSON.stringify(order.bundle_selections).slice(0, 500) : '',
         },
       });
 
@@ -184,7 +170,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const isTestShopAllowed = isShowTestShopEnv();
       const isAdmin =
-        verifyAdminToken(req) || (body.adminToken && verifyAdminTokenString(body.adminToken));
+        verifyAdminToken(req) ||
+        (body.adminToken && verifyAdminTokenString(body.adminToken));
       const isAdminPreview = Boolean(isAdmin && body.adminPreview && isTestShopAllowed);
 
       const order = preparePendingShopOrder(body, isAdminPreview);
@@ -298,8 +285,6 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       const pickupLocation =
         campaign?.pickup_location || 'Gabinete NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
 
-      const isAdmin = verifyAdminToken(req);
-
       return sendJson(res, 200, {
         orderId: order.id,
         paymentStatus: order.payment_status,
@@ -315,8 +300,8 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         paymentFee: order.payment_fee || 0,
         totalAmount: order.total_amount,
         deliveryType: order.delivery_type,
-        shippingAddress: isAdmin ? order.shipping_address || null : null,
-        shippingPostalCode: isAdmin ? order.shipping_postal_code || null : null,
+        shippingAddress: order.shipping_address || null,
+        shippingPostalCode: order.shipping_postal_code || null,
         shippingCity: order.shipping_city || null,
         pickupLocation,
         bundle_selections: order.bundle_selections,
@@ -357,9 +342,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         try {
           const stripe = getStripeClient();
           if (!stripe) {
-            return sendJson(res, 500, {
-              error: 'Serviço de pagamentos não configurado no servidor.',
-            });
+            return sendJson(res, 500, { error: 'Serviço de pagamentos não configurado no servidor.' });
           }
 
           // Prevenção contra reutilização de PaymentIntent (Double Spending / PI Reuse attack)
@@ -368,9 +351,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             console.warn(
               `[CONFIRM PAYMENT WARNING] Tentativa de reutilização do PaymentIntent ${paymentIntentId} na encomenda ${targetOrder.id} (já associado a ${existingWithRef.id})`
             );
-            return sendJson(res, 400, {
-              error: 'Este identificador de pagamento já foi utilizado.',
-            });
+            return sendJson(res, 400, { error: 'Este identificador de pagamento já foi utilizado.' });
           }
 
           const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
@@ -390,21 +371,14 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             console.warn(
               `[CONFIRM PAYMENT] Valor incorreto: recebido ${receivedAmount} cêntimos, esperado ${expectedAmountInCents} cêntimos para ${targetOrder.id}`
             );
-            return sendJson(res, 400, {
-              error: 'O valor pago não coincide com o total da encomenda.',
-            });
+            return sendJson(res, 400, { error: 'O valor pago não coincide com o total da encomenda.' });
           }
 
-          // A1 & M2: Validação estrita de order_id nos metadados do PaymentIntent
+          // A1: Validação de order_id nos metadados do PaymentIntent
           const piOrderId = pi.metadata?.order_id;
-          if (!piOrderId || piOrderId.toUpperCase() !== targetOrder.id.toUpperCase()) {
-            console.warn(
-              `[CONFIRM PAYMENT] Encomenda no PI (${piOrderId}) não coincide com o pedido (${targetOrder.id})`
-            );
-            return sendJson(res, 400, {
-              error:
-                'Identificador de encomenda nos metadados do pagamento não coincide com esta encomenda.',
-            });
+          if (piOrderId && piOrderId.toUpperCase() !== targetOrder.id.toUpperCase()) {
+            console.warn(`[CONFIRM PAYMENT] Encomenda no PI (${piOrderId}) não coincide com o pedido (${targetOrder.id})`);
+            return sendJson(res, 400, { error: 'Identificador de encomenda não corresponde a este pagamento.' });
           }
 
           if (pi.status === 'succeeded') {
@@ -458,10 +432,11 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
       // Deduplicação de eventos do webhook (Prevenção contra Replay Attacks)
       if (event.id && isWebhookEventProcessed(event.id)) {
-        console.log(
-          `[STRIPE WEBHOOK] Evento já processado anteriormente (deduplicated): ${event.id}`
-        );
+        console.log(`[STRIPE WEBHOOK] Evento já processado anteriormente (deduplicated): ${event.id}`);
         return sendJson(res, 200, { received: true, deduplicated: true });
+      }
+      if (event.id) {
+        markWebhookEventProcessed(event.id);
       }
 
       // Pagamento bem sucedido via PaymentIntent
@@ -476,10 +451,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             if (stripe) {
               const verifiedPi = await stripe.paymentIntents.retrieve(paymentIntent.id);
               if (!verifiedPi || verifiedPi.status !== 'succeeded') {
-                console.warn(
-                  '[STRIPE WEBHOOK] PaymentIntent não confirmado na API Stripe:',
-                  paymentIntent.id
-                );
+                console.warn('[STRIPE WEBHOOK] PaymentIntent não confirmado na API Stripe:', paymentIntent.id);
                 return sendJson(res, 400, { error: 'PaymentIntent status not succeeded' });
               }
             }
@@ -537,8 +509,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             const studentEmail = (paymentIntent.metadata?.student_email || '').trim().toLowerCase();
             const studentName = (paymentIntent.metadata?.student_name || '').trim();
             const size = (paymentIntent.metadata?.size || '').toUpperCase().trim();
-            const deliveryType =
-              paymentIntent.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+            const deliveryType = paymentIntent.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             if (
@@ -574,23 +545,15 @@ export async function handleShopApi(req, res, pathname, searchParams) {
                   total_amount: expectedTotal,
                   isAdminPreview: paymentIntent.metadata?.is_admin_preview === '1',
                 };
-                order = recordPaidShopOrder(
-                  reconstructedOrder,
-                  paymentIntent.id,
-                  new Date().toISOString()
-                );
+                order = recordPaidShopOrder(reconstructedOrder, paymentIntent.id, new Date().toISOString());
               } else {
                 console.error(
                   `[STRIPE WEBHOOK SECURITY] Rejeitado webhook fallback: valor recebido ${paidAmount} != esperado ${expectedCents}`
                 );
-                return sendJson(res, 400, {
-                  error: 'Montante forjado ou inconsistente com a campanha',
-                });
+                return sendJson(res, 400, { error: 'Montante forjado ou inconsistente com a campanha' });
               }
             } else {
-              console.error(
-                '[STRIPE WEBHOOK SECURITY] Rejeitado webhook fallback: metadados inválidos ou inexistentes'
-              );
+              console.error('[STRIPE WEBHOOK SECURITY] Rejeitado webhook fallback: metadados inválidos ou inexistentes');
               return sendJson(res, 400, { error: 'Metadados inválidos para criação da encomenda' });
             }
           }
@@ -617,12 +580,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
 
         // A2: Em pagamentos assíncronos, checkout.session.completed pode ter payment_status !== 'paid'
         if (session.payment_status !== 'paid') {
-          console.log(
-            `[STRIPE WEBHOOK] Sessão ${session.id} não paga ainda (payment_status: ${session.payment_status}). Aguardando liquidação.`
-          );
-          if (event.id) {
-            markWebhookEventProcessed(event.id, event.type);
-          }
+          console.log(`[STRIPE WEBHOOK] Sessão ${session.id} não paga ainda (payment_status: ${session.payment_status}). Aguardando liquidação.`);
           return sendJson(res, 200, { received: true, payment_status: session.payment_status });
         }
 
@@ -640,9 +598,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
             console.warn(
               `[STRIPE WEBHOOK SECURITY] Reutilização de sessão/PI ${paymentRef} na encomenda ${orderId} (já pertence a ${existingWithRef.id})`
             );
-            return sendJson(res, 400, {
-              error: 'Referência de pagamento já associada a outra encomenda',
-            });
+            return sendJson(res, 400, { error: 'Referência de pagamento já associada a outra encomenda' });
           }
 
           let order = getShopOrderById(orderId);
@@ -653,9 +609,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           if (targetOrder) {
             const expectedCents = Math.round(Number(targetOrder.total_amount) * 100);
             if (paidAmount !== expectedCents) {
-              console.error(
-                `[STRIPE WEBHOOK SECURITY] Discrepância na sessão Checkout: recebido ${paidAmount}, esperado ${expectedCents}`
-              );
+              console.error(`[STRIPE WEBHOOK SECURITY] Discrepância na sessão Checkout: recebido ${paidAmount}, esperado ${expectedCents}`);
               return sendJson(res, 400, { error: 'Montante pago não coincide com a encomenda' });
             }
 
@@ -677,17 +631,10 @@ export async function handleShopApi(req, res, pathname, searchParams) {
               session.customer_details?.email ||
               session.customer_email ||
               ''
-            )
-              .trim()
-              .toLowerCase();
-            const studentName = (
-              session.metadata?.student_name ||
-              session.customer_details?.name ||
-              ''
-            ).trim();
+            ).trim().toLowerCase();
+            const studentName = (session.metadata?.student_name || session.customer_details?.name || '').trim();
             const size = (session.metadata?.size || 'M').toUpperCase().trim();
-            const deliveryType =
-              session.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
+            const deliveryType = session.metadata?.delivery_type === 'shipping' ? 'shipping' : 'pickup';
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
             if (
@@ -709,8 +656,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
                   item_name: campaign.item_name || 'Sweat Oficial Engenharia Informática',
                   student_name: studentName,
                   student_email: studentEmail,
-                  phone_number:
-                    session.metadata?.phone_number || session.customer_details?.phone || '',
+                  phone_number: session.metadata?.phone_number || session.customer_details?.phone || '',
                   nif: session.metadata?.nif || 'Consumidor Final',
                   size,
                   color: session.metadata?.color || 'Preto',
@@ -723,15 +669,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
                   payment_fee: paymentFee,
                   total_amount: expectedTotal,
                 };
-                order = recordPaidShopOrder(
-                  reconstructedOrder,
-                  paymentRef,
-                  new Date().toISOString()
-                );
+                order = recordPaidShopOrder(reconstructedOrder, paymentRef, new Date().toISOString());
               } else {
-                return sendJson(res, 400, {
-                  error: 'Montante forjado ou inconsistente com a campanha',
-                });
+                return sendJson(res, 400, { error: 'Montante forjado ou inconsistente com a campanha' });
               }
             } else {
               return sendJson(res, 400, { error: 'Metadados da sessão inválidos' });
@@ -763,9 +703,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           const order = getShopOrderById(orderId);
           if (order && order.payment_status !== 'paid') {
             updateShopOrderPaymentStatus(orderId, 'failed');
-            console.log(
-              `[STRIPE WEBHOOK] Encomenda ${orderId} marcada como falhada (${event.type})`
-            );
+            console.log(`[STRIPE WEBHOOK] Encomenda ${orderId} marcada como falhada (${event.type})`);
           }
         }
       }
@@ -778,9 +716,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           const order = getShopOrderById(orderId);
           if (order && order.payment_status !== 'paid') {
             updateShopOrderPaymentStatus(orderId, 'expired');
-            console.log(
-              `[STRIPE WEBHOOK] Encomenda ${orderId} marcada como expirada (checkout.session.expired)`
-            );
+            console.log(`[STRIPE WEBHOOK] Encomenda ${orderId} marcada como expirada (checkout.session.expired)`);
           }
         }
       }
@@ -795,9 +731,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         if (order) {
           const refundAmount = ((charge.amount_refunded || 0) / 100).toFixed(2);
           const refundNote = `[REEMBOLSO STRIPE] Valor: ${refundAmount}€ em ${new Date().toISOString()}`;
-          console.log(
-            `[STRIPE AUDIT] Reembolso registado para encomenda ${order.id}: ${refundAmount}€`
-          );
+          console.log(`[STRIPE AUDIT] Reembolso registado para encomenda ${order.id}: ${refundAmount}€`);
           appendShopOrderAdminNotes(order.id, refundNote);
         }
       }
@@ -812,43 +746,73 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         if (order) {
           const disputeAmount = ((dispute.amount || 0) / 100).toFixed(2);
           const disputeNote = `[DISPUTA BANCÁRIA STRIPE] Disputa ${dispute.id} (${disputeAmount}€) iniciada em ${new Date().toISOString()}`;
-          console.warn(
-            `[STRIPE AUDIT WARNING] Disputa aberta para encomenda ${order.id}: ${dispute.id}`
-          );
+          console.warn(`[STRIPE AUDIT WARNING] Disputa aberta para encomenda ${order.id}: ${dispute.id}`);
           appendShopOrderAdminNotes(order.id, disputeNote);
         }
-      }
-
-      if (event.id) {
-        markWebhookEventProcessed(event.id, event.type);
       }
 
       return sendJson(res, 200, { received: true });
     }
 
-    // 8. POST ou GET /api/webhooks/ifthenpay - Fallback legado desativado por segurança (C1, B7, B8)
+    // 8. POST ou GET /api/webhooks/ifthenpay - Fallback para webhook legado
     if (pathname === '/api/webhooks/ifthenpay' || pathname === '/api/shop/webhook') {
-      return sendJson(res, 410, {
-        error: 'Webhook legado desativado permanentemente por motivos de segurança.',
-      });
-    }
+      let params = {};
+      let body = {};
 
-    // 9. POST /api/shop/simulate-payment - Simulação manual para testes em Sandbox (C3, B4)
-    if (pathname === '/api/shop/simulate-payment' && req.method === 'POST') {
-      // Bloqueio incondicional em produção, independentemente da chave ser live ou test
-      if (process.env.NODE_ENV === 'production') {
-        return sendJson(res, 403, { error: 'Simulação desativada em ambiente de produção.' });
+      if (req.method === 'GET') {
+        params = Object.fromEntries(searchParams || []);
+      } else if (req.method === 'POST') {
+        body = await readJsonBody(req);
       }
 
-      // Fora de produção, exige flag explícita ALLOW_PAYMENT_SIMULATION=true, modo de teste ou token admin
-      const isAllowedByEnv =
-        process.env.ALLOW_PAYMENT_SIMULATION === 'true' || process.env.NODE_ENV === 'test';
-      const isAdmin = verifyAdminToken(req);
-      if (!isAllowedByEnv && !isAdmin) {
-        return sendJson(res, 403, {
-          error:
-            'Simulação de pagamentos requer autenticação de administrador ou ALLOW_PAYMENT_SIMULATION=true.',
-        });
+      const orderId =
+        body.orderId || body.order_id || body.referencia || params.orderId || params.referencia;
+      const estado = (body.estado || body.status || params.estado || 'PAGO').toUpperCase();
+
+      if (!orderId) {
+        return sendJson(res, 400, { error: 'ID de encomenda não especificado no webhook' });
+      }
+
+      let order = getShopOrderById(orderId);
+      if (!order) {
+        const pending = getPendingShopOrder(orderId);
+        if (pending) {
+          order = recordPaidShopOrder(pending, body.requestId || params.requestId || 'webhook-ifthenpay');
+        } else {
+          return sendJson(res, 404, { error: 'Encomenda não encontrada' });
+        }
+      }
+
+      if (estado === 'PAGO' || estado === 'PAID' || estado === '000') {
+        if (order.payment_status !== 'paid') {
+          const updatedOrder = updateShopOrderPaymentStatus(
+            order.id,
+            'paid',
+            body.requestId || params.requestId || 'webhook-ifthenpay',
+            new Date().toISOString()
+          );
+
+          try {
+            const emailResult = await sendOrderConfirmationEmail(updatedOrder);
+            if (emailResult && emailResult.success) {
+              updateShopOrderEmailSent(updatedOrder.id);
+            }
+          } catch (mailErr) {
+            console.error('[WEBHOOK ERROR] Falha no disparo do email:', mailErr);
+          }
+        }
+
+        return sendJson(res, 200, { status: 'ok', message: 'Pagamento registado com sucesso' });
+      } else {
+        updateShopOrderPaymentStatus(order.id, 'failed');
+        return sendJson(res, 200, { status: 'failed', message: 'Pagamento rejeitado ou expirado' });
+      }
+    }
+
+    // 9. POST /api/shop/simulate-payment - Simulação manual para testes em Sandbox
+    if (pathname === '/api/shop/simulate-payment' && req.method === 'POST') {
+      if (process.env.NODE_ENV === 'production' && !isPaymentSandbox()) {
+        return sendJson(res, 403, { error: 'Simulação desativada em ambiente de produção.' });
       }
 
       const body = await readJsonBody(req);
@@ -932,10 +896,7 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const body = await readJsonBody(req);
         try {
           const updated = updateShopCampaign(productId, body);
-          return sendJson(res, 200, {
-            product: updated,
-            message: 'Produto atualizado com sucesso',
-          });
+          return sendJson(res, 200, { product: updated, message: 'Produto atualizado com sucesso' });
         } catch (err) {
           return sendJson(res, 400, { error: err.message || 'Erro ao atualizar produto' });
         }
@@ -1078,7 +1039,11 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       // POST /api/admin/shop/test-email - Testar envio de email via painel admin
       if (pathname === '/api/admin/shop/test-email' && req.method === 'POST') {
         const body = await readJsonBody(req);
-        const targetEmail = (body.email || process.env.SMTP_USER || 'neei@aaualg.pt')
+        const targetEmail = (
+          body.email ||
+          process.env.SMTP_USER ||
+          'neei@aaualg.pt'
+        )
           .trim()
           .toLowerCase();
 
@@ -1108,22 +1073,9 @@ export async function handleShopApi(req, res, pathname, searchParams) {
       if (pathname === '/api/admin/shop/export-factory' && req.method === 'GET') {
         const rows = getFactoryExportData();
 
-        // Prevenção de CSV Formula Injection (M4): sanitiza células que iniciem com =, +, -, @, \t, \r
-        const sanitizeCsvCell = (val) => {
-          if (val === null || val === undefined) return '""';
-          let str = String(val);
-          if (/^[=+\-@\t\r]/.test(str)) {
-            str = "'" + str;
-          }
-          return `"${str.replace(/"/g, '""')}"`;
-        };
-
         // Cabeçalhos CSV em UTF-8 com BOM para abrir perfeitamente no Microsoft Excel
         const headers = [
           'ID Encomenda',
-          'Origem',
-          'Artigo',
-          'Detalhes Pack',
           'Nome do Aluno',
           'Email',
           'Telemóvel',
@@ -1134,27 +1086,22 @@ export async function handleShopApi(req, res, pathname, searchParams) {
           'NIF',
           'Total Pago',
           'Data de Pagamento',
-          'Notas Admin',
         ];
 
         let csv = '\uFEFF' + headers.join(';') + '\n';
         for (const r of rows) {
           const line = [
-            sanitizeCsvCell(r.id),
-            sanitizeCsvCell(r.origem),
-            sanitizeCsvCell(r.artigo),
-            sanitizeCsvCell(r.detalhes_pack),
-            sanitizeCsvCell(r.aluno),
-            sanitizeCsvCell(r.email),
-            sanitizeCsvCell(r.telemovel),
-            sanitizeCsvCell(r.tamanho),
-            sanitizeCsvCell(r.cor),
-            sanitizeCsvCell(r.entrega),
-            sanitizeCsvCell(r.morada_completa),
-            sanitizeCsvCell(r.nif),
-            sanitizeCsvCell(r.total_pago),
-            sanitizeCsvCell(r.data_pagamento),
-            sanitizeCsvCell(r.notas),
+            `"${r.id}"`,
+            `"${(r.aluno || '').replace(/"/g, '""')}"`,
+            `"${(r.email || '').replace(/"/g, '""')}"`,
+            `"${r.telemovel}"`,
+            `"${r.tamanho}"`,
+            `"${r.cor}"`,
+            `"${r.entrega}"`,
+            `"${(r.morada_completa || '').replace(/"/g, '""')}"`,
+            `"${r.nif}"`,
+            `"${r.total_pago}"`,
+            `"${r.data_pagamento}"`,
           ];
           csv += line.join(';') + '\n';
         }

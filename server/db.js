@@ -23,47 +23,6 @@ console.log(`[DB] Base de dados ativa em: ${DB_PATH}`);
 
 export const db = new DatabaseSync(DB_PATH);
 
-// Helper para transações SQLite atómicas e seguras com suporte a savepoints (C2, M8)
-let txDepth = 0;
-export function runInTransaction(fn) {
-  const isOuter = txDepth === 0;
-  const savepointName = `sp_${txDepth}`;
-  if (isOuter) {
-    db.exec('BEGIN IMMEDIATE;');
-  } else {
-    db.exec(`SAVEPOINT ${savepointName};`);
-  }
-  txDepth++;
-  try {
-    const result = fn();
-    txDepth--;
-    if (isOuter) {
-      db.exec('COMMIT;');
-    } else {
-      db.exec(`RELEASE SAVEPOINT ${savepointName};`);
-    }
-    return result;
-  } catch (err) {
-    txDepth--;
-    try {
-      if (isOuter) {
-        db.exec('ROLLBACK;');
-      } else {
-        db.exec(`ROLLBACK TO SAVEPOINT ${savepointName};`);
-      }
-    } catch (_) {
-      // Ignora erro de rollback caso o comando já tenha falhado
-    }
-    throw err;
-  }
-}
-
-db.transaction = function (fn) {
-  return function (...args) {
-    return runInTransaction(() => fn(...args));
-  };
-};
-
 // Ativa chaves estrangeiras e modo WAL
 db.exec('PRAGMA foreign_keys = ON;');
 
@@ -234,16 +193,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shop_orders_campaign ON shop_orders(campaign_id);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_orders_payment_ref_unique 
-    ON shop_orders(payment_ref) 
-    WHERE payment_ref IS NOT NULL AND payment_ref != '';
-
-  CREATE TABLE IF NOT EXISTS shop_webhook_events (
-    id TEXT PRIMARY KEY,
-    event_type TEXT NOT NULL,
-    processed_at TEXT NOT NULL
-  );
-  CREATE INDEX IF NOT EXISTS idx_shop_webhook_events_processed ON shop_webhook_events(processed_at);
 `);
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
@@ -312,9 +261,7 @@ try {
   // Já existe
 }
 try {
-  db.exec(
-    "ALTER TABLE shop_orders ADD COLUMN item_name TEXT NOT NULL DEFAULT 'Sweat Oficial Engenharia Informática';"
-  );
+  db.exec("ALTER TABLE shop_orders ADD COLUMN item_name TEXT NOT NULL DEFAULT 'Sweat Oficial Engenharia Informática';");
 } catch (_) {
   // Já existe
 }
@@ -416,9 +363,7 @@ try {
           newColorImagesStr = JSON.stringify(colorMap);
           updated = true;
         }
-      } catch (e) {
-        // Ignora erro de parsing do JSON
-      }
+      } catch (e) {}
     }
 
     if (updated) {
@@ -432,6 +377,7 @@ try {
 } catch (e) {
   // Ignora se tabela ainda não existir
 }
+
 
 export const DEFAULT_SHOP_SIZE_GUIDE = {
   XS: { chest: 49, length: 64, sleeve: 60, shoulder_to_wrist: 70, label: 'Extra Pequeno' },
@@ -792,9 +738,7 @@ export function syncActivitiesWeeklyStatus(referenceDate = new Date()) {
         "SELECT id, date, status, registration_opens_at FROM activities WHERE status IN ('ongoing', 'upcoming')"
       )
       .all();
-    const updateCompletedStmt = db.prepare(
-      "UPDATE activities SET status = 'completed' WHERE id = ?"
-    );
+    const updateCompletedStmt = db.prepare("UPDATE activities SET status = 'completed' WHERE id = ?");
     const updateOngoingStmt = db.prepare("UPDATE activities SET status = 'ongoing' WHERE id = ?");
 
     let changed = 0;
@@ -1071,14 +1015,7 @@ export function saveActivity(data) {
     );
   }
 
-  return {
-    id,
-    ...data,
-    date: actDate,
-    status: finalStatus,
-    open_soon: openSoon,
-    registration_opens_at: regOpensAt,
-  };
+  return { id, ...data, date: actDate, status: finalStatus, open_soon: openSoon, registration_opens_at: regOpensAt };
 }
 
 /**
@@ -1440,10 +1377,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
   if (!row) return null;
   let sizes = [...CANONICAL_SHOP_SIZES];
   try {
-    const parsed =
-      typeof row.sizes_available === 'string'
-        ? JSON.parse(row.sizes_available)
-        : row.sizes_available;
+    const parsed = typeof row.sizes_available === 'string' ? JSON.parse(row.sizes_available) : row.sizes_available;
     if (Array.isArray(parsed)) {
       sizes = sortShopSizes(parsed);
     }
@@ -1454,10 +1388,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
   let colors = ['Preto'];
   if (row.colors_available) {
     try {
-      const parsed =
-        typeof row.colors_available === 'string'
-          ? JSON.parse(row.colors_available)
-          : row.colors_available;
+      const parsed = typeof row.colors_available === 'string' ? JSON.parse(row.colors_available) : row.colors_available;
       if (Array.isArray(parsed) && parsed.length > 0) {
         colors = parsed.map((c) => String(c).trim()).filter(Boolean);
       }
@@ -1469,8 +1400,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
   let colorImages = {};
   if (row.color_images) {
     try {
-      const parsed =
-        typeof row.color_images === 'string' ? JSON.parse(row.color_images) : row.color_images;
+      const parsed = typeof row.color_images === 'string' ? JSON.parse(row.color_images) : row.color_images;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         colorImages = parsed;
       }
@@ -1482,8 +1412,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
   let sizeGuide = null;
   if (row.size_guide) {
     try {
-      const parsed =
-        typeof row.size_guide === 'string' ? JSON.parse(row.size_guide) : row.size_guide;
+      const parsed = typeof row.size_guide === 'string' ? JSON.parse(row.size_guide) : row.size_guide;
       if (parsed && typeof parsed === 'object') {
         sizeGuide = parsed;
       }
@@ -1499,9 +1428,7 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
     '80% Algodão cardado / 20% Poliéster (320g/m²)',
     'Bordado de alta definição NEEI · Engenharia Informática',
     'Corte unissexo confortável com cordões reforçados',
-    row.allow_shipping
-      ? 'Recolha no Campus de Gambelas ou Envio CTT'
-      : 'Recolha no Campus de Gambelas',
+    row.allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
   ];
   if (row.features) {
     try {
@@ -1515,11 +1442,9 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
   }
 
   let bundleItems = [];
-  const isBundle = Boolean(row.is_bundle);
-  if (isBundle && row.bundle_items) {
+  if (row.bundle_items) {
     try {
-      const parsed =
-        typeof row.bundle_items === 'string' ? JSON.parse(row.bundle_items) : row.bundle_items;
+      const parsed = typeof row.bundle_items === 'string' ? JSON.parse(row.bundle_items) : row.bundle_items;
       if (Array.isArray(parsed)) {
         bundleItems = parsed;
       }
@@ -1527,13 +1452,14 @@ export function formatShopCampaignRow(row, isAdminPreview = false) {
       // fallback
     }
   }
+  const isBundle = Boolean(row.is_bundle || (bundleItems && bundleItems.length > 0) || row.category === 'Pack');
 
   const isSweatsAvailable = isSweatsAvailableEnv();
   const isTestShopAllowed = isShowTestShopEnv();
   const isTestingMode = Boolean(isAdminPreview && isTestShopAllowed);
-  const effectivePrice = isTestingMode ? 0.5 : Number(row.item_price);
+  const effectivePrice = isTestingMode ? 0.50 : Number(row.item_price);
   const effectiveAvailable = Boolean(row.is_active) && (isSweatsAvailable || isTestingMode);
-  const effectiveImage = isSweatsAvailable || isTestingMode ? row.image_url : null;
+  const effectiveImage = (isSweatsAvailable || isTestingMode) ? row.image_url : null;
 
   return {
     id: row.id,
@@ -1614,53 +1540,6 @@ export function getActiveShopCampaigns(isAdminPreview = false) {
 }
 
 /**
- * Valida a integridade dos artigos incluídos num Pack (N5)
- */
-export function validateCampaignBundleItems(selfId, bundleItemsJsonOrArray) {
-  let items;
-  try {
-    items =
-      typeof bundleItemsJsonOrArray === 'string'
-        ? JSON.parse(bundleItemsJsonOrArray)
-        : bundleItemsJsonOrArray;
-  } catch {
-    items = [];
-  }
-  if (!Array.isArray(items) || items.length < 2) {
-    const err = new Error('Um pack deve conter pelo menos 2 artigos válidos.');
-    err.statusCode = 400;
-    throw err;
-  }
-  for (const item of items) {
-    if (!item || !item.campaign_id) {
-      const err = new Error('Identificador de artigo do pack inválido.');
-      err.statusCode = 400;
-      throw err;
-    }
-    if (selfId && item.campaign_id === selfId) {
-      const err = new Error('Um pack não pode incluir-se a si próprio.');
-      err.statusCode = 400;
-      throw err;
-    }
-    const child = db
-      .prepare('SELECT id, is_bundle, is_active FROM shop_campaigns WHERE id = ?')
-      .get(item.campaign_id);
-    if (!child) {
-      const err = new Error(`Artigo '${item.campaign_id}' do pack não foi encontrado.`);
-      err.statusCode = 400;
-      throw err;
-    }
-    if (child.is_bundle) {
-      const err = new Error(
-        `O artigo '${item.campaign_id}' já é um pack. Não é permitido criar packs de packs.`
-      );
-      err.statusCode = 400;
-      throw err;
-    }
-  }
-}
-
-/**
  * Cria um novo produto / campanha no catálogo
  */
 export function createShopCampaign(data) {
@@ -1672,41 +1551,22 @@ export function createShopCampaign(data) {
   const item_price = Number(data.item_price) >= 0 ? Number(data.item_price) : 25.0;
   const shipping_fee = Number(data.shipping_fee) >= 0 ? Number(data.shipping_fee) : 3.5;
   let image_url = (data.image_url || '').trim();
-  if (
-    image_url &&
-    !image_url.startsWith('http://') &&
-    !image_url.startsWith('https://') &&
-    !image_url.startsWith('/')
-  ) {
+  if (image_url && !image_url.startsWith('http://') && !image_url.startsWith('https://') && !image_url.startsWith('/')) {
     image_url = `/${image_url}`;
   }
-  const deadline_date =
-    data.deadline_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+  const deadline_date = data.deadline_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1;
   const allow_pickup = data.allow_pickup !== undefined ? (data.allow_pickup ? 1 : 0) : 1;
   const allow_shipping = data.allow_shipping !== undefined ? (data.allow_shipping ? 1 : 0) : 1;
-  const pickup_location =
-    data.pickup_location || 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
+  const pickup_location = data.pickup_location || 'Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas)';
   const sizes_available = JSON.stringify(
     Array.isArray(data.sizes_available)
       ? sortShopSizes(data.sizes_available)
-      : data.sizes_available
-        ? sortShopSizes(
-            typeof data.sizes_available === 'string'
-              ? JSON.parse(data.sizes_available)
-              : data.sizes_available
-          )
-        : CANONICAL_SHOP_SIZES
+      : (data.sizes_available
+        ? sortShopSizes(typeof data.sizes_available === 'string' ? JSON.parse(data.sizes_available) : data.sizes_available)
+        : CANONICAL_SHOP_SIZES)
   );
-  const is_bundle =
-    data.is_bundle !== undefined
-      ? data.is_bundle
-        ? 1
-        : 0
-      : Array.isArray(data.bundle_items) && data.bundle_items.length > 0
-        ? 1
-        : 0;
-  const category = (data.category || (is_bundle ? 'Pack' : 'Vestuário')).trim();
+  const category = (data.category || 'Vestuário').trim();
   const colors_available = JSON.stringify(
     Array.isArray(data.colors_available) && data.colors_available.length > 0
       ? data.colors_available.map((c) => String(c).trim()).filter(Boolean)
@@ -1714,11 +1574,7 @@ export function createShopCampaign(data) {
   );
   let rawColorImages = data.color_images || {};
   if (typeof rawColorImages === 'string') {
-    try {
-      rawColorImages = JSON.parse(rawColorImages);
-    } catch {
-      rawColorImages = {};
-    }
+    try { rawColorImages = JSON.parse(rawColorImages); } catch { rawColorImages = {}; }
   }
   const normalizedColorImages = {};
   if (rawColorImages && typeof rawColorImages === 'object') {
@@ -1732,44 +1588,32 @@ export function createShopCampaign(data) {
   }
   const color_images = JSON.stringify(normalizedColorImages);
   const size_guide = data.size_guide
-    ? typeof data.size_guide === 'string'
-      ? data.size_guide
-      : JSON.stringify(data.size_guide)
-    : category === 'Vestuário'
-      ? JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE)
-      : null;
-  const features =
-    data.features !== undefined
-      ? Array.isArray(data.features)
-        ? JSON.stringify(data.features)
-        : data.features
-      : JSON.stringify([
-          '80% Algodão cardado / 20% Poliéster (320g/m²)',
-          'Bordado de alta definição NEEI · Engenharia Informática',
-          'Corte unissexo confortável com cordões reforçados',
-          allow_shipping
-            ? 'Recolha no Campus de Gambelas ou Envio CTT'
-            : 'Recolha no Campus de Gambelas',
-        ]);
-  let bundle_items = JSON.stringify([]);
-  if (is_bundle) {
-    validateCampaignBundleItems(id, data.bundle_items);
-    bundle_items =
-      typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items);
-  }
-  const rawOrder = data.display_order ?? data.priority ?? 0;
-  const display_order = Math.max(0, Math.min(999999, Math.floor(Number(rawOrder) || 0)));
+    ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
+    : (category === 'Vestuário' ? JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE) : null);
+  const features = data.features !== undefined
+    ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
+    : JSON.stringify([
+      '80% Algodão cardado / 20% Poliéster (320g/m²)',
+      'Bordado de alta definição NEEI · Engenharia Informática',
+      'Corte unissexo confortável com cordões reforçados',
+      allow_shipping ? 'Recolha no Campus de Gambelas ou Envio CTT' : 'Recolha no Campus de Gambelas',
+    ]);
+  const is_bundle = data.is_bundle !== undefined
+    ? (data.is_bundle ? 1 : 0)
+    : (Array.isArray(data.bundle_items) && data.bundle_items.length > 0 ? 1 : 0);
+  const bundle_items = data.bundle_items
+    ? (typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items))
+    : JSON.stringify([]);
+  const display_order = Number(data.display_order ?? data.priority ?? 0) || 0;
 
-  db.prepare(
-    `
+  db.prepare(`
     INSERT INTO shop_campaigns (
       id, title, description, item_name, item_price, shipping_fee, image_url, deadline_date,
       is_active, allow_pickup, allow_shipping, pickup_location, sizes_available, colors_available, color_images, size_guide, features, category, is_bundle, bundle_items, display_order, created_at
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
     )
-  `
-  ).run(
+  `).run(
     id,
     title,
     description,
@@ -1815,12 +1659,7 @@ export function updateShopCampaign(id, data) {
   let image_url = data.image_url !== undefined ? data.image_url : current.image_url;
   if (typeof image_url === 'string') {
     image_url = image_url.trim();
-    if (
-      image_url &&
-      !image_url.startsWith('http://') &&
-      !image_url.startsWith('https://') &&
-      !image_url.startsWith('/')
-    ) {
+    if (image_url && !image_url.startsWith('http://') && !image_url.startsWith('https://') && !image_url.startsWith('/')) {
       image_url = `/${image_url}`;
     }
   }
@@ -1838,9 +1677,7 @@ export function updateShopCampaign(id, data) {
     try {
       const parsed = Array.isArray(data.sizes_available)
         ? data.sizes_available
-        : typeof data.sizes_available === 'string'
-          ? JSON.parse(data.sizes_available)
-          : data.sizes_available;
+        : (typeof data.sizes_available === 'string' ? JSON.parse(data.sizes_available) : data.sizes_available);
       sizes_available = JSON.stringify(sortShopSizes(parsed));
     } catch {
       sizes_available = JSON.stringify(CANONICAL_SHOP_SIZES);
@@ -1852,9 +1689,7 @@ export function updateShopCampaign(id, data) {
     try {
       const parsed = Array.isArray(data.colors_available)
         ? data.colors_available
-        : typeof data.colors_available === 'string'
-          ? JSON.parse(data.colors_available)
-          : data.colors_available;
+        : (typeof data.colors_available === 'string' ? JSON.parse(data.colors_available) : data.colors_available);
       colors_available = JSON.stringify(
         Array.isArray(parsed) && parsed.length > 0
           ? parsed.map((c) => String(c).trim()).filter(Boolean)
@@ -1869,11 +1704,7 @@ export function updateShopCampaign(id, data) {
   if (data.color_images !== undefined) {
     let parsedImages = data.color_images;
     if (typeof parsedImages === 'string') {
-      try {
-        parsedImages = JSON.parse(parsedImages);
-      } catch {
-        parsedImages = {};
-      }
+      try { parsedImages = JSON.parse(parsedImages); } catch { parsedImages = {}; }
     }
     const normalizedMap = {};
     if (parsedImages && typeof parsedImages === 'object') {
@@ -1891,60 +1722,27 @@ export function updateShopCampaign(id, data) {
   let size_guide = current.size_guide;
   if (data.size_guide !== undefined) {
     size_guide = data.size_guide
-      ? typeof data.size_guide === 'string'
-        ? data.size_guide
-        : JSON.stringify(data.size_guide)
+      ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
       : null;
   }
 
-  const features =
-    data.features !== undefined
-      ? Array.isArray(data.features)
-        ? JSON.stringify(data.features)
-        : data.features
-      : current.features;
-  const is_bundle =
-    data.is_bundle !== undefined
-      ? data.is_bundle
-        ? 1
-        : 0
-      : data.bundle_items !== undefined
-        ? Array.isArray(data.bundle_items) && data.bundle_items.length > 0
-          ? 1
-          : 0
-        : current.is_bundle;
-
-  let bundle_items;
-  if (is_bundle) {
-    if (data.bundle_items !== undefined) {
-      validateCampaignBundleItems(id, data.bundle_items);
-      bundle_items =
-        typeof data.bundle_items === 'string'
-          ? data.bundle_items
-          : JSON.stringify(data.bundle_items);
-    } else {
-      bundle_items = current.bundle_items || '[]';
-    }
-  } else {
-    bundle_items = '[]';
-  }
-
-  const category =
-    data.category !== undefined
-      ? data.category.trim()
-      : is_bundle
-        ? 'Pack'
-        : current.category === 'Pack'
-          ? 'Vestuário'
-          : current.category || 'Vestuário';
-
-  const rawOrder =
-    data.display_order !== undefined
-      ? data.display_order
-      : data.priority !== undefined
-        ? data.priority
-        : current.display_order;
-  const display_order = Math.max(0, Math.min(999999, Math.floor(Number(rawOrder) || 0)));
+  const features = data.features !== undefined
+    ? (Array.isArray(data.features) ? JSON.stringify(data.features) : data.features)
+    : current.features;
+  const is_bundle = data.is_bundle !== undefined
+    ? (data.is_bundle ? 1 : 0)
+    : (data.bundle_items !== undefined
+      ? (Array.isArray(data.bundle_items) && data.bundle_items.length > 0 ? 1 : 0)
+      : current.is_bundle);
+  const bundle_items = data.bundle_items !== undefined
+    ? (typeof data.bundle_items === 'string' ? data.bundle_items : JSON.stringify(data.bundle_items))
+    : current.bundle_items;
+  const category = data.category !== undefined
+    ? data.category.trim()
+    : (is_bundle ? 'Pack' : (current.category || 'Vestuário'));
+  const display_order = data.display_order !== undefined
+    ? (Number(data.display_order) || 0)
+    : (data.priority !== undefined ? (Number(data.priority) || 0) : (Number(current.display_order) || 0));
 
   const stmt = db.prepare(`
     UPDATE shop_campaigns SET
@@ -1985,9 +1783,7 @@ export function updateShopCampaign(id, data) {
  * Elimina um produto do catálogo se não tiver encomendas associadas
  */
 export function deleteShopCampaign(id) {
-  const existingOrders = db
-    .prepare('SELECT COUNT(*) as count FROM shop_orders WHERE campaign_id = ?')
-    .get(id);
+  const existingOrders = db.prepare('SELECT COUNT(*) as count FROM shop_orders WHERE campaign_id = ?').get(id);
   if (existingOrders && existingOrders.count > 0) {
     const err = new Error(
       `Não é possível eliminar um produto com ${existingOrders.count} encomenda(s) associada(s). Podes desativá-lo para que não apareça na loja pública.`
@@ -2012,63 +1808,38 @@ export function calculatePaymentFee(subtotal) {
 export const pendingOrdersCache = new Map();
 export const PENDING_ORDER_TTL_MS = 2 * 60 * 60 * 1000; // 2 horas
 
-const pendingCleanupTimer = setInterval(
-  () => {
-    const now = Date.now();
-    for (const [id, order] of pendingOrdersCache.entries()) {
-      if (order.createdAtMs && now - order.createdAtMs > PENDING_ORDER_TTL_MS) {
-        pendingOrdersCache.delete(id);
-      }
+const pendingCleanupTimer = setInterval(() => {
+  const now = Date.now();
+  for (const [id, order] of pendingOrdersCache.entries()) {
+    if (order.createdAtMs && now - order.createdAtMs > PENDING_ORDER_TTL_MS) {
+      pendingOrdersCache.delete(id);
     }
-  },
-  15 * 60 * 1000
-);
+  }
+}, 15 * 60 * 1000);
 if (typeof pendingCleanupTimer.unref === 'function') pendingCleanupTimer.unref();
 
-// Registo de eventos de webhook processados para evitar repetições (Deduplication - M1)
+// Registo em memória de eventos de webhook processados para evitar repetições (Deduplication)
 export const processedWebhookEvents = new Map();
 export const WEBHOOK_EVENT_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
 
 export function isWebhookEventProcessed(eventId) {
   if (!eventId) return false;
-  const cleanId = String(eventId);
-  const processedAt = processedWebhookEvents.get(cleanId);
-  if (processedAt && Date.now() - processedAt <= WEBHOOK_EVENT_TTL_MS) {
-    return true;
+  const processedAt = processedWebhookEvents.get(String(eventId));
+  if (!processedAt) return false;
+  if (Date.now() - processedAt > WEBHOOK_EVENT_TTL_MS) {
+    processedWebhookEvents.delete(String(eventId));
+    return false;
   }
-
-  try {
-    const row = db.prepare('SELECT id FROM shop_webhook_events WHERE id = ?').get(cleanId);
-    if (row) {
-      processedWebhookEvents.set(cleanId, Date.now());
-      return true;
-    }
-  } catch (_) {
-    // fallback se tabela não existir
-  }
-  return false;
+  return true;
 }
 
-export function markWebhookEventProcessed(eventId, eventType = 'stripe') {
+export function markWebhookEventProcessed(eventId) {
   if (!eventId) return;
-  const cleanId = String(eventId);
   if (processedWebhookEvents.size > 10_000) {
     const oldest = processedWebhookEvents.keys().next().value;
     processedWebhookEvents.delete(oldest);
   }
-  processedWebhookEvents.set(cleanId, Date.now());
-
-  try {
-    const now = new Date().toISOString();
-    db.prepare(
-      `
-      INSERT OR IGNORE INTO shop_webhook_events (id, event_type, processed_at)
-      VALUES (?, ?, ?)
-    `
-    ).run(cleanId, String(eventType || 'stripe'), now);
-  } catch (_) {
-    // fallback
-  }
+  processedWebhookEvents.set(String(eventId), Date.now());
 }
 
 /**
@@ -2122,71 +1893,38 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
 
   if (isBundle && campaign.bundle_items && campaign.bundle_items.length > 0) {
     const rawSelections = orderData.bundle_selections || orderData.bundleSelections || [];
-    let parsedSelections;
+    let parsedSelections = [];
     try {
-      parsedSelections =
-        typeof rawSelections === 'string' ? JSON.parse(rawSelections) : rawSelections;
+      parsedSelections = typeof rawSelections === 'string' ? JSON.parse(rawSelections) : rawSelections;
     } catch {
       parsedSelections = [];
     }
-
-    // Parse defensivo: garante apenas objetos válidos no array (N3)
-    const validSelections = Array.isArray(parsedSelections)
-      ? parsedSelections.filter((s) => s && typeof s === 'object')
-      : [];
 
     const validatedSelections = [];
     const sizeSummaries = [];
     const colorSummaries = [];
 
     for (const itemConfig of campaign.bundle_items) {
-      if (!itemConfig || !itemConfig.campaign_id) continue;
       const childCampaign = getShopCampaignById(itemConfig.campaign_id, isTestingMode);
-      if (!childCampaign || (!childCampaign.is_active && !isTestingMode)) {
-        const err = new Error(
-          `O artigo incluído '${itemConfig.campaign_id}' não está ativo ou disponível.`
-        );
-        err.statusCode = 400;
-        throw err;
-      }
-      const childName = (
-        itemConfig.item_name ||
-        childCampaign.item_name ||
-        childCampaign.title ||
-        itemConfig.campaign_id
-      ).trim();
+      const childName = itemConfig.item_name || (childCampaign ? (childCampaign.item_name || childCampaign.title) : itemConfig.campaign_id);
 
-      const userSel = validSelections.find(
-        (s) => s.campaign_id === itemConfig.campaign_id || (childName && s.item_name === childName)
-      );
+      const userSel = Array.isArray(parsedSelections)
+        ? parsedSelections.find((s) => s.campaign_id === itemConfig.campaign_id || s.item_name === childName)
+        : null;
 
-      let itemSize =
-        (userSel && userSel.size ? String(userSel.size).toUpperCase().trim() : '') ||
-        (childCampaign && childCampaign.sizes_available?.[0]) ||
-        'M';
-      let itemColor =
-        (userSel && userSel.color ? String(userSel.color).trim() : '') ||
-        (childCampaign && childCampaign.colors_available?.[0]) ||
-        'Preto';
+      let itemSize = (userSel && userSel.size ? String(userSel.size).toUpperCase().trim() : '') ||
+        (childCampaign && childCampaign.sizes_available?.[0]) || 'M';
+      let itemColor = (userSel && userSel.color ? String(userSel.color).trim() : '') ||
+        (childCampaign && childCampaign.colors_available?.[0]) || 'Preto';
 
-      if (
-        childCampaign &&
-        childCampaign.sizes_available &&
-        childCampaign.sizes_available.length > 0
-      ) {
+      if (childCampaign && childCampaign.sizes_available && childCampaign.sizes_available.length > 0) {
         if (!childCampaign.sizes_available.includes(itemSize)) {
           itemSize = childCampaign.sizes_available[0];
         }
       }
 
-      if (
-        childCampaign &&
-        childCampaign.colors_available &&
-        childCampaign.colors_available.length > 0
-      ) {
-        const matched = childCampaign.colors_available.find(
-          (c) => c.toLowerCase() === itemColor.toLowerCase()
-        );
+      if (childCampaign && childCampaign.colors_available && childCampaign.colors_available.length > 0) {
+        const matched = childCampaign.colors_available.find((c) => c.toLowerCase() === itemColor.toLowerCase());
         itemColor = matched || childCampaign.colors_available[0];
       }
 
@@ -2221,7 +1959,7 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
       size = size || 'Único';
     }
 
-    // Validação estrita da cor (M7)
+    // Validação da cor
     const availableColors =
       Array.isArray(campaign.colors_available) && campaign.colors_available.length > 0
         ? campaign.colors_available
@@ -2229,13 +1967,10 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
     if (!color) {
       color = availableColors[0] || 'Preto';
     } else {
-      const matched = availableColors.find((c) => c.toLowerCase() === color.toLowerCase());
-      if (!matched) {
-        const err = new Error(`Cor inválida. Opções disponíveis: ${availableColors.join(', ')}`);
-        err.statusCode = 400;
-        throw err;
-      }
-      color = matched;
+      const matched = availableColors.find(
+        (c) => c.toLowerCase() === color.toLowerCase()
+      );
+      color = matched || color;
     }
   }
 
@@ -2257,7 +1992,9 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
   // Validação do número de telemóvel (formato português: 9 dígitos a começar por 9)
   const rawPhone = (orderData.phone_number || '').replace(/\s+/g, '').replace(/^\+351/, '');
   if (!/^9\d{8}$/.test(rawPhone)) {
-    const err = new Error('Número de telemóvel inválido (deve ter 9 dígitos e começar por 9).');
+    const err = new Error(
+      'Número de telemóvel inválido (deve ter 9 dígitos e começar por 9).'
+    );
     err.statusCode = 400;
     throw err;
   }
@@ -2297,8 +2034,8 @@ export function preparePendingShopOrder(orderData, isAdminPreview = false) {
   // NIF (opcional, por omissão Consumidor Final)
   const nif = (orderData.nif || '').replace(/\s+/g, '') || 'Consumidor Final';
 
-  // Geração de ID human-readable com alta entropia para prevenir enumeração (A1)
-  const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+  // Geração de ID human-readable
+  const randomSuffix = crypto.randomInt(1000, 9999);
   const now = new Date();
   const year = now.getFullYear();
   const orderId = `SW-${year}-${randomSuffix}`;
@@ -2375,19 +2112,6 @@ export function getPendingShopOrder(orderId) {
 }
 
 /**
- * Parse seguro de JSON para prevenir exceções não tratadas (N3)
- */
-export function safeParseJson(value, fallback = null) {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value !== 'string') return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-}
-
-/**
  * Regista definitivamente uma encomenda na tabela shop_orders apenas quando o pagamento é confirmado
  */
 export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = null) {
@@ -2403,12 +2127,23 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
     }
   }
 
-  const actualPaymentRef = paymentRef || orderData.payment_ref || null;
-
-  // Se já existir na BD, atualiza garantindo a validação de unicidade da payment_ref (M8)
   const existingInDb = getShopOrderById(orderData.id);
   if (existingInDb) {
-    return updateShopOrderPaymentStatus(orderData.id, 'paid', actualPaymentRef, paidAt);
+    return updateShopOrderPaymentStatus(orderData.id, 'paid', paymentRef, paidAt);
+  }
+
+  const actualPaymentRef = paymentRef || orderData.payment_ref || null;
+
+  // Prevenção contra reutilização de PaymentIntent (Double Spending / PI Reuse attack)
+  if (actualPaymentRef) {
+    const existingWithSameRef = db
+      .prepare('SELECT id FROM shop_orders WHERE payment_ref = ? AND id != ?')
+      .get(actualPaymentRef, orderData.id);
+    if (existingWithSameRef) {
+      throw new Error(
+        `Referência de pagamento ${actualPaymentRef} já se encontra associada à encomenda ${existingWithSameRef.id}`
+      );
+    }
   }
 
   const now = new Date().toISOString();
@@ -2416,67 +2151,47 @@ export function recordPaidShopOrder(orderDataOrId, paymentRef = null, paidAt = n
   const isTest = Boolean(orderData.isAdminPreview || orderData.is_admin_preview);
   const orderStatus = isTest ? 'test' : 'confirmed';
 
-  // Executa verificação e inserção numa transação SQLite atómica para prevenir TOCTOU e double-spend (C2)
-  const insertTx = db.transaction(() => {
-    if (actualPaymentRef) {
-      const existingWithSameRef = db
-        .prepare('SELECT id FROM shop_orders WHERE payment_ref = ? AND id != ?')
-        .get(actualPaymentRef, orderData.id);
-      if (existingWithSameRef) {
-        const err = new Error(
-          `Referência de pagamento ${actualPaymentRef} já se encontra associada à encomenda ${existingWithSameRef.id}`
-        );
-        err.statusCode = 409;
-        throw err;
-      }
-    }
+  const stmt = db.prepare(`
+    INSERT INTO shop_orders (
+      id, campaign_id, item_name, student_name, student_email, phone_number, nif,
+      size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
+      item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
+      payment_ref, order_status, email_sent, moloni_status, created_at, paid_at, bundle_selections
+    ) VALUES (
+      ?, ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, 'paid', ?,
+      ?, ?, 0, 'none', ?, ?, ?
+    )
+  `);
 
-    const stmt = db.prepare(`
-      INSERT INTO shop_orders (
-        id, campaign_id, item_name, student_name, student_email, phone_number, nif,
-        size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
-        item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
-        payment_ref, order_status, email_sent, moloni_status, created_at, paid_at, bundle_selections
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, 'paid', ?,
-        ?, ?, 0, 'none', ?, ?, ?
-      )
-    `);
-
-    stmt.run(
-      orderData.id,
-      orderData.campaign_id || 'camp-sweat-ei-2026',
-      orderData.item_name || 'Sweat Oficial Engenharia Informática',
-      orderData.student_name,
-      orderData.student_email,
-      orderData.phone_number,
-      orderData.nif || 'Consumidor Final',
-      orderData.size,
-      orderData.color || 'Preto',
-      orderData.delivery_type || 'pickup',
-      orderData.shipping_address || null,
-      orderData.shipping_postal_code || null,
-      orderData.shipping_city || null,
-      Number(orderData.item_price),
-      Number(orderData.shipping_fee || 0),
-      Number(orderData.payment_fee || 0),
-      Number(orderData.total_amount),
-      orderData.payment_provider || 'stripe',
-      actualPaymentRef,
-      orderStatus,
-      orderData.created_at || now,
-      actualPaidAt,
-      orderData.bundle_selections
-        ? typeof orderData.bundle_selections === 'string'
-          ? orderData.bundle_selections
-          : JSON.stringify(orderData.bundle_selections)
-        : null
-    );
-  });
-
-  insertTx();
+  stmt.run(
+    orderData.id,
+    orderData.campaign_id || 'camp-sweat-ei-2026',
+    orderData.item_name || 'Sweat Oficial Engenharia Informática',
+    orderData.student_name,
+    orderData.student_email,
+    orderData.phone_number,
+    orderData.nif || 'Consumidor Final',
+    orderData.size,
+    orderData.color || 'Preto',
+    orderData.delivery_type || 'pickup',
+    orderData.shipping_address || null,
+    orderData.shipping_postal_code || null,
+    orderData.shipping_city || null,
+    Number(orderData.item_price),
+    Number(orderData.shipping_fee || 0),
+    Number(orderData.payment_fee || 0),
+    Number(orderData.total_amount),
+    orderData.payment_provider || 'stripe',
+    actualPaymentRef,
+    orderStatus,
+    orderData.created_at || now,
+    actualPaidAt,
+    orderData.bundle_selections
+      ? (typeof orderData.bundle_selections === 'string' ? orderData.bundle_selections : JSON.stringify(orderData.bundle_selections))
+      : null
+  );
 
   pendingOrdersCache.delete(orderData.id);
 
@@ -2531,7 +2246,9 @@ export function getShopOrderById(orderId) {
     moloni_status: row.moloni_status,
     is_admin_created: Boolean(row.is_admin_created),
     admin_notes: row.admin_notes || null,
-    bundle_selections: safeParseJson(row.bundle_selections, undefined),
+    bundle_selections: row.bundle_selections
+      ? (typeof row.bundle_selections === 'string' ? JSON.parse(row.bundle_selections) : row.bundle_selections)
+      : undefined,
     created_at: row.created_at,
     paid_at: row.paid_at,
   };
@@ -2565,35 +2282,16 @@ export function updateShopOrderPaymentStatus(orderId, paymentStatus, paymentRef,
     paymentStatus === 'paid' ? paidAt || new Date().toISOString() : current.paid_at;
   const actualRef = paymentRef !== undefined ? paymentRef : current.payment_ref;
 
-  // Transação atómica com verificação de unicidade da payment_ref (C2, M8)
-  const updateTx = db.transaction(() => {
-    if (actualRef) {
-      const existingWithSameRef = db
-        .prepare('SELECT id FROM shop_orders WHERE payment_ref = ? AND id != ?')
-        .get(actualRef, orderId);
-      if (existingWithSameRef) {
-        const err = new Error(
-          `Referência de pagamento ${actualRef} já se encontra associada à encomenda ${existingWithSameRef.id}`
-        );
-        err.statusCode = 409;
-        throw err;
-      }
-    }
+  const stmt = db.prepare(`
+    UPDATE shop_orders SET
+      payment_status = ?,
+      order_status = ?,
+      payment_ref = ?,
+      paid_at = ?
+    WHERE id = ?
+  `);
 
-    const stmt = db.prepare(`
-      UPDATE shop_orders SET
-        payment_status = ?,
-        order_status = ?,
-        payment_ref = ?,
-        paid_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(paymentStatus, orderStatus, actualRef, actualPaidAt, orderId);
-  });
-
-  updateTx();
-
+  stmt.run(paymentStatus, orderStatus, actualRef, actualPaidAt, orderId);
   return getShopOrderById(orderId);
 }
 
@@ -2690,9 +2388,7 @@ export function updateMultipleShopOrderStatus(orderIds, orderStatus) {
   const dbOrderIds = orderIds.filter((id) => Boolean(getShopOrderById(id)));
   if (dbOrderIds.length > 0) {
     const placeholders = dbOrderIds.map(() => '?').join(',');
-    const stmt = db.prepare(
-      `UPDATE shop_orders SET order_status = ? WHERE id IN (${placeholders})`
-    );
+    const stmt = db.prepare(`UPDATE shop_orders SET order_status = ? WHERE id IN (${placeholders})`);
     const res = stmt.run(orderStatus, ...dbOrderIds);
     return res.changes + pendingCount;
   }
@@ -2767,9 +2463,7 @@ export function getAllShopOrders(filters = {}) {
     is_admin_created: Boolean(row.is_admin_created),
     admin_notes: row.admin_notes || null,
     bundle_selections: row.bundle_selections
-      ? typeof row.bundle_selections === 'string'
-        ? JSON.parse(row.bundle_selections)
-        : row.bundle_selections
+      ? (typeof row.bundle_selections === 'string' ? JSON.parse(row.bundle_selections) : row.bundle_selections)
       : undefined,
   }));
 }
@@ -2782,9 +2476,7 @@ export const getShopOrders = getAllShopOrders;
 export function getShopSummaryStats() {
   const allOrders = db.prepare("SELECT * FROM shop_orders WHERE payment_status = 'paid'").all();
   // Não contabiliza encomendas em estado 'test' na produção de fábrica
-  const paidOrders = allOrders.filter(
-    (o) => o.payment_status === 'paid' && o.order_status !== 'test'
-  );
+  const paidOrders = allOrders.filter((o) => o.payment_status === 'paid' && o.order_status !== 'test');
 
   const sizeCounts = {
     XS: 0,
@@ -2833,38 +2525,25 @@ export function getFactoryExportData() {
     )
     .all();
 
-  return paidOrders.map((o) => {
-    let detalhesPack = '';
-    if (o.bundle_selections) {
-      const selections = safeParseJson(o.bundle_selections, []);
-      if (Array.isArray(selections) && selections.length > 0) {
-        detalhesPack = selections
-          .map((s) => `${s.name || s.item_name || 'Item'}: ${s.size || ''} ${s.color || ''}`.trim())
-          .join(' | ');
-      }
-    }
-
-    return {
-      id: o.id,
-      artigo: o.item_name || 'Sweat Oficial Engenharia Informática',
-      detalhes_pack: detalhesPack,
-      aluno: o.student_name,
-      email: o.student_email,
-      telemovel: o.phone_number,
-      tamanho: o.size,
-      cor: o.color,
-      entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
-      morada_completa:
-        o.delivery_type === 'shipping'
-          ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
-          : 'Gabinete NEEI',
-      nif: o.nif,
-      total_pago: `${Number(o.total_amount).toFixed(2)}€`,
-      data_pagamento: o.paid_at || o.created_at,
-      origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
-      notas: o.admin_notes || '',
-    };
-  });
+  return paidOrders.map((o) => ({
+    id: o.id,
+    artigo: o.item_name || 'Sweat Oficial Engenharia Informática',
+    aluno: o.student_name,
+    email: o.student_email,
+    telemovel: o.phone_number,
+    tamanho: o.size,
+    cor: o.color,
+    entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
+    morada_completa:
+      o.delivery_type === 'shipping'
+        ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
+        : 'Gabinete NEEI',
+    nif: o.nif,
+    total_pago: `${Number(o.total_amount).toFixed(2)}€`,
+    data_pagamento: o.paid_at || o.created_at,
+    origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
+    notas: o.admin_notes || '',
+  }));
 }
 
 /**
@@ -2878,7 +2557,7 @@ export function createAdminManualOrder(orderData) {
     orderData.item_name || campaign?.item_name || 'Sweat Oficial Engenharia Informática';
   const now = new Date();
   const year = now.getFullYear();
-  const randomSuffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+  const randomSuffix = crypto.randomInt(1000, 9999);
   const orderId = orderData.id || `SW-${year}-ADM${randomSuffix}`;
   const createdAt = now.toISOString();
 
@@ -2900,16 +2579,17 @@ export function createAdminManualOrder(orderData) {
   const size = (orderData.size || 'M').toUpperCase().trim();
   const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';
   const itemPrice =
-    orderData.item_price !== undefined
-      ? Number(orderData.item_price)
-      : campaign?.item_price || 25.0;
+    orderData.item_price !== undefined ? Number(orderData.item_price) : campaign?.item_price || 25.0;
   const shippingFee =
     deliveryType === 'shipping'
       ? orderData.shipping_fee !== undefined
         ? Number(orderData.shipping_fee)
         : campaign?.shipping_fee || 3.5
       : 0;
-  const paymentFee = orderData.payment_fee !== undefined ? Number(orderData.payment_fee) : 0;
+  const paymentFee =
+    orderData.payment_fee !== undefined
+      ? Number(orderData.payment_fee)
+      : 0;
   const totalAmount =
     orderData.total_amount !== undefined
       ? Number(orderData.total_amount)
@@ -2963,3 +2643,4 @@ export function createAdminManualOrder(orderData) {
 
   return getShopOrderById(orderId);
 }
+

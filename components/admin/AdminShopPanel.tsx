@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingBag, Tag, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  ShoppingBag,
+  Tag,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 import {
   ShopOrder,
   ShopSummaryStats,
@@ -160,10 +165,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           setManualForm((prev) => ({
             ...prev,
             campaign_id: prev.campaign_id || campaignData.campaign?.id || (prods[0]?.id ?? ''),
-            item_name:
-              prev.item_name ||
-              campaignData.campaign?.item_name ||
-              (prods[0]?.item_name ?? 'Sweat Oficial Engenharia Informática'),
+            item_name: prev.item_name || campaignData.campaign?.item_name || (prods[0]?.item_name ?? 'Sweat Oficial Engenharia Informática'),
             item_price: campaignData.item_price,
             shipping_fee: campaignData.shipping_fee || 4.5,
           }));
@@ -189,10 +191,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     loadData();
   }, [token]);
 
-  const previewUrl =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/merch?admin_preview=1&token=${encodeURIComponent(token)}`
-      : `/merch?admin_preview=1`;
+  const previewUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/merch?admin_preview=1&token=${encodeURIComponent(token)}`
+    : `/merch?admin_preview=1`;
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(previewUrl);
@@ -291,7 +292,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
   // Seleção e Alteração em Lote
   const allFilteredSelected =
-    filteredOrders.length > 0 && filteredOrders.every((o) => selectedOrderIds.includes(o.id));
+    filteredOrders.length > 0 &&
+    filteredOrders.every((o) => selectedOrderIds.includes(o.id));
 
   const someFilteredSelected =
     filteredOrders.some((o) => selectedOrderIds.includes(o.id)) && !allFilteredSelected;
@@ -319,7 +321,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setIsBulkUpdating(true);
       await updateMultipleAdminOrderStatus(token, selectedOrderIds, bulkStatus);
       setOrders((prev) =>
-        prev.map((o) => (selectedOrderIds.includes(o.id) ? { ...o, order_status: bulkStatus } : o))
+        prev.map((o) =>
+          selectedOrderIds.includes(o.id) ? { ...o, order_status: bulkStatus } : o
+        )
       );
       showFeedback(
         'bulk-update-success',
@@ -462,15 +466,10 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       if (res?.order) {
         setOrders((prev) => [res.order, ...prev]);
       }
-      showFeedback(
-        'manual-order-created',
-        `Encomenda ${res.order?.id || ''} registada com sucesso!`
-      );
+      showFeedback('manual-order-created', `Encomenda ${res.order?.id || ''} registada com sucesso!`);
       setIsCreateModalOpen(false);
       setManualForm(initialManualForm);
-      fetchAdminShopStats(token)
-        .then((st) => setStats(st))
-        .catch(() => {});
+      fetchAdminShopStats(token).then((st) => setStats(st)).catch(() => {});
     } catch (err: any) {
       setCreateError(err.message || 'Falha ao criar encomenda manual.');
     } finally {
@@ -496,7 +495,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   };
 
   const handleOpenEditProduct = (prod: ShopCampaign) => {
-    const isBundle = Boolean(prod.is_bundle);
+    setEditingProduct(prod);
+    setProductError(null);
+    const isBundle = Boolean(prod.is_bundle || (prod.bundle_items && prod.bundle_items.length > 0) || prod.category === 'Pack');
     setProductForm({
       title: prod.title || '',
       description: prod.description || '',
@@ -542,9 +543,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       );
       showFeedback(
         prod.id,
-        newStatus
-          ? 'Produto ativado na loja pública!'
-          : 'Produto desativado/ocultado na loja pública!'
+        newStatus ? 'Produto ativado na loja pública!' : 'Produto desativado/ocultado na loja pública!'
       );
     } catch (err: any) {
       alert(err.message || 'Falha ao alterar estado do produto');
@@ -553,18 +552,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
 
   const sortProductsByPriority = (prods: ShopCampaign[]) => {
     return [...prods].sort((a, b) => {
-      const prioA =
-        a.display_order && a.display_order > 0
-          ? a.display_order
-          : a.priority && a.priority > 0
-            ? a.priority
-            : 999999;
-      const prioB =
-        b.display_order && b.display_order > 0
-          ? b.display_order
-          : b.priority && b.priority > 0
-            ? b.priority
-            : 999999;
+      const prioA = (a.display_order && a.display_order > 0) ? a.display_order : ((a.priority && a.priority > 0) ? a.priority : 999999);
+      const prioB = (b.display_order && b.display_order > 0) ? b.display_order : ((b.priority && b.priority > 0) ? b.priority : 999999);
       if (prioA !== prioB) return prioA - prioB;
       return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
     });
@@ -573,21 +562,13 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const handleUpdateProductPriority = async (prod: ShopCampaign, newPriority: number) => {
     try {
       const priorityVal = Math.max(0, newPriority);
-      await updateAdminProduct(token, prod.id, {
-        display_order: priorityVal,
-        priority: priorityVal,
-      });
+      await updateAdminProduct(token, prod.id, { display_order: priorityVal, priority: priorityVal });
       setProducts((prev) =>
         sortProductsByPriority(
-          prev.map((p) =>
-            p.id === prod.id ? { ...p, display_order: priorityVal, priority: priorityVal } : p
-          )
+          prev.map((p) => (p.id === prod.id ? { ...p, display_order: priorityVal, priority: priorityVal } : p))
         )
       );
-      showFeedback(
-        prod.id,
-        `Prioridade atualizada para #${priorityVal > 0 ? priorityVal : 'Padrão'}`
-      );
+      showFeedback(prod.id, `Prioridade atualizada para #${priorityVal > 0 ? priorityVal : 'Padrão'}`);
     } catch (err: any) {
       alert(err.message || 'Erro ao atualizar prioridade');
     }
@@ -646,33 +627,31 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       return;
     }
 
-    const isClothing =
-      !isBundle && (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
-    if (
-      isClothing &&
-      (!productForm.colors_available || productForm.colors_available.length === 0)
-    ) {
+    const isClothing = !isBundle && (productForm.category || 'Vestuário').trim().toLowerCase() === 'vestuário';
+    if (isClothing && (!productForm.colors_available || productForm.colors_available.length === 0)) {
       setProductError('Deves selecionar pelo menos uma cor disponível para vestuário.');
       return;
     }
 
-    const cleanedFeatures = productForm.features.map((f) => f.trim()).filter((f) => f.length > 0);
+    const cleanedFeatures = productForm.features
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
 
     const payload: AdminProductPayload = {
       ...productForm,
       title,
       item_name: itemName,
       is_bundle: isBundle,
-      bundle_items: isBundle ? productForm.bundle_items : [],
-      category: isBundle ? 'Pack' : productForm.category?.trim() || 'Vestuário',
+      bundle_items: isBundle ? productForm.bundle_items : undefined,
+      category: isBundle ? 'Pack' : (productForm.category?.trim() || 'Vestuário'),
       features: cleanedFeatures,
       colors_available: isClothing
-        ? productForm.colors_available && productForm.colors_available.length > 0
+        ? (productForm.colors_available && productForm.colors_available.length > 0
           ? productForm.colors_available
-          : ['Preto']
+          : ['Preto'])
         : undefined,
-      color_images: isClothing ? productForm.color_images || {} : undefined,
-      size_guide: isClothing ? productForm.size_guide || DEFAULT_SIZE_GUIDE : undefined,
+      color_images: isClothing ? (productForm.color_images || {}) : undefined,
+      size_guide: isClothing ? (productForm.size_guide || DEFAULT_SIZE_GUIDE) : undefined,
     };
 
     try {
@@ -680,7 +659,9 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       if (editingProduct) {
         const res = await updateAdminProduct(token, editingProduct.id, payload);
         setProducts((prev) =>
-          sortProductsByPriority(prev.map((p) => (p.id === editingProduct.id ? res.product : p)))
+          sortProductsByPriority(
+            prev.map((p) => (p.id === editingProduct.id ? res.product : p))
+          )
         );
         showFeedback(editingProduct.id, 'Produto e características atualizados com sucesso!');
       } else {
