@@ -47,18 +47,6 @@ const Footer: React.FC = () => {
             <p className="text-gray-300 dark:text-slate-400 text-sm leading-relaxed">
               Núcleo de Estudantes de Engenharia Informática. A promover o espírito académico desde 2010.
             </p>
-
-
-
-
-
-
-
-
-
-
-
-
           </div>
 
           {/* Links */}
