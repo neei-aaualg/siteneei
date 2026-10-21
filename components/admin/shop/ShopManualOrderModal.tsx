@@ -691,54 +691,33 @@ export const ShopManualOrderModal: React.FC<ShopManualOrderModalProps> = ({
               )}
             </div>
 
-            {/* 4. Estado & Pagamento */}
+            {/* 4. Estado Operacional */}
             <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-800">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <CreditCard size={13} className="text-cyan-500" />
-                <span>4. Estado Financeiro e Operacional</span>
+                <Check size={13} className="text-cyan-500" />
+                <span>4. Estado Operacional</span>
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Estado do Pagamento
-                  </label>
-                  <select
-                    value={manualForm.payment_status}
-                    onChange={(e) =>
-                      setManualForm((prev: any) => ({
-                        ...prev,
-                        payment_status: e.target.value as 'paid' | 'pending',
-                      }))
-                    }
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                  >
-                    <option value="paid">Pago (Confirmado)</option>
-                    <option value="pending">Pendente Pagamento</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                    Estado Operacional
-                  </label>
-                  <select
-                    value={manualForm.order_status}
-                    onChange={(e) =>
-                      setManualForm((prev: any) => ({
-                        ...prev,
-                        order_status: e.target.value as OrderStatus,
-                      }))
-                    }
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                  >
-                    <option value="confirmed">Confirmada / Aguarda Fabrico</option>
-                    <option value="in_production">Em Produção (Fábrica)</option>
-                    <option value="ready_for_pickup">Pronta p/ Levantamento</option>
-                    <option value="shipped">Enviada via CTT</option>
-                    <option value="delivered">Entregue / Concluída</option>
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                  Estado Operacional da Encomenda
+                </label>
+                <select
+                  value={manualForm.order_status}
+                  onChange={(e) =>
+                    setManualForm((prev: any) => ({
+                      ...prev,
+                      order_status: e.target.value as OrderStatus,
+                    }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                >
+                  <option value="confirmed">Confirmada / Aguarda Fabrico</option>
+                  <option value="in_production">Em Produção (Fábrica)</option>
+                  <option value="ready_for_pickup">Pronta p/ Levantamento</option>
+                  <option value="shipped">Enviada via CTT</option>
+                  <option value="delivered">Entregue / Concluída</option>
+                </select>
               </div>
 
               <div>

@@ -2517,6 +2517,7 @@ export function getShopSummaryStats() {
   // Não contabiliza encomendas em estado 'test' na produção de fábrica
   const paidOrders = allOrders.filter((o) => o.payment_status === 'paid' && o.order_status !== 'test');
 
+  const standardSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
   const sizeCounts = {
     XS: 0,
     S: 0,
@@ -2527,27 +2528,114 @@ export function getShopSummaryStats() {
     '3XL': 0,
   };
 
+  const productMap = new Map();
+
+  function recordItem(itemName, size, color) {
+    const cleanItemName = (itemName || 'Sweat Oficial Engenharia Informática').trim();
+    const cleanSize = (size || '').toUpperCase().trim();
+    const cleanColor = (color || '').trim();
+
+    // Contagem global de tamanhos
+    if (cleanSize) {
+      if (sizeCounts[cleanSize] !== undefined) {
+        sizeCounts[cleanSize]++;
+      } else {
+        sizeCounts[cleanSize] = 1;
+      }
+    }
+
+    // Contagem detalhada por produto individual
+    if (!productMap.has(cleanItemName)) {
+      const prodSizes = {};
+      standardSizes.forEach((sz) => {
+        prodSizes[sz] = 0;
+      });
+      productMap.set(cleanItemName, {
+        itemName: cleanItemName,
+        totalUnits: 0,
+        sizeCounts: prodSizes,
+        colorCounts: {},
+      });
+    }
+
+    const prodEntry = productMap.get(cleanItemName);
+    prodEntry.totalUnits++;
+
+    if (cleanSize) {
+      if (prodEntry.sizeCounts[cleanSize] !== undefined) {
+        prodEntry.sizeCounts[cleanSize]++;
+      } else {
+        prodEntry.sizeCounts[cleanSize] = 1;
+      }
+    }
+
+    if (cleanColor) {
+      prodEntry.colorCounts[cleanColor] = (prodEntry.colorCounts[cleanColor] || 0) + 1;
+    }
+  }
+
   let pickupCount = 0;
   let shippingCount = 0;
   let totalRevenue = 0;
+  let totalItems = 0;
 
   for (const order of paidOrders) {
     totalRevenue += Number(order.total_amount);
-    if (sizeCounts[order.size] !== undefined) {
-      sizeCounts[order.size]++;
-    }
+
     if (order.delivery_type === 'shipping') {
       shippingCount++;
     } else {
       pickupCount++;
     }
+
+    let bundle = [];
+    if (order.bundle_selections) {
+      try {
+        bundle =
+          typeof order.bundle_selections === 'string'
+            ? JSON.parse(order.bundle_selections)
+            : order.bundle_selections;
+      } catch {}
+    }
+
+    if (Array.isArray(bundle) && bundle.length > 0) {
+      for (const bItem of bundle) {
+        totalItems++;
+        recordItem(bItem.item_name || order.item_name, bItem.size, bItem.color);
+      }
+    } else if (order.size && order.size.includes(' | ') && order.size.includes(':')) {
+      // Formato legacy de resumo de pack: "Artigo 1: M | Artigo 2: L"
+      const parts = order.size.split(' | ');
+      let partsCounted = 0;
+      for (const part of parts) {
+        const colonIdx = part.indexOf(':');
+        if (colonIdx > 0) {
+          const pName = part.slice(0, colonIdx).trim();
+          const pSize = part.slice(colonIdx + 1).trim();
+          totalItems++;
+          partsCounted++;
+          recordItem(pName, pSize, order.color);
+        }
+      }
+      if (partsCounted === 0) {
+        totalItems++;
+        recordItem(order.item_name, order.size, order.color);
+      }
+    } else {
+      totalItems++;
+      recordItem(order.item_name, order.size, order.color);
+    }
   }
+
+  const byProduct = Array.from(productMap.values()).sort((a, b) => b.totalUnits - a.totalUnits);
 
   return {
     totalOrders: allOrders.length,
     totalPaidOrders: paidOrders.length,
+    totalItems,
     totalRevenue: Number(totalRevenue.toFixed(2)),
     sizeCounts,
+    byProduct,
     pickupCount,
     shippingCount,
     testOrdersCount: allOrders.filter((o) => o.order_status === 'test').length,
@@ -2564,25 +2652,66 @@ export function getFactoryExportData() {
     )
     .all();
 
-  return paidOrders.map((o) => ({
-    id: o.id,
-    artigo: o.item_name || 'Sweat Oficial Engenharia Informática',
-    aluno: o.student_name,
-    email: o.student_email,
-    telemovel: o.phone_number,
-    tamanho: o.size,
-    cor: o.color,
-    entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
-    morada_completa:
-      o.delivery_type === 'shipping'
-        ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
-        : 'Gabinete NEEI',
-    nif: o.nif,
-    total_pago: `${Number(o.total_amount).toFixed(2)}€`,
-    data_pagamento: o.paid_at || o.created_at,
-    origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
-    notas: o.admin_notes || '',
-  }));
+  const rows = [];
+  for (const o of paidOrders) {
+    let bundle = [];
+    if (o.bundle_selections) {
+      try {
+        bundle =
+          typeof o.bundle_selections === 'string'
+            ? JSON.parse(o.bundle_selections)
+            : o.bundle_selections;
+      } catch {}
+    }
+
+    if (Array.isArray(bundle) && bundle.length > 0) {
+      for (const item of bundle) {
+        rows.push({
+          id: o.id,
+          artigo: item.item_name || o.item_name || 'Artigo',
+          pack_origem: o.item_name || '',
+          aluno: o.student_name,
+          email: o.student_email,
+          telemovel: o.phone_number,
+          tamanho: item.size || o.size,
+          cor: item.color || o.color,
+          entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
+          morada_completa:
+            o.delivery_type === 'shipping'
+              ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
+              : 'Gabinete NEEI',
+          nif: o.nif,
+          total_pago: `${Number(o.total_amount).toFixed(2)}€`,
+          data_pagamento: o.paid_at || o.created_at,
+          origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
+          notas: o.admin_notes || '',
+        });
+      }
+    } else {
+      rows.push({
+        id: o.id,
+        artigo: o.item_name || 'Sweat Oficial Engenharia Informática',
+        pack_origem: '',
+        aluno: o.student_name,
+        email: o.student_email,
+        telemovel: o.phone_number,
+        tamanho: o.size,
+        cor: o.color,
+        entrega: o.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gabinete NEEI',
+        morada_completa:
+          o.delivery_type === 'shipping'
+            ? `${o.shipping_address || ''}, ${o.shipping_postal_code || ''} ${o.shipping_city || ''}`
+            : 'Gabinete NEEI',
+        nif: o.nif,
+        total_pago: `${Number(o.total_amount).toFixed(2)}€`,
+        data_pagamento: o.paid_at || o.created_at,
+        origem: o.is_admin_created ? 'Manual (Admin)' : 'Web',
+        notas: o.admin_notes || '',
+      });
+    }
+  }
+
+  return rows;
 }
 
 /**
@@ -2723,7 +2852,7 @@ export function createAdminManualOrder(orderData) {
     orderData.total_amount !== undefined
       ? Number(orderData.total_amount)
       : Number((itemPrice + shippingFee + paymentFee).toFixed(2));
-  const paymentStatus = orderData.payment_status === 'paid' ? 'paid' : 'pending';
+  const paymentStatus = orderData.payment_status === 'pending' ? 'pending' : 'paid';
   const orderStatus =
     orderData.order_status || (paymentStatus === 'paid' ? 'confirmed' : 'pending_payment');
   const paidAt = paymentStatus === 'paid' ? orderData.paid_at || createdAt : null;

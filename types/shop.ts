@@ -330,11 +330,21 @@ export interface OrderStatusResponse {
   pickupLocation?: string;
 }
 
+export interface ProductStatBreakdown {
+  itemName: string;
+  totalUnits: number;
+  sizeCounts: Record<SweatSize | string, number>;
+  colorCounts: Record<string, number>;
+}
+
 export interface ShopSummaryStats {
   totalOrders: number;
   totalPaidOrders: number;
+  totalItems: number;
   totalRevenue: number;
-  sizeCounts: Record<SweatSize, number>;
+  sizeCounts: Record<SweatSize | string, number>;
   pickupCount: number;
   shippingCount: number;
+  byProduct?: ProductStatBreakdown[];
+  testOrdersCount?: number;
 }

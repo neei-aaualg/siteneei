@@ -1,6 +1,6 @@
-import React from 'react';
-import { ShoppingBag, MapPin, Truck, FileSpreadsheet, Download } from 'lucide-react';
-import { ShopSummaryStats, SweatSize } from '../../../types/shop';
+import React, { useState } from 'react';
+import { ShoppingBag, MapPin, Truck, FileSpreadsheet, Download, Layers, Shirt } from 'lucide-react';
+import { ShopSummaryStats, SweatSize, getColorHex } from '../../../types/shop';
 
 interface ShopStatsCardsProps {
   stats: ShopSummaryStats | null;
@@ -8,11 +8,34 @@ interface ShopStatsCardsProps {
   showSizeBreakdown?: boolean;
 }
 
+const STANDARD_SIZES: SweatSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
 export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
   stats,
   onDownloadCsv,
   showSizeBreakdown = false,
 }) => {
+  const [selectedProduct, setSelectedProduct] = useState<string>('all');
+
+  // Determinar produto ativo e tamanhos a exibir
+  const activeProduct =
+    selectedProduct !== 'all' && stats?.byProduct
+      ? stats.byProduct.find((p) => p.itemName === selectedProduct) || null
+      : null;
+
+  const activeSizeCounts: Record<string, number> = activeProduct
+    ? (activeProduct.sizeCounts as Record<string, number>) || {}
+    : (stats?.sizeCounts as Record<string, number>) || {};
+
+  // Descobrir se há tamanhos adicionais para além do standard (ex: Único)
+  const extraSizes = Object.keys(activeSizeCounts).filter(
+    (sz) => !STANDARD_SIZES.includes(sz as SweatSize) && (activeSizeCounts[sz] || 0) > 0
+  );
+  const displayedSizes = [...STANDARD_SIZES, ...extraSizes];
+
+  const totalArticlesCount = stats ? (stats.totalItems ?? stats.totalPaidOrders) : 0;
+  const activeUnitsCount = activeProduct ? activeProduct.totalUnits : totalArticlesCount;
+
   return (
     <div className="space-y-6">
       {/* Cartões de Resumo e Métricas */}
@@ -35,21 +58,21 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
           </span>
         </div>
 
-        {/* Total Sweats Pagas */}
+        {/* Total Artigos Pagos */}
         <div className="bg-white dark:bg-[#0c1724] p-5 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-              Sweats Confirmadas
+              Artigos a Produzir
             </span>
             <span className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
               <ShoppingBag size={16} />
             </span>
           </div>
           <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 mt-2">
-            {stats ? stats.totalPaidOrders : 0}
+            {totalArticlesCount}
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 block">
-            {stats?.totalPaidOrders || 0} encomendas pagas e confirmadas
+            {totalArticlesCount} artigos em {stats?.totalPaidOrders || 0} encomendas pagas
           </span>
         </div>
 
@@ -90,9 +113,9 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
         </div>
       </div>
 
-      {/* Distribuição por Tamanhos para a Fábrica & Botão de Exportação CSV */}
+      {/* Distribuição por Produtos e Tamanhos para a Fábrica & Botão de Exportação CSV */}
       {showSizeBreakdown && (
-        <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm">
+        <div className="bg-white dark:bg-[#0c1724] p-6 rounded-2xl border border-gray-200 dark:border-cyan-950/80 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -100,7 +123,7 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
                 Contagem de Produção para a Fábrica
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Totais consolidados de sweats pagas e prontas a encomendar ao fornecedor.
+                Totais consolidados de todos os produtos e artigos pagos e prontos para confeção.
               </p>
             </div>
 
@@ -116,14 +139,63 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
             )}
           </div>
 
-          {/* Tabela de Tamanhos */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-4">
-            {(['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] as SweatSize[]).map((sz) => {
-              const count = stats?.sizeCounts?.[sz] || 0;
+          {/* Filtro por Produto */}
+          {stats?.byProduct && stats.byProduct.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedProduct('all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  selectedProduct === 'all'
+                    ? 'bg-cyan-500 text-white shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                }`}
+              >
+                <Layers size={13} />
+                <span>Todos os Produtos</span>
+                <span className="px-1.5 py-0.5 rounded-md bg-black/20 text-[10px]">
+                  {totalArticlesCount}
+                </span>
+              </button>
+
+              {stats.byProduct.map((p) => (
+                <button
+                  key={p.itemName}
+                  type="button"
+                  onClick={() => setSelectedProduct(p.itemName)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    selectedProduct === p.itemName
+                      ? 'bg-cyan-500 text-white shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Shirt size={13} />
+                  <span>{p.itemName}</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-black/20 text-[10px]">
+                    {p.totalUnits}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Cabeçalho da Vista Ativa de Tamanhos */}
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {activeProduct
+                ? `Tamanhos de ${activeProduct.itemName} (${activeUnitsCount} un.)`
+                : `Tamanhos Consolidados de Todos os Artigos (${totalArticlesCount} un.)`}
+            </span>
+          </div>
+
+          {/* Grade de Tamanhos */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            {displayedSizes.map((sz) => {
+              const count = activeSizeCounts[sz] || 0;
               return (
                 <div
                   key={sz}
-                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center"
+                  className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center transition-all hover:border-cyan-500/40"
                 >
                   <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 block mb-1">
                     Tamanho {sz}
@@ -136,6 +208,123 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
               );
             })}
           </div>
+
+          {/* Cores do Produto Selecionado (se aplicável) */}
+          {activeProduct && activeProduct.colorCounts && Object.keys(activeProduct.colorCounts).length > 0 && (
+            <div className="pt-2 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1">
+                Cores encomendadas:
+              </span>
+              {Object.entries(activeProduct.colorCounts).map(([colorName, colorCount]) => (
+                <span
+                  key={colorName}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-medium text-slate-700 dark:text-slate-300"
+                >
+                  <span
+                    className="w-2.5 h-2.5 rounded-full border border-black/20"
+                    style={{ backgroundColor: getColorHex(colorName) }}
+                  />
+                  <span>{colorName}:</span>
+                  <strong className="text-cyan-600 dark:text-cyan-400">{colorCount} un.</strong>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Resumo Comparativo por Produto e Tamanho (Tabela Geral de Confeção) */}
+          {stats?.byProduct && stats.byProduct.length > 0 && (
+            <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Layers size={14} className="text-cyan-500" />
+                  <span>Resumo Comparativo por Artigo / Peça</span>
+                </h4>
+                <span className="text-[11px] text-slate-400">
+                  Clica num produto para filtrar os tamanhos acima
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 font-bold border-b border-gray-200 dark:border-slate-800">
+                    <tr>
+                      <th className="py-2.5 px-3">Produto / Artigo</th>
+                      {STANDARD_SIZES.map((sz) => (
+                        <th key={sz} className="py-2.5 px-2 text-center">
+                          {sz}
+                        </th>
+                      ))}
+                      <th className="py-2.5 px-3 text-right">Total Artigos</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60 font-medium">
+                    {stats.byProduct.map((p) => {
+                      const isSelected = selectedProduct === p.itemName;
+                      return (
+                        <tr
+                          key={p.itemName}
+                          onClick={() =>
+                            setSelectedProduct(isSelected ? 'all' : p.itemName)
+                          }
+                          className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 cursor-pointer transition-colors ${
+                            isSelected ? 'bg-cyan-500/10 dark:bg-cyan-950/30 font-semibold' : ''
+                          }`}
+                        >
+                          <td className="py-2.5 px-3 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                isSelected ? 'bg-cyan-500 ring-2 ring-cyan-500/30' : 'bg-slate-400'
+                              }`}
+                            />
+                            <span className="truncate max-w-[240px] sm:max-w-none">{p.itemName}</span>
+                          </td>
+                          {STANDARD_SIZES.map((sz) => {
+                            const count = p.sizeCounts?.[sz] || 0;
+                            return (
+                              <td
+                                key={sz}
+                                className={`py-2.5 px-2 text-center ${
+                                  count > 0
+                                    ? 'text-slate-900 dark:text-white font-bold'
+                                    : 'text-slate-400 dark:text-slate-600'
+                                }`}
+                              >
+                                {count}
+                              </td>
+                            );
+                          })}
+                          <td className="py-2.5 px-3 text-right font-black text-cyan-600 dark:text-cyan-400">
+                            {p.totalUnits} un.
+                          </td>
+                        </tr>
+                      );
+                    })}
+
+                    {/* Linha Consolidada de Totais */}
+                    <tr className="bg-slate-100/70 dark:bg-slate-900 font-bold border-t border-gray-200 dark:border-slate-700">
+                      <td className="py-2.5 px-3 text-slate-900 dark:text-white font-black">
+                        Total Consolidado
+                      </td>
+                      {STANDARD_SIZES.map((sz) => {
+                        const totalSz = stats.sizeCounts?.[sz] || 0;
+                        return (
+                          <td
+                            key={sz}
+                            className="py-2.5 px-2 text-center text-cyan-600 dark:text-cyan-400 font-black"
+                          >
+                            {totalSz}
+                          </td>
+                        );
+                      })}
+                      <td className="py-2.5 px-3 text-right text-cyan-600 dark:text-cyan-400 font-black">
+                        {totalArticlesCount} un.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

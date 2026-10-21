@@ -281,7 +281,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `encomendas_sweats_fabrica_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `encomendas_artigos_fabrica_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
