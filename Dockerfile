@@ -20,9 +20,6 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Utilitários de sistema para operações e backups
-RUN apk add --no-cache bash curl
-
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV SHOW_CALENDAR=true
@@ -37,11 +34,11 @@ RUN mkdir -p /app/data && chown -R node:node /app/data
 # Volume persistente para a base de dados SQLite (atividades e inscrições)
 VOLUME ["/app/data"]
 
-# Copia os ficheiros compilados e o servidor HTTP + backend
+# Copia os ficheiros compilados e o servidor HTTP + backend (apenas script estritamente necessário)
 COPY --chown=node:node --from=builder /app/build ./build
 COPY --chown=node:node server.js ./
 COPY --chown=node:node server ./server
-COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node scripts/backup-db.js ./scripts/backup-db.js
 
 # Executa com o utilizador seguro não-root
 USER node

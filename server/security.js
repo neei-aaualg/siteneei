@@ -82,7 +82,8 @@ export function clientIp(req) {
 }
 
 /**
- * Obtém o URL base canónico da aplicação validando o host para evitar Host Header Injection
+ * Obtém o URL base canónico da aplicação validando o host para evitar Host Header Injection.
+ * Em produção, falha de forma segura para https://neei.aaualg.pt se APP_URL não estiver configurado.
  */
 export function getCanonicalAppUrl(req = null) {
   const envUrl = (process.env.APP_URL || '').trim();
@@ -92,18 +93,14 @@ export function getCanonicalAppUrl(req = null) {
 
   if (req && req.headers && req.headers.host) {
     const rawHost = String(req.headers.host).trim();
-    // Validação estrita: apenas domínios/hostnames válidos com porta opcional
+    // Validação estrita: apenas domínios/hostnames válidos com porta opcional (sem CRLF ou injeções)
     const hostMatch = rawHost.match(/^[a-zA-Z0-9.-]+(?::[0-9]{1,5})?$/);
     if (hostMatch) {
       const proto =
-        req.headers['x-forwarded-proto'] === 'https' ||
-          req.connection?.encrypted
-          ? 'https'
-          : 'http';
+        req.headers['x-forwarded-proto'] === 'https' || req.socket?.encrypted ? 'https' : 'http';
       return `${proto}://${hostMatch[0]}`;
     }
   }
 
-  return 'https://neei.online';
+  return 'https://neei.aaualg.pt';
 }
-
