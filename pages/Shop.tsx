@@ -909,6 +909,8 @@ export const Shop: React.FC = () => {
                         <img
                           src={cardImage}
                           alt={prod.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             const target = e.currentTarget;
@@ -1232,6 +1234,8 @@ export const Shop: React.FC = () => {
                               <img
                                 src={activeModalImage}
                                 alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-full object-contain object-center transition-all duration-300"
                                 onError={(e) => {
                                   const target = e.currentTarget;
@@ -1330,6 +1334,8 @@ export const Shop: React.FC = () => {
                                             <img
                                               src={itemImage}
                                               alt={item.item_name}
+                                              loading="lazy"
+                                              decoding="async"
                                               className="w-full h-full object-contain"
                                               onError={(e) => {
                                                 const target = e.currentTarget;

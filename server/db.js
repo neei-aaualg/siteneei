@@ -359,6 +359,15 @@ try {
         newImageUrl = newImageUrl.replace(/\.jpeg$/, '.png');
         updated = true;
       }
+      // Atualiza para .webp se o ficheiro correspondente existir localmente
+      if (newImageUrl.endsWith('.png') || newImageUrl.endsWith('.jpg') || newImageUrl.endsWith('.jpeg')) {
+        const webpPath = newImageUrl.replace(/\.(png|jpg|jpeg)$/, '.webp');
+        const localWebp = path.resolve(__dirname, '../public', webpPath.replace(/^\//, ''));
+        if (fs.existsSync(localWebp)) {
+          newImageUrl = webpPath;
+          updated = true;
+        }
+      }
     }
 
     if (newColorImagesStr) {
@@ -375,6 +384,14 @@ try {
             if (fixedPath.includes('tshirt_LEI_') && fixedPath.endsWith('.jpeg')) {
               fixedPath = fixedPath.replace(/\.jpeg$/, '.png');
               mapChanged = true;
+            }
+            if (fixedPath.endsWith('.png') || fixedPath.endsWith('.jpg') || fixedPath.endsWith('.jpeg')) {
+              const webpPath = fixedPath.replace(/\.(png|jpg|jpeg)$/, '.webp');
+              const localWebp = path.resolve(__dirname, '../public', webpPath.replace(/^\//, ''));
+              if (fs.existsSync(localWebp)) {
+                fixedPath = webpPath;
+                mapChanged = true;
+              }
             }
             if (mapChanged) {
               colorMap[col] = fixedPath;
@@ -432,7 +449,7 @@ try {
       'Sweat Oficial Engenharia Informática',
       25.0,
       3.5,
-      '/assets/sweat_mockup.jpg',
+      '/assets/sweat_mockup.webp',
       '2026-10-31',
       1,
       1,

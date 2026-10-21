@@ -30,27 +30,27 @@ const About: React.FC = () => {
     'Ricardo Vicente',
   ];
 
-  // Mapeamento de fotos reais dos membros armazenadas em /assets/
+  // Mapeamento de fotos reais dos membros armazenadas em /assets/ (versão otimizada WebP)
   const memberPhotos: Record<string, string> = {
-    'José Tico': '/assets/josetico.png',
-    'David Gonçalves': '/assets/davidgoncalves.png',
-    'Francisco Melo': '/assets/franciscomelo.png',
-    'Leonardo Cantachini': '/assets/leonardocantachini.png',
-    'Afonso Francisco': '/assets/afonsofrancisco.png',
-    'Simão Reis': '/assets/simaoreis.png',
-    'Barbara Pereira': '/assets/barbarapereira.png',
-    'Beatriz Mateia': '/assets/beatrizmateia.png',
-    'David Rodrigues': '/assets/davidrodrigues.png',
-    'David Silvestre': '/assets/davidsilvestre.png',
-    'Francisco Neves': '/assets/francisconeves.png',
-    'João Maria Batista': '/assets/joaomariabatista.png',
-    'João Maria Baptista': '/assets/joaomariabatista.png',
-    'João Miguel Batista': '/assets/joaomiguelbatista.png',
-    'Leonardo Albudane': '/assets/leonardoalbudane.png',
-    'Martim Neves': '/assets/martimneves.png',
-    'Miguel Alvito': '/assets/miguelalvito.png',
-    'Raquel Nunes': '/assets/raquelnunes.png',
-    'Ricardo Vicente': '/assets/ricardovicente.png',
+    'José Tico': '/assets/josetico.webp',
+    'David Gonçalves': '/assets/davidgoncalves.webp',
+    'Francisco Melo': '/assets/franciscomelo.webp',
+    'Leonardo Cantachini': '/assets/leonardocantachini.webp',
+    'Afonso Francisco': '/assets/afonsofrancisco.webp',
+    'Simão Reis': '/assets/simaoreis.webp',
+    'Barbara Pereira': '/assets/barbarapereira.webp',
+    'Beatriz Mateia': '/assets/beatrizmateia.webp',
+    'David Rodrigues': '/assets/davidrodrigues.webp',
+    'David Silvestre': '/assets/davidsilvestre.webp',
+    'Francisco Neves': '/assets/francisconeves.webp',
+    'João Maria Batista': '/assets/joaomariabatista.webp',
+    'João Maria Baptista': '/assets/joaomariabatista.webp',
+    'João Miguel Batista': '/assets/joaomiguelbatista.webp',
+    'Leonardo Albudane': '/assets/leonardoalbudane.webp',
+    'Martim Neves': '/assets/martimneves.webp',
+    'Miguel Alvito': '/assets/miguelalvito.webp',
+    'Raquel Nunes': '/assets/raquelnunes.webp',
+    'Ricardo Vicente': '/assets/ricardovicente.webp',
   };
 
   // Função para obter foto do membro (foto local com fallback para avatar gerado)
@@ -136,6 +136,8 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
@@ -169,6 +171,8 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(member.name, member.role)}
                     alt={member.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;
@@ -202,6 +206,8 @@ const About: React.FC = () => {
                   <img
                     src={getMemberPhoto(name, 'Vogal')}
                     alt={name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover scale-[1.02] transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => {
                       const img = e.target as HTMLImageElement;

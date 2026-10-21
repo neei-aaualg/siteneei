@@ -237,14 +237,29 @@ async function handleAnalyze(req, res) {
 }
 
 function serveStaticFile(req, res, filePath) {
-  fs.stat(filePath, (err, stats) => {
+  // Negociação transparente de WebP: se for pedido .png/.jpg/.jpeg e o browser aceitar WebP,
+  // e se existir uma versão .webp correspondente, utiliza diretamente a versão WebP
+  const initialExt = path.extname(filePath).toLowerCase();
+  let resolvedPath = filePath;
+  if (
+    (initialExt === '.png' || initialExt === '.jpg' || initialExt === '.jpeg') &&
+    req.headers.accept &&
+    req.headers.accept.includes('image/webp')
+  ) {
+    const webpCandidate = filePath.slice(0, -initialExt.length) + '.webp';
+    if (fs.existsSync(webpCandidate)) {
+      resolvedPath = webpCandidate;
+    }
+  }
+
+  fs.stat(resolvedPath, (err, stats) => {
     if (err || !stats.isFile()) {
       // Se for um pedido de asset estático (ex.: imagem, estilo, script), devolve 404 em vez de index.html
-      const ext = path.extname(filePath).toLowerCase();
+      const ext = path.extname(resolvedPath).toLowerCase();
       const isStaticAssetType = [
         '.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.ico',
         '.css', '.js', '.mjs', '.woff', '.woff2', '.ttf', '.json'
-      ].includes(ext) || filePath.includes(path.join(BUILD_DIR, 'assets'));
+      ].includes(ext) || resolvedPath.includes(path.join(BUILD_DIR, 'assets'));
 
       if (isStaticAssetType) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -269,25 +284,34 @@ function serveStaticFile(req, res, filePath) {
       return;
     }
 
-    const ext = path.extname(filePath).toLowerCase();
+    const ext = path.extname(resolvedPath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     const isImmutableAsset =
-      filePath.includes(path.join(BUILD_DIR, 'assets')) && (ext === '.js' || ext === '.css');
-    const isStaticAsset = filePath.includes(path.join(BUILD_DIR, 'assets'));
+      resolvedPath.includes(path.join(BUILD_DIR, 'assets')) && (ext === '.js' || ext === '.css');
+    const isImage =
+      ext === '.webp' || ext === '.png' || ext === '.jpg' || ext === '.jpeg' || ext === '.svg' || ext === '.ico';
+    const isStaticAsset = resolvedPath.includes(path.join(BUILD_DIR, 'assets')) || isImage;
 
     let cacheControl = 'no-cache';
     if (isImmutableAsset) {
       cacheControl = 'public, max-age=31536000, immutable';
+    } else if (isImage) {
+      cacheControl = 'public, max-age=2592000, stale-while-revalidate=86400';
     } else if (isStaticAsset) {
       cacheControl = 'public, max-age=3600, stale-while-revalidate=86400';
     }
 
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': contentType,
       'Cache-Control': cacheControl,
-    });
+    };
+    if (resolvedPath !== filePath) {
+      headers['Vary'] = 'Accept';
+    }
 
-    const stream = fs.createReadStream(filePath);
+    res.writeHead(200, headers);
+
+    const stream = fs.createReadStream(resolvedPath);
     stream.pipe(res);
   });
 }
@@ -386,17 +410,28 @@ const server = http.createServer(async (req, res) => {
   if (cleanPathname === '/' || cleanPathname === '') {
     safePath = path.join(BUILD_DIR, 'index.html');
   } else if (!fs.existsSync(safePath)) {
-    // Tolerância para variações de extensão de imagem (.jpeg <-> .png <-> .jpg)
+    // Tolerância para variações de extensão de imagem (.jpeg <-> .png <-> .jpg <-> .webp)
     if (safePath.endsWith('.jpeg')) {
+      const webpAlt = safePath.replace(/\.jpeg$/, '.webp');
       const pngAlt = safePath.replace(/\.jpeg$/, '.png');
       const jpgAlt = safePath.replace(/\.jpeg$/, '.jpg');
-      if (fs.existsSync(pngAlt)) safePath = pngAlt;
+      if (fs.existsSync(webpAlt)) safePath = webpAlt;
+      else if (fs.existsSync(pngAlt)) safePath = pngAlt;
       else if (fs.existsSync(jpgAlt)) safePath = jpgAlt;
     } else if (safePath.endsWith('.png')) {
+      const webpAlt = safePath.replace(/\.png$/, '.webp');
       const jpegAlt = safePath.replace(/\.png$/, '.jpeg');
       const jpgAlt = safePath.replace(/\.png$/, '.jpg');
-      if (fs.existsSync(jpegAlt)) safePath = jpegAlt;
+      if (fs.existsSync(webpAlt)) safePath = webpAlt;
+      else if (fs.existsSync(jpegAlt)) safePath = jpegAlt;
       else if (fs.existsSync(jpgAlt)) safePath = jpgAlt;
+    } else if (safePath.endsWith('.jpg')) {
+      const webpAlt = safePath.replace(/\.jpg$/, '.webp');
+      const pngAlt = safePath.replace(/\.jpg$/, '.png');
+      const jpegAlt = safePath.replace(/\.jpg$/, '.jpeg');
+      if (fs.existsSync(webpAlt)) safePath = webpAlt;
+      else if (fs.existsSync(pngAlt)) safePath = pngAlt;
+      else if (fs.existsSync(jpegAlt)) safePath = jpegAlt;
     }
   }
 

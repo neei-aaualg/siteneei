@@ -188,13 +188,15 @@ export const NeeiPresentation: React.FC<NeeiPresentationProps> = ({ cards, onNot
           <div className={`text-center ${isCompactLaptop ? 'space-y-2' : 'space-y-3'}`}>
             <div className="flex items-center justify-center gap-3">
               <img
-                src="/assets/logoneeipequeno-removebg-preview.png"
+                src="/assets/logoneeipequeno-removebg-preview.webp"
                 alt="NEEI"
+                loading="lazy"
+                decoding="async"
                 className={`${isCompactLaptop ? 'h-9 sm:h-10' : 'h-10 sm:h-12'} w-auto object-contain`}
                 onError={(e) => {
                   // Fallback if needed
                   (e.target as HTMLImageElement).src =
-                    '/assets/logoneeigrande-removebg-preview.png';
+                    '/assets/logoneeigrande-removebg-preview.webp';
                 }}
               />
               <div className="text-left leading-tight">
