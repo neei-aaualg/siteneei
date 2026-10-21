@@ -1960,9 +1960,9 @@ export const Shop: React.FC = () => {
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
-                  <div><strong className="text-slate-900 dark:text-white">A:</strong> Peito</div>
-                  <div><strong className="text-slate-900 dark:text-white">B:</strong> Comprimento</div>
-                  <div><strong className="text-slate-900 dark:text-white">C:</strong> Manga</div>
+                  <div><strong className="text-slate-900 dark:text-white">A:</strong> Altura</div>
+                  <div><strong className="text-slate-900 dark:text-white">B:</strong> Largura</div>
+                  <div><strong className="text-slate-900 dark:text-white">C:</strong> Ombro a Ombro</div>
                   <div><strong className="text-slate-900 dark:text-white">D:</strong> Ombro ao Punho</div>
                 </div>
 
@@ -1979,10 +1979,10 @@ export const Shop: React.FC = () => {
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                             <th className="py-2.5 px-3">Tamanho</th>
-                            <th className="py-2.5 px-3">Medida do pescoço até ao cinto (A)</th>
-                            <th className="py-2.5 px-3">Metade do diâmetro à altura do peito (B)</th>
-                            <th className="py-2.5 px-3">Medida de ombro a ombro (C)</th>
-                            <th className="py-2.5 px-3">Comprimento do ombro ao punho (D)</th>
+                            <th className="py-2.5 px-3">Medida do pescoço até ao cinto</th>
+                            <th className="py-2.5 px-3">Metade do diâmetro à altura do peito</th>
+                            <th className="py-2.5 px-3">Medida de ombro a ombro</th>
+                            <th className="py-2.5 px-3">Comprimento do ombro ao punho</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
