@@ -45,7 +45,7 @@ function activitiesApiPlugin() {
           if (
             url.pathname.startsWith('/api/shop/') ||
             url.pathname.startsWith('/api/admin/shop/') ||
-            url.pathname === '/api/webhooks/stripe'
+            url.pathname === '/api/webhooks/ifthenpay'
           ) {
             const { handleShopApi } = await import('./server/shopApi.js');
             const handled = await handleShopApi(req, res, url.pathname, url.searchParams);

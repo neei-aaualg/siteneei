@@ -92,11 +92,6 @@ export function getStripeClient() {
     stripeClient._secretKey = secretKey;
     const mode = isStripeTestMode() ? 'TEST (sk_test_)' : 'LIVE (sk_live_)';
     console.log(`[STRIPE] Cliente Stripe inicializado em modo ${mode} (API v2026-08-26.dahlia).`);
-    if (process.env.NODE_ENV === 'production' && isStripeTestMode()) {
-      console.warn(
-        '[SECURITY WARNING] STRIPE_SECRET_KEY configurada com chave de testes (sk_test_) em ambiente de produção (NODE_ENV=production)!'
-      );
-    }
   }
 
   return stripeClient;
@@ -106,7 +101,10 @@ export function getStripeClient() {
  * Procura um cliente existente no Stripe por email com search (M7)
  * NÃO altera nome/telefone de clientes existentes a partir de pedidos não autenticados
  */
-export async function getOrCreateStripeCustomer(stripe, { email, name, phoneNumber, orderId }) {
+export async function getOrCreateStripeCustomer(
+  stripe,
+  { email, name, phoneNumber, orderId }
+) {
   if (!stripe) return null;
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanName = (name || '').trim();
@@ -132,10 +130,7 @@ export async function getOrCreateStripeCustomer(stripe, { email, name, phoneNumb
             existingCustomer = search.data[0];
           }
         } catch (searchErr) {
-          console.warn(
-            '[STRIPE] Falha no search de clientes, usando fallback list:',
-            searchErr.message
-          );
+          console.warn('[STRIPE] Falha no search de clientes, usando fallback list:', searchErr.message);
         }
       }
 
@@ -196,9 +191,7 @@ export async function createStripeMbWayPaymentIntent({
   if (isStripeSandbox()) {
     console.log('---------------------------------------------------------');
     console.log(`[STRIPE SANDBOX] Pedido iniciado para ${orderId}`);
-    console.log(
-      `Telemóvel: ${cleanMobile} | Valor: ${formattedAmount}€ (${amountInCents} cêntimos)`
-    );
+    console.log(`Telemóvel: ${cleanMobile} | Valor: ${formattedAmount}€ (${amountInCents} cêntimos)`);
     console.log(`Mensagem app: ${description || 'NEEI - Sweat Curso'}`);
     console.log('Modo Sandbox: Notificação simulada enviada para o telemóvel.');
     console.log('---------------------------------------------------------');
@@ -382,7 +375,11 @@ export async function createStripePaymentIntentAutomatic({
             metadata.shipping_address ||
             'Recolha Campus de Gambelas'
           ).trim(),
-          postal_code: (shippingPostalCode || metadata.shipping_postal_code || '8005-139').trim(),
+          postal_code: (
+            shippingPostalCode ||
+            metadata.shipping_postal_code ||
+            '8005-139'
+          ).trim(),
           city: (shippingCity || metadata.shipping_city || 'Faro').trim(),
           country: 'PT',
         },

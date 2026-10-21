@@ -6,7 +6,6 @@
 # ==============================================================================
 
 set -eu
-umask 077
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:$PATH"
 
 # Carrega ficheiro de configuração se existir
@@ -71,21 +70,11 @@ cleanup() {
   rm -rf "$LOCK_DIR" 2>/dev/null || true
 }
 
-# Proteção atómica contra execuções paralelas via mkdir + PID ativo (M6)
+# Proteção atómica contra execuções paralelas via mkdir
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  _pid_file="$LOCK_DIR/pid"
-  _is_stale=0
-  if [ -f "$_pid_file" ]; then
-    _existing_pid=$(cat "$_pid_file" 2>/dev/null || true)
-    if [ -n "$_existing_pid" ] && ! kill -0 "$_existing_pid" 2>/dev/null; then
-      _is_stale=1
-    fi
-  fi
-
-  # Se o lock for antigo (> 60 minutos) ou o processo detentor já não existir
-  if [ "$_is_stale" -eq 1 ] || { [ -d "$LOCK_DIR" ] && [ -n "$(find "$LOCK_DIR" -maxdepth 0 -mmin +60 2>/dev/null)" ]; }; then
-    log "[AVISO] Stale lock detetado em $LOCK_DIR (PID inativo ou >60min). A remover e alertar..."
-    notify_discord "ERROR" "Aviso de Backup: Lock órfão/obsoleto ($LOCK_DIR) detetado e recuperado automaticamente."
+  # Se o lock for antigo (> 60 minutos), remove stale lock e prossegue
+  if [ -d "$LOCK_DIR" ] && [ -n "$(find "$LOCK_DIR" -maxdepth 0 -mmin +60 2>/dev/null)" ]; then
+    log "[AVISO] Lock antigo (>60min) detetado em $LOCK_DIR. A remover e prosseguir com novo backup..."
     rm -rf "$LOCK_DIR"
     mkdir "$LOCK_DIR" 2>/dev/null || exit 0
   else
@@ -94,12 +83,9 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   fi
 fi
 
-echo "$$" > "$LOCK_DIR/pid" 2>/dev/null || true
-
 trap cleanup EXIT INT TERM
 
-# Diretório temporário com permissões estritas 700 (M5)
-mkdir -m 700 -p "$BACKUP_TEMP_DIR"
+mkdir -p "$BACKUP_TEMP_DIR"
 
 log "=========================================================="
 log "Início do Backup Seguro do Portal NEEI"

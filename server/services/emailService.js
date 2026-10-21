@@ -1,24 +1,8 @@
 import nodemailer from 'nodemailer';
-import { getCanonicalAppUrl } from '../security.js';
-
-/**
- * Escapa caracteres especiais HTML para prevenir injeção em clientes de email (M3, N2)
- */
-export function escapeHtml(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 function cleanEnvVal(val) {
   if (!val) return '';
-  return String(val)
-    .trim()
-    .replace(/^['"]|['"]$/g, '');
+  return String(val).trim().replace(/^['"]|['"]$/g, '');
 }
 
 let transporter = null;
@@ -131,14 +115,10 @@ export async function sendOrderConfirmationEmail(order) {
   const formattedPaymentFee = Number(order.payment_fee || 0).toFixed(2);
   const orderColor = order.color || 'Preto';
   const orderSize = order.size || 'M';
-  const orderItemName = order.item_name || 'Sweat Oficial Engenharia Informática 2026';
-  const deliveryTextHtml = isShipping
-    ? `Envio por Correio (CTT Nacional) para: ${escapeHtml(fullShippingAddress)}`
-    : 'Levantamento no Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas, Faro)';
 
-  const smtpFrom = cleanEnvVal(process.env.SMTP_FROM) || 'NEEI · AAUAlg <neei@aaualg.pt>';
-  const appBaseUrl = getCanonicalAppUrl();
-  const trackingUrl = `${appBaseUrl}/merch?track=${encodeURIComponent(order.id)}`;
+  const smtpFrom =
+    cleanEnvVal(process.env.SMTP_FROM) ||
+    'NEEI · AAUAlg <neei@aaualg.pt>';
 
   // Versão em Texto Simples (Garante que NENHUM cliente de email vê o email vazio)
   const plainTextContent = `
@@ -170,7 +150,7 @@ PRÓXIMOS PASSOS:
 Esta é uma campanha oficial de pré-encomenda. Assim que o lote de produção na fábrica estiver concluído, entraremos em contacto por email e/ou através do Instagram (@neeiualg) com as datas para levantamento no gabinete ou o código de rastreio dos CTT.
 
 Podes acompanhar o estado da tua encomenda a qualquer momento em:
-${trackingUrl}
+https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}
 
 Dúvidas ou apoio?
 Envia-nos um email para neei@aaualg.pt ou mensagem no Instagram @neeiualg.
@@ -228,27 +208,27 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
               </table>
 
               <h1 style="font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0;">
-                Olá, ${escapeHtml(cleanName)}!
+                Olá, ${cleanName}!
               </h1>
 
               <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 24px 0;">
-                Muito obrigado pela tua compra! O teu pagamento foi recebido com sucesso e a tua reserva de <strong style="color: #0f172a;">${escapeHtml(orderItemName)}</strong> já está garantida no sistema.
+                Muito obrigado pela tua compra! O teu pagamento foi recebido com sucesso e a tua <strong style="color: #0f172a;">Sweat Oficial de Engenharia Informática 2026</strong> já está reservada no sistema.
               </p>
 
               <!-- Tabela Resumo do Pedido -->
               <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f8fafc" style="width: 100%; background-color: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Nº de Encomenda:</td>
-                  <td style="padding: 12px 16px; font-size: 13px; color: #0284c7; font-weight: 800; font-family: monospace; text-align: right; border-bottom: 1px solid #e2e8f0;">${escapeHtml(order.id)}</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #0284c7; font-weight: 800; font-family: monospace; text-align: right; border-bottom: 1px solid #e2e8f0;">${order.id}</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Artigo:</td>
-                  <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">${escapeHtml(orderItemName)}</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">Sweat Oficial Engenharia Informática 2026</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Tamanho / Cor:</td>
                   <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">
-                    <span style="background-color: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 800;">${escapeHtml(orderSize)}</span> · ${escapeHtml(orderColor)}
+                    <span style="background-color: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 800;">${orderSize}</span> · ${orderColor}
                   </td>
                 </tr>
                 <tr>
@@ -261,15 +241,11 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
                     ${Number(formattedShipping) > 0 ? `${formattedShipping}€ (Envio CTT)` : 'Grátis (Gabinete)'}
                   </td>
                 </tr>
-                ${
-                  Number(formattedPaymentFee) > 0
-                    ? `
+                ${Number(formattedPaymentFee) > 0 ? `
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Taxa de Processamento (0,25€ + 1,5%):</td>
                   <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">${formattedPaymentFee}€</td>
-                </tr>`
-                    : ''
-                }
+                </tr>` : ''}
                 <tr>
                   <td bgcolor="#0b192c" style="padding: 16px; font-size: 15px; color: #ffffff; font-weight: 700; background-color: #0b192c; border-bottom-left-radius: 12px;">Total Pago:</td>
                   <td bgcolor="#0b192c" style="padding: 16px; font-size: 20px; color: #38bdf8; font-weight: 900; background-color: #0b192c; text-align: right; border-bottom-right-radius: 12px;">${formattedAmount}€</td>
@@ -284,7 +260,7 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
                       📦 Modalidade de Entrega Escolhida
                     </div>
                     <div style="font-size: 13px; line-height: 1.5; color: #134e4a; font-weight: 700; margin-bottom: 8px;">
-                      ${deliveryTextHtml}
+                      ${deliveryText}
                     </div>
                     <div style="font-size: 12.5px; line-height: 1.5; color: #042f2e;">
                       Assim que o lote de confeção estiver pronto, enviaremos nova notificação por email e através do nosso Instagram com os horários de recolha no Gabinete do NEEI ou com o código de envio registado dos CTT.
@@ -297,7 +273,7 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
                 <tr>
                   <td align="center">
-                    <a href="${escapeHtml(trackingUrl)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
+                    <a href="https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
                       Acompanhar Estado da Encomenda Online →
                     </a>
                   </td>
@@ -341,15 +317,17 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
 
   const mailOptions = {
     from: smtpFrom,
-    to: { name: cleanName, address: cleanEmail },
-    subject: `[NEEI] Confirmação da Encomenda ${order.id} - ${orderItemName}`,
+    to: `"${cleanName.replace(/"/g, '')}" <${cleanEmail}>`,
+    subject: `[NEEI] Confirmação da Encomenda ${order.id} - Sweat Engenharia Informática`,
     text: plainTextContent,
     html: htmlContent,
   };
 
   try {
     const info = await transport.sendMail(mailOptions);
-    console.log(`[EMAIL] Email de confirmação enviado para ${cleanEmail} (ID: ${info.messageId})`);
+    console.log(
+      `[EMAIL] Email de confirmação enviado para ${cleanEmail} (ID: ${info.messageId})`
+    );
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`[EMAIL ERROR] Falha ao enviar email para ${cleanEmail}:`, error);

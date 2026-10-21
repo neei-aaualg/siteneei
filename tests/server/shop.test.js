@@ -13,9 +13,9 @@ const originalAdminPassword = process.env.ADMIN_PASSWORD;
 
 beforeEach(async () => {
   vi.resetModules();
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'log').mockImplementation(() => { });
+  vi.spyOn(console, 'warn').mockImplementation(() => { });
+  vi.spyOn(console, 'error').mockImplementation(() => { });
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'neei-shop-test-'));
   process.env.DATABASE_PATH = path.join(tmpDir, 'shop_test.db');
   process.env.ADMIN_PASSWORD = 'test-admin-secret';
@@ -74,7 +74,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     });
 
     expect(order).toBeTruthy();
-    expect(order.id).toMatch(/^SW-\d{4}-[A-F0-9]{8}$/);
+    expect(order.id).toMatch(/^SW-\d{4}-\d{4}$/);
     expect(order.item_price).toBe(25.0);
     expect(order.shipping_fee).toBe(0);
     expect(order.payment_fee).toBe(0.63);
@@ -107,8 +107,8 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
   it('calcula corretamente a taxa de pagamento de 0.25€ + 1.5% sobre compras', () => {
     expect(db.calculatePaymentFee(0)).toBe(0);
     expect(db.calculatePaymentFee(25)).toBe(0.63);
-    expect(db.calculatePaymentFee(28.5)).toBe(0.68);
-    expect(db.calculatePaymentFee(0.5)).toBe(0.26);
+    expect(db.calculatePaymentFee(28.50)).toBe(0.68);
+    expect(db.calculatePaymentFee(0.50)).toBe(0.26);
   });
 
   it('rejeita encomendas com tamanho inválido ou campos em falta', () => {
@@ -228,7 +228,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
 
     const campaign = db.getActiveShopCampaign(true);
     expect(campaign.is_available).toBe(true);
-    expect(campaign.item_price).toBe(0.5);
+    expect(campaign.item_price).toBe(0.50);
     expect(campaign.isAdminPreview).toBe(true);
 
     const order = db.createShopOrder(
@@ -241,7 +241,7 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
       },
       true
     );
-    expect(order.item_price).toBe(0.5);
+    expect(order.item_price).toBe(0.50);
     expect(order.payment_fee).toBe(0.26);
     expect(order.total_amount).toBe(0.76);
 
@@ -820,7 +820,10 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
           'content-type': 'application/json',
         },
         body: {
-          features: ['Algodão 100% Orgânico', 'Recolha no Campus de Gambelas'],
+          features: [
+            'Algodão 100% Orgânico',
+            'Recolha no Campus de Gambelas',
+          ],
         },
       },
       res,
@@ -1512,7 +1515,7 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
       sizes_available: ['S', 'M'],
       colors_available: ['Preto', 'Azul Marinho'],
       color_images: {
-        Preto: '/assets/hoodie_preto.jpg',
+        'Preto': '/assets/hoodie_preto.jpg',
         'Azul Marinho': '/assets/hoodie_azul.jpg',
       },
       size_guide: {
@@ -1522,7 +1525,7 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     });
 
     expect(product.color_images).toEqual({
-      Preto: '/assets/hoodie_preto.jpg',
+      'Preto': '/assets/hoodie_preto.jpg',
       'Azul Marinho': '/assets/hoodie_azul.jpg',
     });
     expect(product.size_guide.S.shoulder_to_wrist).toBe(72);
@@ -1531,7 +1534,7 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     // Atualização com nova imagem e alteração da medida D
     const updated = db.updateShopCampaign(product.id, {
       color_images: {
-        Preto: '/assets/hoodie_preto_v2.jpg',
+        'Preto': '/assets/hoodie_preto_v2.jpg',
       },
       size_guide: {
         ...product.size_guide,
@@ -1540,8 +1543,11 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     });
 
     expect(updated.color_images).toEqual({
-      Preto: '/assets/hoodie_preto_v2.jpg',
+      'Preto': '/assets/hoodie_preto_v2.jpg',
     });
     expect(updated.size_guide.S.shoulder_to_wrist).toBe(73);
   });
 });
+
+
+
