@@ -77,17 +77,22 @@ export const ShopProductCatalog: React.FC<ShopProductCatalogProps> = ({
                 {/* Imagem do Produto (formato integral sem corte) */}
                 <div className="relative aspect-video w-full bg-slate-900 overflow-hidden flex items-center justify-center p-3">
                   {prod.image_url ? (
-                    <img
-                      src={prod.raw_image_url || prod.image_url}
-                      alt={prod.title}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.src.includes('sweat_mockup.jpg')) {
-                          target.src = '/assets/sweat_mockup.jpg';
-                        }
-                      }}
-                    />
+                    <>
+                      <img
+                        src={prod.raw_image_url || prod.image_url}
+                        alt={prod.title}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = 'none';
+                          const next = target.nextElementSibling as HTMLElement | null;
+                          if (next) next.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden items-center justify-center text-slate-600">
+                        <ImageIcon size={32} />
+                      </div>
+                    </>
                   ) : (
                     <ImageIcon size={32} className="text-slate-600" />
                   )}

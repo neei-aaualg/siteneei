@@ -239,6 +239,19 @@ async function handleAnalyze(req, res) {
 function serveStaticFile(req, res, filePath) {
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
+      // Se for um pedido de asset estático (ex.: imagem, estilo, script), devolve 404 em vez de index.html
+      const ext = path.extname(filePath).toLowerCase();
+      const isStaticAssetType = [
+        '.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.ico',
+        '.css', '.js', '.mjs', '.woff', '.woff2', '.ttf', '.json'
+      ].includes(ext) || filePath.includes(path.join(BUILD_DIR, 'assets'));
+
+      if (isStaticAssetType) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+        return;
+      }
+
       // Fallback para index.html para rotas SPA (React Router)
       const indexPath = path.join(BUILD_DIR, 'index.html');
       fs.readFile(indexPath, (readErr, content) => {
@@ -372,6 +385,19 @@ const server = http.createServer(async (req, res) => {
 
   if (cleanPathname === '/' || cleanPathname === '') {
     safePath = path.join(BUILD_DIR, 'index.html');
+  } else if (!fs.existsSync(safePath)) {
+    // Tolerância para variações de extensão de imagem (.jpeg <-> .png <-> .jpg)
+    if (safePath.endsWith('.jpeg')) {
+      const pngAlt = safePath.replace(/\.jpeg$/, '.png');
+      const jpgAlt = safePath.replace(/\.jpeg$/, '.jpg');
+      if (fs.existsSync(pngAlt)) safePath = pngAlt;
+      else if (fs.existsSync(jpgAlt)) safePath = jpgAlt;
+    } else if (safePath.endsWith('.png')) {
+      const jpegAlt = safePath.replace(/\.png$/, '.jpeg');
+      const jpgAlt = safePath.replace(/\.png$/, '.jpg');
+      if (fs.existsSync(jpegAlt)) safePath = jpegAlt;
+      else if (fs.existsSync(jpgAlt)) safePath = jpgAlt;
+    }
   }
 
   serveStaticFile(req, res, safePath);

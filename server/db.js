@@ -318,6 +318,67 @@ try {
   // Ignora se tabela ainda não existir
 }
 
+// Normalização e migração de caminhos de imagens da loja (ex.: .jpeg -> .png e adição de leading slash)
+try {
+  const campaigns = db.prepare('SELECT id, image_url, color_images FROM shop_campaigns').all();
+  for (const camp of campaigns) {
+    let updated = false;
+    let newImageUrl = camp.image_url;
+    let newColorImagesStr = camp.color_images;
+
+    if (newImageUrl) {
+      // Garante leading slash em caminhos relativos locais
+      if (!newImageUrl.startsWith('http') && !newImageUrl.startsWith('/')) {
+        newImageUrl = `/${newImageUrl}`;
+        updated = true;
+      }
+      // Corrige extensão de t-shirts se ainda for .jpeg
+      if (newImageUrl.includes('tshirt_LEI_') && newImageUrl.endsWith('.jpeg')) {
+        newImageUrl = newImageUrl.replace(/\.jpeg$/, '.png');
+        updated = true;
+      }
+    }
+
+    if (newColorImagesStr) {
+      try {
+        const colorMap = JSON.parse(newColorImagesStr);
+        let mapChanged = false;
+        for (const [col, pathVal] of Object.entries(colorMap)) {
+          if (typeof pathVal === 'string' && pathVal) {
+            let fixedPath = pathVal;
+            if (!fixedPath.startsWith('http') && !fixedPath.startsWith('/')) {
+              fixedPath = `/${fixedPath}`;
+              mapChanged = true;
+            }
+            if (fixedPath.includes('tshirt_LEI_') && fixedPath.endsWith('.jpeg')) {
+              fixedPath = fixedPath.replace(/\.jpeg$/, '.png');
+              mapChanged = true;
+            }
+            if (mapChanged) {
+              colorMap[col] = fixedPath;
+            }
+          }
+        }
+        if (mapChanged) {
+          newColorImagesStr = JSON.stringify(colorMap);
+          updated = true;
+        }
+      } catch (e) {}
+    }
+
+    if (updated) {
+      db.prepare('UPDATE shop_campaigns SET image_url = ?, color_images = ? WHERE id = ?').run(
+        newImageUrl,
+        newColorImagesStr,
+        camp.id
+      );
+    }
+  }
+} catch (e) {
+  // Ignora se tabela ainda não existir
+}
+
+
 export const DEFAULT_SHOP_SIZE_GUIDE = {
   XS: { chest: 49, length: 64, sleeve: 60, shoulder_to_wrist: 70, label: 'Extra Pequeno' },
   S: { chest: 52, length: 67, sleeve: 62, shoulder_to_wrist: 73, label: 'Pequeno' },
@@ -1489,7 +1550,10 @@ export function createShopCampaign(data) {
   const item_name = (data.item_name || title).trim();
   const item_price = Number(data.item_price) >= 0 ? Number(data.item_price) : 25.0;
   const shipping_fee = Number(data.shipping_fee) >= 0 ? Number(data.shipping_fee) : 3.5;
-  const image_url = (data.image_url || '/assets/sweat_mockup.jpg').trim();
+  let image_url = (data.image_url || '').trim();
+  if (image_url && !image_url.startsWith('http://') && !image_url.startsWith('https://') && !image_url.startsWith('/')) {
+    image_url = `/${image_url}`;
+  }
   const deadline_date = data.deadline_date || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
   const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : 1;
   const allow_pickup = data.allow_pickup !== undefined ? (data.allow_pickup ? 1 : 0) : 1;
@@ -1508,9 +1572,21 @@ export function createShopCampaign(data) {
       ? data.colors_available.map((c) => String(c).trim()).filter(Boolean)
       : ['Preto']
   );
-  const color_images = data.color_images
-    ? (typeof data.color_images === 'string' ? data.color_images : JSON.stringify(data.color_images))
-    : JSON.stringify({});
+  let rawColorImages = data.color_images || {};
+  if (typeof rawColorImages === 'string') {
+    try { rawColorImages = JSON.parse(rawColorImages); } catch { rawColorImages = {}; }
+  }
+  const normalizedColorImages = {};
+  if (rawColorImages && typeof rawColorImages === 'object') {
+    for (const [col, pathVal] of Object.entries(rawColorImages)) {
+      if (typeof pathVal === 'string' && pathVal.trim()) {
+        let p = pathVal.trim();
+        if (!p.startsWith('http') && !p.startsWith('/')) p = `/${p}`;
+        normalizedColorImages[col] = p;
+      }
+    }
+  }
+  const color_images = JSON.stringify(normalizedColorImages);
   const size_guide = data.size_guide
     ? (typeof data.size_guide === 'string' ? data.size_guide : JSON.stringify(data.size_guide))
     : (category === 'Vestuário' ? JSON.stringify(DEFAULT_SHOP_SIZE_GUIDE) : null);
@@ -1580,7 +1656,13 @@ export function updateShopCampaign(id, data) {
   const item_price = data.item_price !== undefined ? Number(data.item_price) : current.item_price;
   const shipping_fee =
     data.shipping_fee !== undefined ? Number(data.shipping_fee) : current.shipping_fee;
-  const image_url = data.image_url !== undefined ? data.image_url : current.image_url;
+  let image_url = data.image_url !== undefined ? data.image_url : current.image_url;
+  if (typeof image_url === 'string') {
+    image_url = image_url.trim();
+    if (image_url && !image_url.startsWith('http://') && !image_url.startsWith('https://') && !image_url.startsWith('/')) {
+      image_url = `/${image_url}`;
+    }
+  }
   const deadline_date =
     data.deadline_date !== undefined ? data.deadline_date : current.deadline_date;
   const is_active = data.is_active !== undefined ? (data.is_active ? 1 : 0) : current.is_active;
@@ -1620,9 +1702,21 @@ export function updateShopCampaign(id, data) {
 
   let color_images = current.color_images;
   if (data.color_images !== undefined) {
-    color_images = data.color_images
-      ? (typeof data.color_images === 'string' ? data.color_images : JSON.stringify(data.color_images))
-      : JSON.stringify({});
+    let parsedImages = data.color_images;
+    if (typeof parsedImages === 'string') {
+      try { parsedImages = JSON.parse(parsedImages); } catch { parsedImages = {}; }
+    }
+    const normalizedMap = {};
+    if (parsedImages && typeof parsedImages === 'object') {
+      for (const [col, pathVal] of Object.entries(parsedImages)) {
+        if (typeof pathVal === 'string' && pathVal.trim()) {
+          let p = pathVal.trim();
+          if (!p.startsWith('http') && !p.startsWith('/')) p = `/${p}`;
+          normalizedMap[col] = p;
+        }
+      }
+    }
+    color_images = JSON.stringify(normalizedMap);
   }
 
   let size_guide = current.size_guide;
