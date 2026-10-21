@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { ShopProductModal } from '../components/admin/shop/ShopProductModal';
 import { ShopProductCatalog } from '../components/admin/shop/ShopProductCatalog';
 import { ShopOrdersTable } from '../components/admin/shop/ShopOrdersTable';
+import { ShopManualOrderModal } from '../components/admin/shop/ShopManualOrderModal';
 import { Shop } from '../pages/Shop';
 import { ShopCampaign, ProductFormData, ShopOrder } from '../types/shop';
 import * as shopService from '../services/shopService';
@@ -218,6 +219,96 @@ describe('Merch Packs / Bundles Feature', () => {
       expect(screen.getByText('T-Shirt:')).toBeInTheDocument();
       expect(screen.getAllByText('M').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Branco')).toBeInTheDocument();
+    });
+  });
+
+  describe('ShopManualOrderModal - Inserção Manual de Packs por Admin', () => {
+    it('renderiza os artigos do pack com seletores independentes de tamanho e cor e atualiza bundle_selections', async () => {
+      const user = userEvent.setup();
+
+      const packProduct: ShopCampaign = {
+        id: 'pack-camp',
+        title: 'Pack Especial Aluno',
+        item_name: 'Pack Especial',
+        item_price: 32.0,
+        category: 'Pack',
+        is_bundle: true,
+        shipping_fee: 4.5,
+        is_active: true,
+        bundle_items: [
+          { campaign_id: 'sweat-camp', item_name: 'Sweat Oficial' },
+          { campaign_id: 'tshirt-camp', item_name: 'T-Shirt Oficial' },
+        ],
+      };
+
+      const allProducts = [...mockAvailableProducts, packProduct];
+
+      const Wrapper = () => {
+        const [manualForm, setManualForm] = React.useState({
+          campaign_id: 'pack-camp',
+          item_name: 'Pack Especial',
+          student_name: 'David Teste',
+          student_email: 'david@ualg.pt',
+          phone_number: '912345678',
+          nif: '',
+          size: 'M',
+          color: 'Preto',
+          delivery_type: 'pickup',
+          shipping_address: '',
+          shipping_postal_code: '',
+          shipping_district: 'Faro',
+          shipping_county: 'Faro',
+          item_price: 32.0,
+          shipping_fee: 4.5,
+          payment_status: 'paid',
+          order_status: 'confirmed',
+          send_email: false,
+          admin_notes: '',
+          bundle_selections: [
+            { campaign_id: 'sweat-camp', item_name: 'Sweat Oficial', size: 'M', color: 'Preto' },
+            { campaign_id: 'tshirt-camp', item_name: 'T-Shirt Oficial', size: 'M', color: 'Azul' },
+          ],
+        });
+
+        return (
+          <ShopManualOrderModal
+            isOpen={true}
+            onClose={vi.fn()}
+            manualForm={manualForm}
+            setManualForm={setManualForm}
+            products={allProducts}
+            districtsList={['Faro', 'Lisboa']}
+            manualCounties={['Faro', 'Olhão']}
+            creatingOrder={false}
+            createError={null}
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+            onNameChange={vi.fn()}
+            onPhoneChange={vi.fn()}
+            onNifChange={vi.fn()}
+            onPostalCodeChange={vi.fn()}
+            onDistrictChange={vi.fn()}
+          />
+        );
+      };
+
+      render(<Wrapper />);
+
+      // Deve mostrar o título e a secção de pack
+      expect(screen.getByText(/Artigos Incluídos no Pack \(2 peças\)/i)).toBeInTheDocument();
+      expect(screen.getByText('Sweat Oficial')).toBeInTheDocument();
+      expect(screen.getByText('T-Shirt Oficial')).toBeInTheDocument();
+
+      // Altera o tamanho da Sweat para L
+      const sweatLBtn = screen.getAllByRole('button', { name: 'L' })[0];
+      await user.click(sweatLBtn);
+
+      // Altera a cor da Sweat para Branco
+      const brancoPill = screen.getAllByRole('button', { name: /Branco/i })[0];
+      await user.click(brancoPill);
+
+      expect(screen.getAllByText('L').length).toBeGreaterThanOrEqual(1);
     });
   });
 

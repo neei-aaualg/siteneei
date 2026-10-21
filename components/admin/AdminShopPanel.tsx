@@ -17,6 +17,7 @@ import {
   AdminProductPayload,
   sortSweatSizes,
   DEFAULT_SIZE_GUIDE,
+  BundleItemSelection,
 } from '../../types/shop';
 import {
   fetchAdminShopOrders,
@@ -128,6 +129,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     order_status: 'confirmed' as OrderStatus,
     send_email: true,
     admin_notes: '',
+    bundle_selections: [] as BundleItemSelection[],
   };
 
   const [manualForm, setManualForm] = useState(initialManualForm);
@@ -429,12 +431,38 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       }
     }
 
+    const selectedProd = products.find((p) => p.id === manualForm.campaign_id);
+    const isBundle = Boolean(
+      selectedProd?.is_bundle ||
+      (selectedProd?.bundle_items && selectedProd.bundle_items.length > 0) ||
+      selectedProd?.category === 'Pack'
+    );
+
+    if (isBundle && (!manualForm.bundle_selections || manualForm.bundle_selections.length === 0)) {
+      setCreateError('Por favor configura os tamanhos e cores dos artigos do pack.');
+      return;
+    }
+
     setCreatingOrder(true);
     try {
       const fullLocality =
         manualForm.delivery_type === 'shipping'
           ? `${manualForm.shipping_county}, ${manualForm.shipping_district}`
           : undefined;
+
+      const formattedSize =
+        isBundle && manualForm.bundle_selections?.length
+          ? manualForm.bundle_selections
+              .map((b: any) => `${b.item_name || 'Artigo'}: ${b.size || 'M'}`)
+              .join(' | ')
+          : manualForm.size;
+
+      const formattedColor =
+        isBundle && manualForm.bundle_selections?.length
+          ? manualForm.bundle_selections
+              .map((b: any) => `${b.item_name || 'Artigo'}: ${b.color || 'Preto'}`)
+              .join(' | ')
+          : (manualForm.color || 'Preto');
 
       const payload: AdminCreateOrderPayload = {
         campaign_id: manualForm.campaign_id || undefined,
@@ -443,8 +471,8 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         student_email: email,
         phone_number: phone,
         nif: manualForm.nif.trim() || undefined,
-        size: manualForm.size,
-        color: manualForm.color || 'Preto',
+        size: formattedSize,
+        color: formattedColor,
         delivery_type: manualForm.delivery_type,
         shipping_address:
           manualForm.delivery_type === 'shipping' ? manualForm.shipping_address.trim() : undefined,
@@ -460,6 +488,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         order_status: manualForm.order_status,
         send_email: manualForm.send_email,
         admin_notes: manualForm.admin_notes.trim() || undefined,
+        bundle_selections: isBundle ? manualForm.bundle_selections : undefined,
       };
 
       const res = await createAdminManualOrder(token, payload);

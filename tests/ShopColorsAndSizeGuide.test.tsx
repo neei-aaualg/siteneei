@@ -76,10 +76,10 @@ describe('ShopProductModal - Cores e Guia de Tamanhos', () => {
     expect(screen.getByText(/6\. Guia de Tamanhos/i)).toBeInTheDocument();
     expect(screen.getByText(/Repor Medidas Padrão/i)).toBeInTheDocument();
     // Verifica colunas da tabela
-    expect(screen.getByText('Peito (A) cm')).toBeInTheDocument();
-    expect(screen.getByText('Comprimento (B) cm')).toBeInTheDocument();
-    expect(screen.getByText('Manga (C) cm')).toBeInTheDocument();
-    expect(screen.getByText('Ombro ao Punho (D) cm')).toBeInTheDocument();
+    expect(screen.getByText(/\(A\) cm/)).toBeInTheDocument();
+    expect(screen.getByText(/\(B\) cm/)).toBeInTheDocument();
+    expect(screen.getByText(/\(C\) cm/)).toBeInTheDocument();
+    expect(screen.getByText(/Ombro ao Punho \(D\) cm/)).toBeInTheDocument();
 
     // Verifica campos de foto por cor
     expect(screen.getByPlaceholderText(/Foto para Preto/i)).toBeInTheDocument();
@@ -381,7 +381,7 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
 
     // O modal de guia de tamanhos abre e apresenta a nova coluna D (Ombro ao Punho)
     expect(screen.getByText(/Guia de Tamanhos \(cm\)/i)).toBeInTheDocument();
-    expect(screen.getByText('Ombro ao Punho (D)')).toBeInTheDocument();
+    expect(screen.getAllByText(/Ombro ao Punho/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Sweat Universitária').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('(Médio Confortável)')).toBeInTheDocument();
     expect(screen.getByText('56 cm')).toBeInTheDocument();

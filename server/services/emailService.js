@@ -120,7 +120,14 @@ export async function sendOrderConfirmationEmail(order) {
     cleanEnvVal(process.env.SMTP_FROM) ||
     'NEEI · AAUAlg <neei@aaualg.pt>';
 
+  const itemName = order.item_name || 'Sweat Oficial Engenharia Informática 2026';
+  const hasBundle = Boolean(order.bundle_selections && order.bundle_selections.length > 0);
+
   // Versão em Texto Simples (Garante que NENHUM cliente de email vê o email vazio)
+  const bundlePlainText = hasBundle
+    ? `\n- Artigos no Pack:\n${order.bundle_selections.map((b) => `  * ${b.item_name}: Tam ${b.size} · Cor ${b.color}`).join('\n')}`
+    : '';
+
   const plainTextContent = `
 ============================================================
 NEEI - NÚCLEO DE ESTUDANTES DE ENGENHARIA INFORMÁTICA AAUALG
@@ -129,15 +136,14 @@ Confirmação da tua Pré-encomenda
 
 Olá ${cleanName},
 
-O teu pagamento foi confirmado com sucesso e a tua Sweat Oficial de Engenharia Informática 2026 já está garantida no sistema!
+O teu pagamento foi confirmado com sucesso e a tua encomenda de "${itemName}" já está garantida no sistema!
 
 DETALHES DA ENCOMENDA:
 ------------------------------------------------------------
 - Nº da Encomenda:    ${order.id}
-- Artigo:             Sweat Oficial Engenharia Informática 2026
-- Tamanho:            ${orderSize}
-- Cor:                ${orderColor}
-- Subtotal Sweat:     ${formattedItemPrice}€
+- Artigo:             ${itemName}${bundlePlainText}
+- Tamanho / Cor:      ${orderSize} · ${orderColor}
+- Subtotal Artigo:    ${formattedItemPrice}€
 - Portes de Envio:    ${Number(formattedShipping) > 0 ? `${formattedShipping}€` : 'Grátis (Levantamento no Gabinete)'}
 ${Number(formattedPaymentFee) > 0 ? `- Taxa de Pagamento:  ${formattedPaymentFee}€ (0,25€ + 1,5%)\n` : ''}- TOTAL PAGO:         ${formattedAmount}€
 
@@ -159,6 +165,23 @@ Sala 0.18, Edifício 1, Campus de Gambelas, Faro
 Núcleo de Estudantes de Engenharia Informática da AAUAlg
 ============================================================
 `.trim();
+
+  const bundleHtmlDetails = hasBundle
+    ? `
+      <div style="margin-top: 4px; font-size: 11px; color: #475569; text-align: right; line-height: 1.5;">
+        ${order.bundle_selections
+          .map(
+            (b) => `
+          <div>
+            <strong>${b.item_name}:</strong> 
+            <span style="background-color: #0284c7; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 800;">${b.size}</span> · ${b.color}
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+    `
+    : '';
 
   // Versão em HTML Bulletproof (compatível com Outlook, Gmail, Apple Mail, Dark/Light modes)
   const htmlContent = `
@@ -212,7 +235,7 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
               </h1>
 
               <p style="font-size: 15px; line-height: 1.6; color: #334155; margin: 0 0 24px 0;">
-                Muito obrigado pela tua compra! O teu pagamento foi recebido com sucesso e a tua <strong style="color: #0f172a;">Sweat Oficial de Engenharia Informática 2026</strong> já está reservada no sistema.
+                Muito obrigado pela tua compra! O teu pagamento foi recebido com sucesso e o teu artigo <strong style="color: #0f172a;">${itemName}</strong> já está reservado no sistema.
               </p>
 
               <!-- Tabela Resumo do Pedido -->
@@ -223,16 +246,17 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Artigo:</td>
-                  <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">Sweat Oficial Engenharia Informática 2026</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">${itemName}</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Tamanho / Cor:</td>
                   <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">
                     <span style="background-color: #0284c7; color: #ffffff; padding: 2px 8px; border-radius: 6px; font-size: 12px; font-weight: 800;">${orderSize}</span> · ${orderColor}
+                    ${bundleHtmlDetails}
                   </td>
                 </tr>
                 <tr>
-                  <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Preço da Sweat:</td>
+                  <td style="padding: 12px 16px; font-size: 13px; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0;">Preço do Artigo:</td>
                   <td style="padding: 12px 16px; font-size: 13px; color: #0f172a; font-weight: 700; text-align: right; border-bottom: 1px solid #e2e8f0;">${formattedItemPrice}€</td>
                 </tr>
                 <tr>

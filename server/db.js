@@ -1544,7 +1544,7 @@ export function getActiveShopCampaigns(isAdminPreview = false) {
  */
 export function createShopCampaign(data) {
   const now = new Date().toISOString();
-  const id = data.id || `prod-${Date.now()}`;
+  const id = data.id || `prod-${Date.now()}-${crypto.randomInt(1000, 9999)}`;
   const title = (data.title || 'Novo Artigo').trim();
   const description = (data.description || '').trim();
   const item_name = (data.item_name || title).trim();
@@ -2576,7 +2576,91 @@ export function createAdminManualOrder(orderData) {
     throw new Error('Número de telemóvel inválido (deve ter pelo menos 9 dígitos).');
   }
 
-  const size = (orderData.size || 'M').toUpperCase().trim();
+  const isBundle = Boolean(
+    campaign?.is_bundle ||
+    (campaign?.bundle_items && campaign.bundle_items.length > 0) ||
+    campaign?.category === 'Pack' ||
+    (Array.isArray(orderData.bundle_selections) && orderData.bundle_selections.length > 0)
+  );
+
+  let size = (orderData.size || '').toUpperCase().trim();
+  let color = (orderData.color || '').trim();
+  let bundleSelections = null;
+
+  if (isBundle && campaign?.bundle_items && campaign.bundle_items.length > 0) {
+    const rawSelections = orderData.bundle_selections || orderData.bundleSelections || [];
+    let parsedSelections = [];
+    try {
+      parsedSelections = typeof rawSelections === 'string' ? JSON.parse(rawSelections) : rawSelections;
+    } catch {
+      parsedSelections = [];
+    }
+
+    const validatedSelections = [];
+    const sizeSummaries = [];
+    const colorSummaries = [];
+
+    for (const itemConfig of campaign.bundle_items) {
+      const childCampaign = getShopCampaignById(itemConfig.campaign_id);
+      const childName =
+        itemConfig.item_name ||
+        (childCampaign ? (childCampaign.item_name || childCampaign.title) : itemConfig.campaign_id);
+
+      const userSel = Array.isArray(parsedSelections)
+        ? parsedSelections.find(
+            (s) => s.campaign_id === itemConfig.campaign_id || s.item_name === childName
+          )
+        : null;
+
+      let itemSize =
+        (userSel && userSel.size ? String(userSel.size).toUpperCase().trim() : '') ||
+        (childCampaign && childCampaign.sizes_available?.[0]) ||
+        'M';
+      let itemColor =
+        (userSel && userSel.color ? String(userSel.color).trim() : '') ||
+        (childCampaign && childCampaign.colors_available?.[0]) ||
+        'Preto';
+
+      if (childCampaign && childCampaign.sizes_available && childCampaign.sizes_available.length > 0) {
+        if (!childCampaign.sizes_available.includes(itemSize)) {
+          itemSize = childCampaign.sizes_available[0];
+        }
+      }
+
+      if (childCampaign && childCampaign.colors_available && childCampaign.colors_available.length > 0) {
+        const matched = childCampaign.colors_available.find(
+          (c) => c.toLowerCase() === itemColor.toLowerCase()
+        );
+        itemColor = matched || childCampaign.colors_available[0];
+      }
+
+      validatedSelections.push({
+        campaign_id: itemConfig.campaign_id,
+        item_name: childName,
+        size: itemSize,
+        color: itemColor,
+      });
+
+      sizeSummaries.push(`${childName}: ${itemSize}`);
+      colorSummaries.push(`${childName}: ${itemColor}`);
+    }
+
+    bundleSelections = validatedSelections;
+    size = sizeSummaries.join(' | ') || (orderData.size ? String(orderData.size) : 'Pack');
+    color = colorSummaries.join(' | ') || (orderData.color ? String(orderData.color) : 'Pack');
+  } else if (Array.isArray(orderData.bundle_selections) && orderData.bundle_selections.length > 0) {
+    bundleSelections = orderData.bundle_selections;
+    if (!size || size === 'M' || size === 'PACK') {
+      size = bundleSelections.map((b) => `${b.item_name || 'Artigo'}: ${b.size || 'M'}`).join(' | ');
+    }
+    if (!color || color === 'Preto' || color === 'PACK') {
+      color = bundleSelections.map((b) => `${b.item_name || 'Artigo'}: ${b.color || 'Preto'}`).join(' | ');
+    }
+  } else {
+    if (!size) size = 'M';
+    if (!color) color = 'Preto';
+  }
+
   const deliveryType = orderData.delivery_type === 'shipping' ? 'shipping' : 'pickup';
   const itemPrice =
     orderData.item_price !== undefined ? Number(orderData.item_price) : campaign?.item_price || 25.0;
@@ -2606,13 +2690,13 @@ export function createAdminManualOrder(orderData) {
       size, color, delivery_type, shipping_address, shipping_postal_code, shipping_city,
       item_price, shipping_fee, payment_fee, total_amount, payment_status, payment_provider,
       payment_ref, order_status, email_sent, moloni_status, created_at, paid_at,
-      is_admin_created, admin_notes
+      is_admin_created, admin_notes, bundle_selections
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, 'manual_admin',
       'admin-manual', ?, 0, 'none', ?, ?,
-      1, ?
+      1, ?, ?
     )
   `);
 
@@ -2625,7 +2709,7 @@ export function createAdminManualOrder(orderData) {
     cleanPhone,
     orderData.nif || 'Consumidor Final',
     size,
-    orderData.color || 'Preto',
+    color,
     deliveryType,
     deliveryType === 'shipping' ? orderData.shipping_address || null : null,
     deliveryType === 'shipping' ? orderData.shipping_postal_code || null : null,
@@ -2638,7 +2722,10 @@ export function createAdminManualOrder(orderData) {
     orderStatus,
     createdAt,
     paidAt,
-    adminNotes
+    adminNotes,
+    bundleSelections
+      ? (typeof bundleSelections === 'string' ? bundleSelections : JSON.stringify(bundleSelections))
+      : null
   );
 
   return getShopOrderById(orderId);

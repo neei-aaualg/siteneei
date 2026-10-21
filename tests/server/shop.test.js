@@ -527,6 +527,167 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(jsonBody.order.student_name).toBe('Manuel Gabinete');
   });
 
+  it('permite ao admin criar encomendas manuais de packs com bundle_selections e resumo formatado', () => {
+    // 1. Criar peças individuais e um pack
+    const piece1 = db.createShopCampaign({
+      title: 'Sweat Pack Peça 1',
+      item_name: 'Sweat Universitária',
+      item_price: 25.0,
+      sizes_available: ['S', 'M', 'L', 'XL'],
+      colors_available: ['Preto', 'Azul'],
+    });
+
+    const piece2 = db.createShopCampaign({
+      title: 'T-Shirt Pack Peça 2',
+      item_name: 'T-Shirt Verão',
+      item_price: 15.0,
+      sizes_available: ['XS', 'S', 'M'],
+      colors_available: ['Branco', 'Cinzento'],
+    });
+
+    const pack = db.createShopCampaign({
+      title: 'Pack Especial de Boas-Vindas',
+      item_name: 'Pack Boas-Vindas',
+      item_price: 32.0,
+      category: 'Pack',
+      is_bundle: 1,
+      bundle_items: [
+        { campaign_id: piece1.id, item_name: 'Sweat Universitária' },
+        { campaign_id: piece2.id, item_name: 'T-Shirt Verão' },
+      ],
+    });
+
+    // 2. Criar encomenda manual para este pack
+    const manualOrder = db.createAdminManualOrder({
+      campaign_id: pack.id,
+      item_name: pack.item_name,
+      student_name: 'Aluno Pack Teste',
+      student_email: 'alunopack@ualg.pt',
+      phone_number: '912345678',
+      delivery_type: 'pickup',
+      item_price: 32.0,
+      payment_status: 'paid',
+      order_status: 'confirmed',
+      admin_notes: 'Pack pago em dinheiro no gabinete',
+      bundle_selections: [
+        { campaign_id: piece1.id, item_name: 'Sweat Universitária', size: 'L', color: 'Azul' },
+        { campaign_id: piece2.id, item_name: 'T-Shirt Verão', size: 'S', color: 'Branco' },
+      ],
+    });
+
+    expect(manualOrder).toBeTruthy();
+    expect(manualOrder.is_admin_created).toBe(true);
+    expect(manualOrder.bundle_selections).toHaveLength(2);
+    expect(manualOrder.bundle_selections[0]).toEqual({
+      campaign_id: piece1.id,
+      item_name: 'Sweat Universitária',
+      size: 'L',
+      color: 'Azul',
+    });
+    expect(manualOrder.bundle_selections[1]).toEqual({
+      campaign_id: piece2.id,
+      item_name: 'T-Shirt Verão',
+      size: 'S',
+      color: 'Branco',
+    });
+    expect(manualOrder.size).toBe('Sweat Universitária: L | T-Shirt Verão: S');
+    expect(manualOrder.color).toBe('Sweat Universitária: Azul | T-Shirt Verão: Branco');
+
+    // 3. Verifica em getShopOrders
+    const allOrders = db.getShopOrders();
+    const found = allOrders.find((o) => o.id === manualOrder.id);
+    expect(found).toBeTruthy();
+    expect(found.bundle_selections).toHaveLength(2);
+
+    // 4. Verifica em factory export
+    const factoryRows = db.getFactoryExportData();
+    const row = factoryRows.find((r) => r.id === manualOrder.id);
+    expect(row).toBeTruthy();
+    expect(row.artigo).toBe('Pack Boas-Vindas');
+    expect(row.tamanho).toBe('Sweat Universitária: L | T-Shirt Verão: S');
+    expect(row.cor).toBe('Sweat Universitária: Azul | T-Shirt Verão: Branco');
+    expect(row.origem).toBe('Manual (Admin)');
+  });
+
+  it('cria encomenda manual de pack através do endpoint POST /api/admin/shop/orders com bundle_selections', async () => {
+    let statusCode = 0;
+    let jsonBody = null;
+    const fakeRes = {
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = JSON.parse(data);
+      },
+    };
+
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+
+    const p1 = db.createShopCampaign({
+      title: 'Item Pack A',
+      item_name: 'Item A',
+      item_price: 20.0,
+      sizes_available: ['M', 'L'],
+      colors_available: ['Preto'],
+    });
+    const p2 = db.createShopCampaign({
+      title: 'Item Pack B',
+      item_name: 'Item B',
+      item_price: 10.0,
+      sizes_available: ['S', 'M'],
+      colors_available: ['Vermelho'],
+    });
+    const packCamp = db.createShopCampaign({
+      title: 'Pack Duo API',
+      item_name: 'Pack Duo',
+      item_price: 25.0,
+      category: 'Pack',
+      is_bundle: 1,
+      bundle_items: [
+        { campaign_id: p1.id, item_name: 'Item A' },
+        { campaign_id: p2.id, item_name: 'Item B' },
+      ],
+    });
+
+    const payload = {
+      campaign_id: packCamp.id,
+      item_name: 'Pack Duo',
+      student_name: 'Inês Pack API',
+      student_email: 'ines@ualg.pt',
+      phone_number: '918887766',
+      delivery_type: 'pickup',
+      item_price: 25.0,
+      payment_status: 'paid',
+      admin_notes: 'Criado via endpoint admin',
+      send_email: false,
+      bundle_selections: [
+        { campaign_id: p1.id, item_name: 'Item A', size: 'L', color: 'Preto' },
+        { campaign_id: p2.id, item_name: 'Item B', size: 'S', color: 'Vermelho' },
+      ],
+    };
+
+    const handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: payload,
+      },
+      fakeRes,
+      '/api/admin/shop/orders'
+    );
+
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.success).toBe(true);
+    expect(jsonBody.order.bundle_selections).toHaveLength(2);
+    expect(jsonBody.order.size).toBe('Item A: L | Item B: S');
+    expect(jsonBody.order.color).toBe('Item A: Preto | Item B: Vermelho');
+  });
+
   it('permite criar, editar, listar e gerir produtos no catálogo de loja', () => {
     // 1. Criar novo produto
     const newProduct = db.createShopCampaign({
