@@ -100,7 +100,7 @@ export const Shop: React.FC = () => {
     if (selectedColor && activeCampaign?.color_images?.[selectedColor]) {
       return activeCampaign.color_images[selectedColor];
     }
-    return activeCampaign?.raw_image_url || activeCampaign?.image_url || '/assets/sweat_mockup.jpg';
+    return activeCampaign?.raw_image_url || activeCampaign?.image_url || '';
   }, [activeCampaign, selectedColor]);
 
   // Artigos resolvidos do Pack caso o artigo ativo seja um bundle
@@ -119,7 +119,7 @@ export const Shop: React.FC = () => {
         color_images: orig?.color_images || {},
         size_guide: orig?.size_guide || DEFAULT_SIZE_GUIDE,
         category: orig?.category || 'Vestuário',
-        image_url: orig?.raw_image_url || orig?.image_url || '/assets/sweat_mockup.jpg',
+        image_url: orig?.raw_image_url || orig?.image_url || '',
         item_price: orig?.item_price || 0,
       };
     });
@@ -374,7 +374,7 @@ export const Shop: React.FC = () => {
       name: c.title || c.item_name || 'Sweat Oficial Engenharia Informática',
       category: c.category || 'Vestuário',
       price: c.item_price,
-      imageUrl: isAvailableToBuy ? c.image_url || '/assets/sweat_mockup.jpg' : '',
+      imageUrl: isAvailableToBuy ? (c.image_url || '') : '',
       badge: isAvailableToBuy
         ? isAdminPreview
           ? 'Modo Teste (0.50€)'
@@ -904,17 +904,40 @@ export const Shop: React.FC = () => {
                 {prod.available ? (
                   /* Com foto quando disponível (ajustada em formato integral sem cortes) */
                   <div className="relative aspect-square overflow-hidden bg-slate-900 flex items-center justify-center p-3 sm:p-5">
-                    <img
-                      src={cardImage}
-                      alt={prod.name}
-                      className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-500"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.src.includes('sweat_mockup.jpg')) {
-                          target.src = '/assets/sweat_mockup.jpg';
-                        }
-                      }}
-                    />
+                    {cardImage ? (
+                      <>
+                        <img
+                          src={cardImage}
+                          alt={prod.name}
+                          className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement | null;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="hidden flex-col items-center justify-center p-6 text-center">
+                          <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-inner">
+                            {prod.category === 'Pack' || prod.campaignData?.is_bundle ? (
+                              <Package size={30} className="text-cyan-400" />
+                            ) : (
+                              <Shirt size={30} className="text-cyan-400" />
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shadow-inner">
+                          {prod.category === 'Pack' || prod.campaignData?.is_bundle ? (
+                            <Package size={30} className="text-cyan-400" />
+                          ) : (
+                            <Shirt size={30} className="text-cyan-400" />
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="absolute top-3.5 left-3.5 flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg backdrop-blur-md bg-emerald-600/90 text-white border border-emerald-400/40">
                         <span className="w-2 h-2 rounded-full bg-emerald-200 animate-pulse" />
@@ -1204,17 +1227,28 @@ export const Shop: React.FC = () => {
                     {/* Cartão de Pré-visualização do Artigo com Foto Dinâmica por Cor */}
                     <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
                       <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm p-1.5 flex items-center justify-center">
-                        <img
-                          src={activeModalImage}
-                          alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
-                          className="w-full h-full object-contain object-center transition-all duration-300"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            if (!target.src.includes('sweat_mockup.jpg')) {
-                              target.src = '/assets/sweat_mockup.jpg';
-                            }
-                          }}
-                        />
+                        {activeModalImage ? (
+                          <>
+                            <img
+                              src={activeModalImage}
+                              alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
+                              className="w-full h-full object-contain object-center transition-all duration-300"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement | null;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                            <div className="hidden items-center justify-center text-cyan-400">
+                              {activeCampaign?.is_bundle ? <Package size={24} /> : <Shirt size={24} />}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-center text-cyan-400">
+                            {activeCampaign?.is_bundle ? <Package size={24} /> : <Shirt size={24} />}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -1291,17 +1325,28 @@ export const Shop: React.FC = () => {
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs p-1 flex items-center justify-center">
-                                      <img
-                                        src={itemImage}
-                                        alt={item.item_name}
-                                        className="w-full h-full object-contain"
-                                        onError={(e) => {
-                                          const target = e.currentTarget;
-                                          if (!target.src.includes('sweat_mockup.jpg')) {
-                                            target.src = '/assets/sweat_mockup.jpg';
-                                          }
-                                        }}
-                                      />
+                                      {itemImage ? (
+                                        <>
+                                          <img
+                                            src={itemImage}
+                                            alt={item.item_name}
+                                            className="w-full h-full object-contain"
+                                            onError={(e) => {
+                                              const target = e.currentTarget;
+                                              target.style.display = 'none';
+                                              const fallback = target.nextElementSibling as HTMLElement | null;
+                                              if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                          />
+                                          <div className="hidden items-center justify-center text-cyan-400">
+                                            <Shirt size={18} />
+                                          </div>
+                                        </>
+                                      ) : (
+                                        <div className="flex items-center justify-center text-cyan-400">
+                                          <Shirt size={18} />
+                                        </div>
+                                      )}
                                     </div>
                                     <div className="min-w-0">
                                       <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block truncate">
