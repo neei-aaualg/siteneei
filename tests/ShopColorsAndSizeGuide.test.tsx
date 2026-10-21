@@ -76,10 +76,10 @@ describe('ShopProductModal - Cores e Guia de Tamanhos', () => {
     expect(screen.getByText(/6\. Guia de Tamanhos/i)).toBeInTheDocument();
     expect(screen.getByText(/Repor Medidas Padrão/i)).toBeInTheDocument();
     // Verifica colunas da tabela
-    expect(screen.getByText('Peito (A) cm')).toBeInTheDocument();
-    expect(screen.getByText('Comprimento (B) cm')).toBeInTheDocument();
-    expect(screen.getByText('Manga (C) cm')).toBeInTheDocument();
-    expect(screen.getByText('Ombro ao Punho (D) cm')).toBeInTheDocument();
+    expect(screen.getByText(/Medida do pescoço até ao cinto/i)).toBeInTheDocument();
+    expect(screen.getByText(/Metade do diâmetro à altura do peito/i)).toBeInTheDocument();
+    expect(screen.getByText(/Medida de ombro a ombro/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ombro ao Punho/i).length).toBeGreaterThanOrEqual(1);
 
     // Verifica campos de foto por cor
     expect(screen.getByPlaceholderText(/Foto para Preto/i)).toBeInTheDocument();
@@ -318,7 +318,7 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
     sizes_available: ['S', 'M', 'L'],
     colors_available: ['Preto', 'Azul Marinho'],
     color_images: {
-      'Preto': '/assets/sweat_preto.jpg',
+      Preto: '/assets/sweat_preto.jpg',
       'Azul Marinho': '/assets/sweat_azul.jpg',
     },
     size_guide: {
@@ -362,7 +362,9 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
     await user.click(orderBtn);
 
     // O modal abre com o seletor minimalista de cor e com a foto da cor selecionada no cartão
-    expect(screen.getAllByRole('button', { name: /Azul Marinho/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole('button', { name: /Azul Marinho/i }).length).toBeGreaterThanOrEqual(
+      1
+    );
     const modalImg = screen.getByAltText('Sweat Universitária - Azul Marinho');
     expect(modalImg).toHaveAttribute('src', '/assets/sweat_azul.jpg');
 
@@ -381,11 +383,10 @@ describe('Shop - Seleção de Cor e Guia no Checkout do Comprador', () => {
 
     // O modal de guia de tamanhos abre e apresenta a nova coluna D (Ombro ao Punho)
     expect(screen.getByText(/Guia de Tamanhos \(cm\)/i)).toBeInTheDocument();
-    expect(screen.getByText('Ombro ao Punho (D)')).toBeInTheDocument();
+    expect(screen.getByText(/Comprimento do ombro ao punho/i)).toBeInTheDocument();
     expect(screen.getAllByText('Sweat Universitária').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('(Médio Confortável)')).toBeInTheDocument();
     expect(screen.getByText('56 cm')).toBeInTheDocument();
     expect(screen.getByText('76 cm')).toBeInTheDocument(); // Medida D para o tamanho M
   });
 });
-

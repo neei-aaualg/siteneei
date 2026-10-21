@@ -5,6 +5,7 @@
 # ==============================================================================
 
 set -eu
+umask 077
 
 echo "=================================================================="
 echo "    NEEI Web Portal - Assistente de Setup de Backup Rclone + R2   "
@@ -98,12 +99,12 @@ echo
 printf "6. Discord Webhook URL para alertas (opcional, prime Enter para ignorar): "
 read -r DISCORD_URL
 
-# 4. Ofuscação de passwords para o rclone
-OBSCURED_PASS=$(rclone obscure "$MASTER_PASS")
+# 4. Ofuscação de passwords para o rclone (via stdin para não expor em ps)
+OBSCURED_PASS=$(printf "%s" "$MASTER_PASS" | rclone obscure - 2>/dev/null || rclone obscure "$MASTER_PASS")
 
 # 5. Criação do rclone.conf
 RCLONE_CONF_DIR="${HOME}/.config/rclone"
-mkdir -p "$RCLONE_CONF_DIR"
+mkdir -m 700 -p "$RCLONE_CONF_DIR"
 RCLONE_CONF_FILE="${RCLONE_CONF_DIR}/rclone.conf"
 
 echo
