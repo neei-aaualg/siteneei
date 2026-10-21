@@ -318,6 +318,28 @@ try {
   // Ignora se tabela ainda não existir
 }
 
+// Migração: desambigua referências de pagamento de encomendas manuais antigas ('admin-manual')
+try {
+  db.exec(`
+    UPDATE shop_orders
+    SET payment_ref = 'admin-manual-' || id
+    WHERE payment_ref = 'admin-manual';
+  `);
+} catch (_) {
+  // Ignora se tabela ainda não existir
+}
+
+// Garante índice único para payment_ref (evita reutilização e double spending)
+try {
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_orders_payment_ref_unique 
+      ON shop_orders(payment_ref) 
+      WHERE payment_ref IS NOT NULL AND payment_ref != '';
+  `);
+} catch (_) {
+  // Ignora se já existir
+}
+
 // Normalização e migração de caminhos de imagens da loja (ex.: .jpeg -> .png e adição de leading slash)
 try {
   const campaigns = db.prepare('SELECT id, image_url, color_images FROM shop_campaigns').all();
@@ -2557,8 +2579,14 @@ export function createAdminManualOrder(orderData) {
     orderData.item_name || campaign?.item_name || 'Sweat Oficial Engenharia Informática';
   const now = new Date();
   const year = now.getFullYear();
-  const randomSuffix = crypto.randomInt(1000, 9999);
-  const orderId = orderData.id || `SW-${year}-ADM${randomSuffix}`;
+  let orderId = orderData.id;
+  if (!orderId) {
+    let suffix;
+    do {
+      suffix = crypto.randomBytes(4).toString('hex').toUpperCase();
+      orderId = `SW-${year}-ADM${suffix}`;
+    } while (db.prepare('SELECT id FROM shop_orders WHERE id = ?').get(orderId));
+  }
   const createdAt = now.toISOString();
 
   const studentName = (orderData.student_name || '').trim();
@@ -2683,6 +2711,23 @@ export function createAdminManualOrder(orderData) {
     orderData.order_status || (paymentStatus === 'paid' ? 'confirmed' : 'pending_payment');
   const paidAt = paymentStatus === 'paid' ? orderData.paid_at || createdAt : null;
   const adminNotes = (orderData.admin_notes || '').trim() || null;
+  const paymentProvider = orderData.payment_provider || 'manual_admin';
+  const manualPaymentRef =
+    orderData.payment_ref ||
+    (paymentProvider === 'stripe'
+      ? `admin-manual-stripe-${orderId}`
+      : `admin-manual-${orderId}`);
+
+  if (orderData.payment_ref) {
+    const existingRef = db
+      .prepare('SELECT id FROM shop_orders WHERE payment_ref = ? AND id != ?')
+      .get(orderData.payment_ref, orderId);
+    if (existingRef) {
+      throw new Error(
+        `Referência de pagamento ${orderData.payment_ref} já se encontra associada à encomenda ${existingRef.id}`
+      );
+    }
+  }
 
   const stmt = db.prepare(`
     INSERT INTO shop_orders (
@@ -2694,8 +2739,8 @@ export function createAdminManualOrder(orderData) {
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, 'manual_admin',
-      'admin-manual', ?, 0, 'none', ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, 0, 'none', ?, ?,
       1, ?, ?
     )
   `);
@@ -2719,6 +2764,8 @@ export function createAdminManualOrder(orderData) {
     paymentFee,
     totalAmount,
     paymentStatus,
+    paymentProvider,
+    manualPaymentRef,
     orderStatus,
     createdAt,
     paidAt,

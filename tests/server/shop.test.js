@@ -686,6 +686,112 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(jsonBody.order.bundle_selections).toHaveLength(2);
     expect(jsonBody.order.size).toBe('Item A: L | Item B: S');
     expect(jsonBody.order.color).toBe('Item A: Preto | Item B: Vermelho');
+    expect(jsonBody.order.payment_ref).toBe(`admin-manual-${jsonBody.order.id}`);
+  });
+
+  it('permite criar múltiplas encomendas manuais normais e em pack sem conflito de payment_ref (UNIQUE constraint)', async () => {
+    // 1. Criar uma encomenda manual simples
+    const order1 = db.createAdminManualOrder({
+      student_name: 'Primeiro Aluno',
+      student_email: 'aluno1@ualg.pt',
+      phone_number: '912345678',
+      size: 'M',
+      color: 'Preto',
+      delivery_type: 'pickup',
+      item_price: 25.0,
+      payment_status: 'paid',
+    });
+
+    expect(order1).toBeTruthy();
+    expect(order1.payment_ref).toBe(`admin-manual-${order1.id}`);
+
+    // 2. Criar um pack com artigos
+    const p1 = db.createShopCampaign({
+      title: 'Pack Item 1',
+      item_name: 'Artigo Um',
+      item_price: 20.0,
+    });
+    const p2 = db.createShopCampaign({
+      title: 'Pack Item 2',
+      item_name: 'Artigo Dois',
+      item_price: 15.0,
+    });
+    const pack = db.createShopCampaign({
+      title: 'Super Pack Informática',
+      item_name: 'Super Pack',
+      item_price: 30.0,
+      category: 'Pack',
+      is_bundle: 1,
+      bundle_items: [
+        { campaign_id: p1.id, item_name: 'Artigo Um' },
+        { campaign_id: p2.id, item_name: 'Artigo Dois' },
+      ],
+    });
+
+    // 3. Criar uma segunda encomenda manual que é um pack
+    const packOrder1 = db.createAdminManualOrder({
+      campaign_id: pack.id,
+      item_name: pack.item_name,
+      student_name: 'Segundo Aluno Pack',
+      student_email: 'aluno2@ualg.pt',
+      phone_number: '965432100',
+      delivery_type: 'pickup',
+      item_price: 30.0,
+      payment_status: 'paid',
+      bundle_selections: [
+        { campaign_id: p1.id, item_name: 'Artigo Um', size: 'M', color: 'Preto' },
+        { campaign_id: p2.id, item_name: 'Artigo Dois', size: 'L', color: 'Branco' },
+      ],
+    });
+
+    expect(packOrder1).toBeTruthy();
+    expect(packOrder1.payment_ref).toBe(`admin-manual-${packOrder1.id}`);
+    expect(packOrder1.payment_ref).not.toBe(order1.payment_ref);
+
+    // 4. Criar uma terceira encomenda manual de pack pelo endpoint da API
+    const auth = await import('../../server/auth.js');
+    const { token } = auth.authenticateAdmin('test-admin-secret');
+
+    let statusCode = 0;
+    let jsonBody = null;
+    const fakeRes = {
+      writeHead: (code) => {
+        statusCode = code;
+      },
+      end: (data) => {
+        jsonBody = JSON.parse(data);
+      },
+    };
+
+    const handled = await shopApi.handleShopApi(
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        body: {
+          campaign_id: pack.id,
+          student_name: 'Terceiro Aluno Pack API',
+          student_email: 'aluno3@ualg.pt',
+          phone_number: '934567890',
+          delivery_type: 'pickup',
+          bundle_selections: [
+            { campaign_id: p1.id, item_name: 'Artigo Um', size: 'S', color: 'Preto' },
+            { campaign_id: p2.id, item_name: 'Artigo Dois', size: 'M', color: 'Preto' },
+          ],
+        },
+      },
+      fakeRes,
+      '/api/admin/shop/orders'
+    );
+
+    expect(handled).toBe(true);
+    expect(statusCode).toBe(201);
+    expect(jsonBody.success).toBe(true);
+    expect(jsonBody.order.payment_ref).toBe(`admin-manual-${jsonBody.order.id}`);
+    expect(jsonBody.order.payment_ref).not.toBe(packOrder1.payment_ref);
+    expect(jsonBody.order.payment_ref).not.toBe(order1.payment_ref);
   });
 
   it('permite criar, editar, listar e gerir produtos no catálogo de loja', () => {
