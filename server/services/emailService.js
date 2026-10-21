@@ -156,7 +156,7 @@ PRÓXIMOS PASSOS:
 Esta é uma campanha oficial de pré-encomenda. Assim que o lote de produção na fábrica estiver concluído, entraremos em contacto por email e/ou através do Instagram (@neeiualg) com as datas para levantamento no gabinete ou o código de rastreio dos CTT.
 
 Podes acompanhar o estado da tua encomenda a qualquer momento em:
-https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}
+https://neei.online/merch?track=${encodeURIComponent(order.id)}
 
 Dúvidas ou apoio?
 Envia-nos um email para neei@aaualg.pt ou mensagem no Instagram @neeiualg.
@@ -170,15 +170,15 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
     ? `
       <div style="margin-top: 4px; font-size: 11px; color: #475569; text-align: right; line-height: 1.5;">
         ${order.bundle_selections
-          .map(
-            (b) => `
+      .map(
+        (b) => `
           <div>
             <strong>${b.item_name}:</strong> 
             <span style="background-color: #0284c7; color: #ffffff; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 800;">${b.size}</span> · ${b.color}
           </div>
         `
-          )
-          .join('')}
+      )
+      .join('')}
       </div>
     `
     : '';
@@ -297,7 +297,7 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
                 <tr>
                   <td align="center">
-                    <a href="https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
+                    <a href="https://neei.online/merch?track=${encodeURIComponent(order.id)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
                       Acompanhar Estado da Encomenda Online →
                     </a>
                   </td>
