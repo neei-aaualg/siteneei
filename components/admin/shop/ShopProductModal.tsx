@@ -299,11 +299,10 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                       category: prev.category === 'Pack' ? 'Vestuário' : prev.category,
                     }));
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    !productForm.is_bundle
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${!productForm.is_bundle
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
                 >
                   Artigo Único
                 </button>
@@ -317,11 +316,10 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                       bundle_items: prev.bundle_items || [],
                     }));
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    productForm.is_bundle
-                      ? 'bg-cyan-600 text-white shadow-xs'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${productForm.is_bundle
+                    ? 'bg-cyan-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                    }`}
                 >
                   <Package size={13} />
                   <span>Pack / Conjunto</span>
@@ -363,11 +361,10 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                       return (
                         <div
                           key={p.id}
-                          className={`p-3 rounded-xl border transition-all ${
-                            isChecked
-                              ? 'bg-white dark:bg-slate-900 border-cyan-500 shadow-xs'
-                              : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-80'
-                          }`}
+                          className={`p-3 rounded-xl border transition-all ${isChecked
+                            ? 'bg-white dark:bg-slate-900 border-cyan-500 shadow-xs'
+                            : 'bg-white/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-80'
+                            }`}
                         >
                           <div className="flex items-center justify-between gap-3">
                             <label className="flex items-center gap-3 cursor-pointer flex-1">
@@ -526,11 +523,10 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                       key={cat}
                       type="button"
                       onClick={() => setProductForm((prev) => ({ ...prev, category: cat }))}
-                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${
-                        productForm.category === cat
-                          ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/50 font-bold'
-                          : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                      }`}
+                      className={`text-[10px] px-2 py-0.5 rounded-lg border transition-all cursor-pointer ${productForm.category === cat
+                        ? 'bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/50 font-bold'
+                        : 'bg-slate-100 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                        }`}
                     >
                       {cat}
                     </button>
@@ -829,11 +825,10 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                               key={preset}
                               type="button"
                               onClick={() => handleTogglePresetColor(preset)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
-                                  : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                              }`}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer ${isSelected
+                                ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-bold shadow-xs'
+                                : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                }`}
                             >
                               <span
                                 className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
@@ -972,9 +967,9 @@ export const ShopProductModal: React.FC<ShopProductModalProps> = ({
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-900/60 font-bold">
                             <th className="py-2.5 px-3 w-14">Tam.</th>
-                            <th className="py-2.5 px-3">Peito (A) cm</th>
-                            <th className="py-2.5 px-3">Comprimento (B) cm</th>
-                            <th className="py-2.5 px-3">Manga (C) cm</th>
+                            <th className="py-2.5 px-3">Medida do pescoço até ao cinto  (A) cm</th>
+                            <th className="py-2.5 px-3">Metade do diâmetro à altura do peito (B) cm</th>
+                            <th className="py-2.5 px-3">Medida de ombro a ombro (C) cm</th>
                             <th className="py-2.5 px-3">Ombro ao Punho (D) cm</th>
                             <th className="py-2.5 px-3">Nota / Observação</th>
                           </tr>

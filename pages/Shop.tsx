@@ -585,14 +585,14 @@ export const Shop: React.FC = () => {
 
       const bundleSelectionsPayload = activeCampaign?.is_bundle
         ? bundleResolvedItems.map((item) => {
-            const sel = bundleSelections[item.campaign_id];
-            return {
-              campaign_id: item.campaign_id,
-              item_name: item.item_name,
-              size: sel?.size || item.sizes_available[0] || 'M',
-              color: sel?.color || item.colors_available[0] || 'Preto',
-            };
-          })
+          const sel = bundleSelections[item.campaign_id];
+          return {
+            campaign_id: item.campaign_id,
+            item_name: item.item_name,
+            size: sel?.size || item.sizes_available[0] || 'M',
+            color: sel?.color || item.colors_available[0] || 'Preto',
+          };
+        })
         : undefined;
 
       // Cria a encomenda + PaymentIntent no backend (retorna clientSecret)
@@ -1215,647 +1215,550 @@ export const Shop: React.FC = () => {
                 {/* Conteúdo com scroll interno suave */}
                 <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain">
 
-                {!sweatsAvailable && !isAdminPreview ? (
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
-                    As encomendas do merchandise estão temporariamente suspensas de momento.
-                  </div>
-                ) : checkoutStep === 1 ? (
-                  /* =========================================================================
-                     PASSO 1: FORMULÁRIO DE DADOS & SELEÇÃO
-                     ========================================================================= */
-                  <form onSubmit={handleCheckout} className="space-y-4">
-                    {/* Cartão de Pré-visualização do Artigo com Foto Dinâmica por Cor */}
-                    <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
-                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm p-1.5 flex items-center justify-center">
-                        {activeModalImage ? (
-                          <>
-                            <img
-                              src={activeModalImage}
-                              alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
-                              className="w-full h-full object-contain object-center transition-all duration-300"
-                              onError={(e) => {
-                                const target = e.currentTarget;
-                                target.style.display = 'none';
-                                const fallback = target.nextElementSibling as HTMLElement | null;
-                                if (fallback) fallback.style.display = 'flex';
-                              }}
-                            />
-                            <div className="hidden items-center justify-center text-cyan-400">
+                  {!sweatsAvailable && !isAdminPreview ? (
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-sm">
+                      As encomendas do merchandise estão temporariamente suspensas de momento.
+                    </div>
+                  ) : checkoutStep === 1 ? (
+                    /* =========================================================================
+                       PASSO 1: FORMULÁRIO DE DADOS & SELEÇÃO
+                       ========================================================================= */
+                    <form onSubmit={handleCheckout} className="space-y-4">
+                      {/* Cartão de Pré-visualização do Artigo com Foto Dinâmica por Cor */}
+                      <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-sm p-1.5 flex items-center justify-center">
+                          {activeModalImage ? (
+                            <>
+                              <img
+                                src={activeModalImage}
+                                alt={`${activeCampaign?.item_name || 'Artigo'} - ${selectedColor}`}
+                                className="w-full h-full object-contain object-center transition-all duration-300"
+                                onError={(e) => {
+                                  const target = e.currentTarget;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement | null;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden items-center justify-center text-cyan-400">
+                                {activeCampaign?.is_bundle ? <Package size={24} /> : <Shirt size={24} />}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center justify-center text-cyan-400">
                               {activeCampaign?.is_bundle ? <Package size={24} /> : <Shirt size={24} />}
                             </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center justify-center text-cyan-400">
-                            {activeCampaign?.is_bundle ? <Package size={24} /> : <Shirt size={24} />}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
-                            {activeCampaign?.is_bundle ? 'Pack Promocional' : activeCampaign?.category || 'Vestuário'}
-                          </span>
-                          {activeCampaign?.is_bundle && (
-                            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">
-                              {bundleResolvedItems.length} Peças
-                            </span>
                           )}
                         </div>
-                        <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
-                          {activeCampaign?.item_name}
-                        </h4>
-                        {!activeCampaign?.is_bundle ? (
-                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                              <span>Tamanho: <strong>{selectedSize}</strong></span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 block truncate">
+                              {activeCampaign?.is_bundle ? 'Pack Promocional' : activeCampaign?.category || 'Vestuário'}
                             </span>
+                            {activeCampaign?.is_bundle && (
+                              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300">
+                                {bundleResolvedItems.length} Peças
+                              </span>
+                            )}
                           </div>
-                        ) : (
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                            Inclui: {bundleResolvedItems.map((b) => b.item_name).join(' + ')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Descrição Detalhada do Artigo (compacta com scroll se longa) */}
-                    {activeCampaign?.description && (
-                      <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs leading-relaxed shadow-xs max-h-24 overflow-y-auto">
-                        <div className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 font-bold mb-1 text-[11px] uppercase tracking-wider sticky top-0 bg-transparent">
-                          <Info size={13} className="shrink-0" />
-                          <span>Descrição Detalhada</span>
-                        </div>
-                        <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
-                          {activeCampaign.description}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Seleção de Tamanho e Cor: Se for Pack, configura cada artigo individualmente */}
-                    {activeCampaign?.is_bundle ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                            <Package size={15} className="text-cyan-500" />
-                            <span>Configura os artigos do teu Pack ({bundleResolvedItems.length} peças)</span>
-                          </label>
-                          {bundleSavingsInfo && (
-                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-400/30">
-                              Poupa {bundleSavingsInfo.savings.toFixed(2)}€ ({bundleSavingsInfo.percent}% OFF)
-                            </span>
+                          <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+                            {activeCampaign?.item_name}
+                          </h4>
+                          {!activeCampaign?.is_bundle ? (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                <span>Tamanho: <strong>{selectedSize}</strong></span>
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              Inclui: {bundleResolvedItems.map((b) => b.item_name).join(' + ')}
+                            </div>
                           )}
                         </div>
+                      </div>
 
+                      {/* Descrição Detalhada do Artigo (compacta com scroll se longa) */}
+                      {activeCampaign?.description && (
+                        <div className="p-3 rounded-xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/60 text-slate-700 dark:text-slate-300 text-xs leading-relaxed shadow-xs max-h-24 overflow-y-auto">
+                          <div className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 font-bold mb-1 text-[11px] uppercase tracking-wider sticky top-0 bg-transparent">
+                            <Info size={13} className="shrink-0" />
+                            <span>Descrição Detalhada</span>
+                          </div>
+                          <p className="whitespace-pre-line text-slate-700 dark:text-slate-300">
+                            {activeCampaign.description}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Seleção de Tamanho e Cor: Se for Pack, configura cada artigo individualmente */}
+                      {activeCampaign?.is_bundle ? (
                         <div className="space-y-3">
-                          {bundleResolvedItems.map((item, index) => {
-                            const currentSel = bundleSelections[item.campaign_id] || {
-                              size: item.sizes_available[0] || 'M',
-                              color: item.colors_available[0] || 'Preto',
-                            };
-                            const itemColor = currentSel.color || item.colors_available[0] || 'Preto';
-                            const itemImage =
-                              (itemColor && item.color_images?.[itemColor]) || item.image_url;
-                            const isClothingItem = item.category.toLowerCase() === 'vestuário';
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                              <Package size={15} className="text-cyan-500" />
+                              <span>Configura os artigos do teu Pack ({bundleResolvedItems.length} peças)</span>
+                            </label>
+                            {bundleSavingsInfo && (
+                              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                                Poupa {bundleSavingsInfo.savings.toFixed(2)}€ ({bundleSavingsInfo.percent}% OFF)
+                              </span>
+                            )}
+                          </div>
 
-                            return (
-                              <div
-                                key={item.campaign_id}
-                                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs"
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs p-1 flex items-center justify-center">
-                                      {itemImage ? (
-                                        <>
-                                          <img
-                                            src={itemImage}
-                                            alt={item.item_name}
-                                            className="w-full h-full object-contain"
-                                            onError={(e) => {
-                                              const target = e.currentTarget;
-                                              target.style.display = 'none';
-                                              const fallback = target.nextElementSibling as HTMLElement | null;
-                                              if (fallback) fallback.style.display = 'flex';
-                                            }}
-                                          />
-                                          <div className="hidden items-center justify-center text-cyan-400">
+                          <div className="space-y-3">
+                            {bundleResolvedItems.map((item, index) => {
+                              const currentSel = bundleSelections[item.campaign_id] || {
+                                size: item.sizes_available[0] || 'M',
+                                color: item.colors_available[0] || 'Preto',
+                              };
+                              const itemColor = currentSel.color || item.colors_available[0] || 'Preto';
+                              const itemImage =
+                                (itemColor && item.color_images?.[itemColor]) || item.image_url;
+                              const isClothingItem = item.category.toLowerCase() === 'vestuário';
+
+                              return (
+                                <div
+                                  key={item.campaign_id}
+                                  className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 space-y-2.5 shadow-xs"
+                                >
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-950 shrink-0 border border-slate-200 dark:border-slate-800 shadow-xs p-1 flex items-center justify-center">
+                                        {itemImage ? (
+                                          <>
+                                            <img
+                                              src={itemImage}
+                                              alt={item.item_name}
+                                              className="w-full h-full object-contain"
+                                              onError={(e) => {
+                                                const target = e.currentTarget;
+                                                target.style.display = 'none';
+                                                const fallback = target.nextElementSibling as HTMLElement | null;
+                                                if (fallback) fallback.style.display = 'flex';
+                                              }}
+                                            />
+                                            <div className="hidden items-center justify-center text-cyan-400">
+                                              <Shirt size={18} />
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <div className="flex items-center justify-center text-cyan-400">
                                             <Shirt size={18} />
                                           </div>
-                                        </>
-                                      ) : (
-                                        <div className="flex items-center justify-center text-cyan-400">
-                                          <Shirt size={18} />
-                                        </div>
-                                      )}
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block truncate">
+                                          Peça {index + 1} · {item.category}
+                                        </span>
+                                        <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                                          {item.item_name}
+                                        </h5>
+                                      </div>
                                     </div>
-                                    <div className="min-w-0">
-                                      <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block truncate">
-                                        Peça {index + 1} · {item.category}
-                                      </span>
-                                      <h5 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
-                                        {item.item_name}
-                                      </h5>
-                                    </div>
+
+                                    {isClothingItem && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSizeGuideCampaign(item.originalCampaign || null);
+                                          setIsSizeGuideOpen(true);
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer shrink-0"
+                                      >
+                                        <Ruler size={12} />
+                                        <span>Guia Medidas</span>
+                                      </button>
+                                    )}
                                   </div>
 
-                                  {isClothingItem && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setSizeGuideCampaign(item.originalCampaign || null);
-                                        setIsSizeGuideOpen(true);
-                                      }}
-                                      className="inline-flex items-center gap-1 text-[11px] text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer shrink-0"
-                                    >
-                                      <Ruler size={12} />
-                                      <span>Guia Medidas</span>
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Seletor de Tamanho para esta peça */}
-                                <div>
-                                  <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                    Tamanho:{' '}
-                                    <strong className="text-cyan-600 dark:text-cyan-400">
-                                      {currentSel.size}
-                                    </strong>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {sortSweatSizes(item.sizes_available).map((sz) => {
-                                      const isSel = currentSel.size === sz;
-                                      return (
-                                        <button
-                                          key={sz}
-                                          type="button"
-                                          onClick={() => {
-                                            setBundleSelections((prev) => ({
-                                              ...prev,
-                                              [item.campaign_id]: {
-                                                ...prev[item.campaign_id],
-                                                size: sz,
-                                                color:
-                                                  prev[item.campaign_id]?.color ||
-                                                  item.colors_available[0] ||
-                                                  'Preto',
-                                              },
-                                            }));
-                                          }}
-                                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                                            isSel
-                                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs'
-                                              : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
-                                          }`}
-                                        >
-                                          {sz}
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-
-                                {/* Seletor de Cor para esta peça */}
-                                {item.colors_available.length > 0 && (
+                                  {/* Seletor de Tamanho para esta peça */}
                                   <div>
                                     <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                      Cor:{' '}
+                                      Tamanho:{' '}
                                       <strong className="text-cyan-600 dark:text-cyan-400">
-                                        {itemColor}
+                                        {currentSel.size}
                                       </strong>
                                     </div>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {item.colors_available.map((c) => {
-                                        const isSel = itemColor === c;
-                                        const hex = getColorHex(c);
+                                    <div className="flex flex-wrap gap-1">
+                                      {sortSweatSizes(item.sizes_available).map((sz) => {
+                                        const isSel = currentSel.size === sz;
                                         return (
                                           <button
-                                            key={c}
+                                            key={sz}
                                             type="button"
                                             onClick={() => {
                                               setBundleSelections((prev) => ({
                                                 ...prev,
                                                 [item.campaign_id]: {
                                                   ...prev[item.campaign_id],
-                                                  size:
-                                                    prev[item.campaign_id]?.size ||
-                                                    item.sizes_available[0] ||
-                                                    'M',
-                                                  color: c,
+                                                  size: sz,
+                                                  color:
+                                                    prev[item.campaign_id]?.color ||
+                                                    item.colors_available[0] ||
+                                                    'Preto',
                                                 },
                                               }));
                                             }}
-                                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
-                                              isSel
-                                                ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
-                                                : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                                            }`}
+                                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${isSel
+                                              ? 'bg-cyan-600 text-white border-cyan-500 shadow-xs'
+                                              : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                                              }`}
                                           >
-                                            <span
-                                              className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                                              style={{ backgroundColor: hex }}
-                                            />
-                                            <span>{c}</span>
-                                            {isSel && (
-                                              <Check
-                                                size={11}
-                                                className="text-cyan-500 stroke-[3] shrink-0"
-                                              />
-                                            )}
+                                            {sz}
                                           </button>
                                         );
                                       })}
                                     </div>
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        {/* 1. Seleção de Tamanho */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1.5">
-                            <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
-                              Tamanho:{' '}
-                              <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
-                                {selectedSize}
-                              </span>
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSizeGuideCampaign(activeCampaign);
-                                setIsSizeGuideOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
-                            >
-                              <Ruler size={13} />
-                              Guia de Tamanhos
-                            </button>
-                          </div>
 
-                          <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
-                            {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
-                              const isSelected = selectedSize === sz;
-                              return (
-                                <button
-                                  key={sz}
-                                  type="button"
-                                  onClick={() => setSelectedSize(sz)}
-                                  className={`py-1.5 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${
-                                    isSelected
-                                      ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
-                                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
-                                  }`}
-                                >
-                                  {sz}
-                                </button>
+                                  {/* Seletor de Cor para esta peça */}
+                                  {item.colors_available.length > 0 && (
+                                    <div>
+                                      <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                        Cor:{' '}
+                                        <strong className="text-cyan-600 dark:text-cyan-400">
+                                          {itemColor}
+                                        </strong>
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {item.colors_available.map((c) => {
+                                          const isSel = itemColor === c;
+                                          const hex = getColorHex(c);
+                                          return (
+                                            <button
+                                              key={c}
+                                              type="button"
+                                              onClick={() => {
+                                                setBundleSelections((prev) => ({
+                                                  ...prev,
+                                                  [item.campaign_id]: {
+                                                    ...prev[item.campaign_id],
+                                                    size:
+                                                      prev[item.campaign_id]?.size ||
+                                                      item.sizes_available[0] ||
+                                                      'M',
+                                                    color: c,
+                                                  },
+                                                }));
+                                              }}
+                                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all cursor-pointer ${isSel
+                                                ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
+                                                : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                                }`}
+                                            >
+                                              <span
+                                                className="w-3 h-3 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                                style={{ backgroundColor: hex }}
+                                              />
+                                              <span>{c}</span>
+                                              {isSel && (
+                                                <Check
+                                                  size={11}
+                                                  className="text-cyan-500 stroke-[3] shrink-0"
+                                                />
+                                              )}
+                                            </button>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>
                         </div>
+                      ) : (
+                        <>
+                          {/* 1. Seleção de Tamanho */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200">
+                                Tamanho:{' '}
+                                <span className="text-cyan-600 dark:text-cyan-400 font-extrabold">
+                                  {selectedSize}
+                                </span>
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSizeGuideCampaign(activeCampaign);
+                                  setIsSizeGuideOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 hover:underline font-semibold cursor-pointer"
+                              >
+                                <Ruler size={13} />
+                                Guia de Tamanhos
+                              </button>
+                            </div>
 
-                        {/* 1b. Seleção Minimalista de Cor */}
-                        {activeColors.length > 0 && (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {activeColors.map((colorName) => {
-                                const isSelected = selectedColor === colorName;
-                                const hex = getColorHex(colorName);
+                            <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                              {sortSweatSizes(activeCampaign?.sizes_available).map((sz) => {
+                                const isSelected = selectedSize === sz;
                                 return (
                                   <button
-                                    key={colorName}
+                                    key={sz}
                                     type="button"
-                                    onClick={() => setSelectedColor(colorName)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer ${
-                                      isSelected
-                                        ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
-                                        : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
-                                    }`}
+                                    onClick={() => setSelectedSize(sz)}
+                                    className={`py-1.5 px-1 rounded-xl text-xs sm:text-sm font-bold border transition-all cursor-pointer ${isSelected
+                                      ? 'bg-cyan-600 text-white border-cyan-500 shadow-md scale-102'
+                                      : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60'
+                                      }`}
                                   >
-                                    <span
-                                      className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
-                                      style={{ backgroundColor: hex }}
-                                    />
-                                    <span>{colorName}</span>
-                                    {isSelected && (
-                                      <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />
-                                    )}
+                                    {sz}
                                   </button>
                                 );
                               })}
                             </div>
                           </div>
-                        )}
-                      </>
-                    )}
 
-                    {/* 2. Modalidade de Entrega */}
-                    <div>
-                      <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
-                        Como queres receber a tua encomenda?
-                      </label>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType('pickup')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
-                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                            }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                              <MapPin size={15} className="text-cyan-500" />
-                              <span>Gabinete NEEI</span>
+                          {/* 1b. Seleção Minimalista de Cor */}
+                          {activeColors.length > 0 && (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {activeColors.map((colorName) => {
+                                  const isSelected = selectedColor === colorName;
+                                  const hex = getColorHex(colorName);
+                                  return (
+                                    <button
+                                      key={colorName}
+                                      type="button"
+                                      onClick={() => setSelectedColor(colorName)}
+                                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium border transition-all cursor-pointer ${isSelected
+                                        ? 'bg-cyan-500/15 border-cyan-500 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500/50 font-bold shadow-xs'
+                                        : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/40'
+                                        }`}
+                                    >
+                                      <span
+                                        className="w-3.5 h-3.5 rounded-full border border-black/20 dark:border-white/20 shrink-0"
+                                        style={{ backgroundColor: hex }}
+                                      />
+                                      <span>{colorName}</span>
+                                      {isSelected && (
+                                        <Check size={13} className="text-cyan-500 stroke-[3] shrink-0" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
-                            <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.2 rounded-full">
-                              Grátis
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            {activeCampaign?.pickup_location || 'Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.'}
-                          </p>
-                        </button>
+                          )}
+                        </>
+                      )}
 
-                        {/* Opção 2: Envio CTT Nacional */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType('shipping')}
-                          className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
-                            ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
-                            }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                              <Truck size={15} className="text-cyan-500" />
-                              <span>Envio CTT Nacional</span>
+                      {/* 2. Modalidade de Entrega */}
+                      <div>
+                        <label className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 block mb-1.5">
+                          Como queres receber a tua encomenda?
+                        </label>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {/* Opção 1: Levantamento no Gabinete (Gambelas) */}
+                          <button
+                            type="button"
+                            onClick={() => setDeliveryType('pickup')}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'pickup'
+                              ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                <MapPin size={15} className="text-cyan-500" />
+                                <span>Gabinete NEEI</span>
+                              </div>
+                              <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.2 rounded-full">
+                                Grátis
+                              </span>
                             </div>
-                            <span className="text-[10px] font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.2 rounded-full">
-                              +{(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            Recebe em qualquer morada de Portugal Continental ou Ilhas.
-                          </p>
-                        </button>
-                      </div>
-                    </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                              {activeCampaign?.pickup_location || 'Recolha na Sala 0.18, Edifício 1, Campus de Gambelas.'}
+                            </p>
+                          </button>
 
-                    {/* Campos de Morada se Envio por Correio */}
-                    {deliveryType === 'shipping' && (
-                      <div className="p-3.5 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-2.5 animate-in fade-in duration-150">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Morada de Envio *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={shippingAddress}
-                            onChange={(e) => setShippingAddress(e.target.value)}
-                            placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                          />
+                          {/* Opção 2: Envio CTT Nacional */}
+                          <button
+                            type="button"
+                            onClick={() => setDeliveryType('shipping')}
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${deliveryType === 'shipping'
+                              ? 'bg-cyan-50/50 dark:bg-cyan-950/30 border-cyan-500 ring-1 ring-cyan-500/50'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                              }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-1.5 font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
+                                <Truck size={15} className="text-cyan-500" />
+                                <span>Envio CTT Nacional</span>
+                              </div>
+                              <span className="text-[10px] font-extrabold text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-950/60 px-2 py-0.2 rounded-full">
+                                +{(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                              Recebe em qualquer morada de Portugal Continental ou Ilhas.
+                            </p>
+                          </button>
                         </div>
+                      </div>
 
-                        {/* Código Postal + Distrito + Concelho */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      {/* Campos de Morada se Envio por Correio */}
+                      {deliveryType === 'shipping' && (
+                        <div className="p-3.5 rounded-2xl bg-cyan-50/40 dark:bg-slate-900/80 border border-cyan-200/60 dark:border-cyan-950/60 space-y-2.5 animate-in fade-in duration-150">
                           <div>
                             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                              Código Postal *
+                              Morada de Envio *
                             </label>
                             <input
                               type="text"
                               required
-                              maxLength={8}
-                              value={shippingPostalCode}
-                              onChange={handlePostalCodeChange}
-                              placeholder="8000-000"
-                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                              value={shippingAddress}
+                              onChange={(e) => setShippingAddress(e.target.value)}
+                              placeholder="Ex: Rua Dr. António José de Almeida, Nº 42, 2º Dto"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
                             />
-                            <span className="text-[10px] text-slate-400 block mt-0.5">Formato 0000-000</span>
                           </div>
 
-                          <div>
-                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                              Distrito / Região *
-                            </label>
-                            <select
-                              value={shippingDistrict}
-                              onChange={handleDistrictChange}
-                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                            >
-                              {districtsList.map((dist) => (
-                                <option key={dist} value={dist}>
-                                  {dist}
-                                </option>
-                              ))}
-                            </select>
+                          {/* Código Postal + Distrito + Concelho */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                Código Postal *
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                maxLength={8}
+                                value={shippingPostalCode}
+                                onChange={handlePostalCodeChange}
+                                placeholder="8000-000"
+                                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono"
+                              />
+                              <span className="text-[10px] text-slate-400 block mt-0.5">Formato 0000-000</span>
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                Distrito / Região *
+                              </label>
+                              <select
+                                value={shippingDistrict}
+                                onChange={handleDistrictChange}
+                                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                              >
+                                {districtsList.map((dist) => (
+                                  <option key={dist} value={dist}>
+                                    {dist}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                                Concelho *
+                              </label>
+                              <select
+                                value={shippingCounty}
+                                onChange={(e) => setShippingCounty(e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
+                              >
+                                {availableCounties.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
-
-                          <div>
-                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                              Concelho *
-                            </label>
-                            <select
-                              value={shippingCounty}
-                              onChange={(e) => setShippingCounty(e.target.value)}
-                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 cursor-pointer"
-                            >
-                              {availableCounties.map((c) => (
-                                <option key={c} value={c}>
-                                  {c}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 3. Dados Pessoais do Aluno */}
-                    <div className="space-y-2.5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Nome Completo *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={studentName}
-                            onChange={handleNameChange}
-                            placeholder="Teu nome completo"
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                          />
-                          <span className="text-[10px] text-slate-400 block mt-0.5">Apenas letras e espaços</span>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                            Email Institucional ou Pessoal *
-                          </label>
-                          <input
-                            type="email"
-                            required
-                            value={studentEmail}
-                            onChange={(e) => setStudentEmail(e.target.value)}
-                            placeholder="aXXXXX@ualg.pt"
-                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
-                          />
-                          <span className="text-[10px] text-slate-400 block mt-0.5">Onde receberás o comprovativo</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            Telemóvel (apenas 9 dígitos) *
-                          </label>
-                          {phoneNumber.length === 9 && phoneNumber.startsWith('9') && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                              <Check size={12} /> Número Válido
-                            </span>
-                          )}
-                        </div>
-                        <input
-                          type="tel"
-                          required
-                          maxLength={9}
-                          value={phoneNumber}
-                          onChange={handlePhoneChange}
-                          placeholder="912345678"
-                          className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Resumo de Valores */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
-                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                        <span>
-                          {activeCampaign?.item_name || 'Sweat Oficial'}
-                          {!activeCampaign?.is_bundle
-                            ? ` (${selectedSize})`
-                            : ` (${bundleResolvedItems.length} peças)`}
-                        </span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {(activeCampaign?.item_price ?? 0).toFixed(2)}€{' '}
-                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                            (+ taxas)
-                          </span>
-                        </span>
-                      </div>
-                      {bundleSavingsInfo && (
-                        <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-xl border border-emerald-400/30">
-                          <span>Poupança do Pack ({bundleSavingsInfo.percent}% OFF):</span>
-                          <span>-{bundleSavingsInfo.savings.toFixed(2)}€</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
-                        <span>
-                          Portes:{' '}
-                          {deliveryType === 'shipping'
-                            ? `Envio CTT Nacional (${shippingCounty}, ${shippingDistrict})`
-                            : 'Levantamento no Gabinete NEEI'}
-                        </span>
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
-                          {deliveryType === 'shipping'
-                            ? `${(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€`
-                            : 'Grátis'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
-                        <span className="flex items-center gap-1">
-                          Taxa de processamento (0,25€ + 1,5%)
-                        </span>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
-                          +{paymentFee.toFixed(2)}€
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
-                        <span>Total a Pagar</span>
-                        <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">
-                          {totalPrice.toFixed(2)}€
-                        </span>
-                      </div>
-                    </div>
 
-                    {formError && (
-                      <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
-                        <AlertCircle size={16} className="flex-shrink-0" />
-                        <span>{formError}</span>
-                      </div>
-                    )}
-
-                    {/* Botão de Submissão — Passo 1 */}
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 size={18} className="animate-spin" />
-                          <span>A preparar janela de pagamento...</span>
-                        </>
-                      ) : (
-                        <>
-                          <ArrowRight size={18} />
-                          <span>Continuar para Pagamento · {totalPrice.toFixed(2)}€</span>
-                        </>
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                  /* =========================================================================
-                     PASSO 2: JANELA DEDICADA EXCLUSIVA DE PAGAMENTO (SUBSTITUI O FORMULÁRIO)
-                     ========================================================================= */
-                  <div className="space-y-5 animate-in fade-in duration-200">
-                    {/* Botão superior de retrocesso */}
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCheckoutStep(1);
-                          setFormError(null);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft size={16} />
-                        <span>Voltar aos dados</span>
-                      </button>
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        Passo 2 de 2 · Pagamento
-                      </span>
-                    </div>
-
-                    {/* Resumo discriminado e detalhado da encomenda */}
-                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
-                      <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-sm pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-                        <span>Resumo do Pagamento</span>
-                        <span className="text-cyan-600 dark:text-cyan-400 font-black text-lg">
-                          {stripeTotalAmount.toFixed(2)}€
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5 text-slate-600 dark:text-slate-400">
-                        <div className="flex justify-between">
-                          <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
-                          <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span>
-                          </span>
+                      {/* 3. Dados Pessoais do Aluno */}
+                      <div className="space-y-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                              Nome Completo *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={studentName}
+                              onChange={handleNameChange}
+                              placeholder="Teu nome completo"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            />
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Apenas letras e espaços</span>
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">
+                              Email Institucional ou Pessoal *
+                            </label>
+                            <input
+                              type="email"
+                              required
+                              value={studentEmail}
+                              onChange={(e) => setStudentEmail(e.target.value)}
+                              placeholder="aXXXXX@ualg.pt"
+                              className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500"
+                            />
+                            <span className="text-[10px] text-slate-400 block mt-0.5">Onde receberás o comprovativo</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              Telemóvel (apenas 9 dígitos) *
+                            </label>
+                            {phoneNumber.length === 9 && phoneNumber.startsWith('9') && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                <Check size={12} /> Número Válido
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="tel"
+                            required
+                            maxLength={9}
+                            value={phoneNumber}
+                            onChange={handlePhoneChange}
+                            placeholder="912345678"
+                            className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 font-mono tracking-wider"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Resumo de Valores */}
+                      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                        <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
                           <span>
+                            {activeCampaign?.item_name || 'Sweat Oficial'}
+                            {!activeCampaign?.is_bundle
+                              ? ` (${selectedSize})`
+                              : ` (${bundleResolvedItems.length} peças)`}
+                          </span>
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
+                            {(activeCampaign?.item_price ?? 0).toFixed(2)}€{' '}
+                            <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                              (+ taxas)
+                            </span>
+                          </span>
+                        </div>
+                        {bundleSavingsInfo && (
+                          <div className="flex justify-between items-center text-xs text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/40 p-2 rounded-xl border border-emerald-400/30">
+                            <span>Poupança do Pack ({bundleSavingsInfo.percent}% OFF):</span>
+                            <span>-{bundleSavingsInfo.savings.toFixed(2)}€</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400">
+                          <span>
+                            Portes:{' '}
                             {deliveryType === 'shipping'
-                              ? 'Portes de Envio (CTT Nacional)'
-                              : 'Portes (Levantamento no Gabinete)'}
+                              ? `Envio CTT Nacional (${shippingCounty}, ${shippingDistrict})`
+                              : 'Levantamento no Gabinete NEEI'}
                           </span>
                           <span className="font-medium text-slate-800 dark:text-slate-200">
                             {deliveryType === 'shipping'
@@ -1863,71 +1766,164 @@ export const Shop: React.FC = () => {
                               : 'Grátis'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 px-2.5 py-1.5 rounded-lg border border-cyan-200 dark:border-cyan-800/60">
-                          <span className="font-medium">Taxa de processamento / pagamento (0,25€ + 1,5%)</span>
-                          <span className="font-bold text-cyan-600 dark:text-cyan-400">
-                            +{((stripePaymentFee || paymentFee)).toFixed(2)}€
+                        <div className="flex justify-between items-center text-xs text-slate-600 dark:text-slate-400">
+                          <span className="flex items-center gap-1">
+                            Taxa de processamento (0,25€ + 1,5%)
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
+                            +{paymentFee.toFixed(2)}€
+                          </span>
+                        </div>
+                        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-sm font-bold text-slate-900 dark:text-white">
+                          <span>Total a Pagar</span>
+                          <span className="text-lg font-black text-cyan-600 dark:text-cyan-400">
+                            {totalPrice.toFixed(2)}€
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between items-center font-bold text-slate-900 dark:text-white">
-                        <span className="text-xs">Total final a debitar:</span>
-                        <span className="text-cyan-600 dark:text-cyan-400 text-base font-black">
-                          {stripeTotalAmount.toFixed(2)}€
+                      {formError && (
+                        <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-300 text-xs flex items-center gap-2">
+                          <AlertCircle size={16} className="flex-shrink-0" />
+                          <span>{formError}</span>
+                        </div>
+                      )}
+
+                      {/* Botão de Submissão — Passo 1 */}
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-3 px-4 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            <span>A preparar janela de pagamento...</span>
+                          </>
+                        ) : (
+                          <>
+                            <ArrowRight size={18} />
+                            <span>Continuar para Pagamento · {totalPrice.toFixed(2)}€</span>
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  ) : (
+                    /* =========================================================================
+                       PASSO 2: JANELA DEDICADA EXCLUSIVA DE PAGAMENTO (SUBSTITUI O FORMULÁRIO)
+                       ========================================================================= */
+                    <div className="space-y-5 animate-in fade-in duration-200">
+                      {/* Botão superior de retrocesso */}
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckoutStep(1);
+                            setFormError(null);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft size={16} />
+                          <span>Voltar aos dados</span>
+                        </button>
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          Passo 2 de 2 · Pagamento
                         </span>
                       </div>
 
-                      <div className="text-slate-500 dark:text-slate-400 flex flex-col gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px]">
-                        <div>
-                          <strong className="text-slate-700 dark:text-slate-300">Aluno:</strong> {studentName} ({studentEmail}) · {phoneNumber}
+                      {/* Resumo discriminado e detalhado da encomenda */}
+                      <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+                        <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-sm pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
+                          <span>Resumo do Pagamento</span>
+                          <span className="text-cyan-600 dark:text-cyan-400 font-black text-lg">
+                            {stripeTotalAmount.toFixed(2)}€
+                          </span>
                         </div>
-                        <div>
-                          <strong className="text-slate-700 dark:text-slate-300">Entrega:</strong>{' '}
-                          {deliveryType === 'shipping'
-                            ? `Envio CTT (${shippingAddress}, ${shippingPostalCode} ${shippingCounty}, ${shippingDistrict})`
-                            : 'Levantamento no Gabinete NEEI (Gambelas)'}
+
+                        <div className="space-y-1.5 text-slate-600 dark:text-slate-400">
+                          <div className="flex justify-between">
+                            <span>{activeCampaign?.item_name || 'Sweat Oficial'} ({selectedSize})</span>
+                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                              {(activeCampaign?.item_price ?? 0).toFixed(2)}€ <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">(+ taxas)</span>
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>
+                              {deliveryType === 'shipping'
+                                ? 'Portes de Envio (CTT Nacional)'
+                                : 'Portes (Levantamento no Gabinete)'}
+                            </span>
+                            <span className="font-medium text-slate-800 dark:text-slate-200">
+                              {deliveryType === 'shipping'
+                                ? `${(activeCampaign?.shipping_fee ?? 4.5).toFixed(2)}€`
+                                : 'Grátis'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-cyan-700 dark:text-cyan-300 bg-cyan-50 dark:bg-cyan-950/40 px-2.5 py-1.5 rounded-lg border border-cyan-200 dark:border-cyan-800/60">
+                            <span className="font-medium">Taxa de processamento / pagamento (0,25€ + 1,5%)</span>
+                            <span className="font-bold text-cyan-600 dark:text-cyan-400">
+                              +{((stripePaymentFee || paymentFee)).toFixed(2)}€
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex justify-between items-center font-bold text-slate-900 dark:text-white">
+                          <span className="text-xs">Total final a debitar:</span>
+                          <span className="text-cyan-600 dark:text-cyan-400 text-base font-black">
+                            {stripeTotalAmount.toFixed(2)}€
+                          </span>
+                        </div>
+
+                        <div className="text-slate-500 dark:text-slate-400 flex flex-col gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px]">
+                          <div>
+                            <strong className="text-slate-700 dark:text-slate-300">Aluno:</strong> {studentName} ({studentEmail}) · {phoneNumber}
+                          </div>
+                          <div>
+                            <strong className="text-slate-700 dark:text-slate-300">Entrega:</strong>{' '}
+                            {deliveryType === 'shipping'
+                              ? `Envio CTT (${shippingAddress}, ${shippingPostalCode} ${shippingCounty}, ${shippingDistrict})`
+                              : 'Levantamento no Gabinete NEEI (Gambelas)'}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Widget Oficial de Pagamento Stripe */}
-                    {stripeClientSecret && stripePublishableKey && activeOrderId ? (
-                      <StripePaymentWidget
-                        clientSecret={stripeClientSecret}
-                        publishableKey={stripePublishableKey}
-                        orderId={activeOrderId}
-                        totalAmount={stripeTotalAmount}
-                        isSandbox={stripeIsSandbox}
-                        studentName={studentName}
-                        studentEmail={studentEmail}
-                        phoneNumber={phoneNumber}
-                        onSuccess={handlePaymentSuccess}
-                        onError={handlePaymentError}
-                      />
-                    ) : (
-                      <div className="p-8 text-center text-slate-400 space-y-3">
-                        <Loader2 size={24} className="animate-spin mx-auto text-cyan-500" />
-                        <p className="text-xs">A carregar formulário de pagamento seguro...</p>
+                      {/* Widget Oficial de Pagamento Stripe */}
+                      {stripeClientSecret && stripePublishableKey && activeOrderId ? (
+                        <StripePaymentWidget
+                          clientSecret={stripeClientSecret}
+                          publishableKey={stripePublishableKey}
+                          orderId={activeOrderId}
+                          totalAmount={stripeTotalAmount}
+                          isSandbox={stripeIsSandbox}
+                          studentName={studentName}
+                          studentEmail={studentEmail}
+                          phoneNumber={phoneNumber}
+                          onSuccess={handlePaymentSuccess}
+                          onError={handlePaymentError}
+                        />
+                      ) : (
+                        <div className="p-8 text-center text-slate-400 space-y-3">
+                          <Loader2 size={24} className="animate-spin mx-auto text-cyan-500" />
+                          <p className="text-xs">A carregar formulário de pagamento seguro...</p>
+                        </div>
+                      )}
+
+                      {/* Botão inferior para voltar atrás a qualquer momento */}
+                      <div className="pt-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckoutStep(1);
+                            setFormError(null);
+                          }}
+                          className="text-xs text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <ChevronLeft size={13} />
+                          <span>Desejas alterar o tamanho ou a morada? Clica aqui para voltar atrás</span>
+                        </button>
                       </div>
-                    )}
-
-                    {/* Botão inferior para voltar atrás a qualquer momento */}
-                    <div className="pt-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCheckoutStep(1);
-                          setFormError(null);
-                        }}
-                        className="text-xs text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                      >
-                        <ChevronLeft size={13} />
-                        <span>Desejas alterar o tamanho ou a morada? Clica aqui para voltar atrás</span>
-                      </button>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
               </div>
             </div>
@@ -1983,10 +1979,10 @@ export const Shop: React.FC = () => {
                         <thead>
                           <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
                             <th className="py-2.5 px-3">Tamanho</th>
-                            <th className="py-2.5 px-3">Peito (A)</th>
-                            <th className="py-2.5 px-3">Comprimento (B)</th>
-                            <th className="py-2.5 px-3">Manga (C)</th>
-                            <th className="py-2.5 px-3">Ombro ao Punho (D)</th>
+                            <th className="py-2.5 px-3">Medida do pescoço até ao cinto (A)</th>
+                            <th className="py-2.5 px-3">Metade do diâmetro à altura do peito (B)</th>
+                            <th className="py-2.5 px-3">Medida de ombro a ombro (C)</th>
+                            <th className="py-2.5 px-3">Comprimento do ombro ao punho (D)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
