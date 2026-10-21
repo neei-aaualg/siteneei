@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { getCanonicalAppUrl } from '../security.js';
 
 /**
  * Escapa caracteres especiais HTML para prevenir injeção em clientes de email (M3, N2)
@@ -136,6 +137,8 @@ export async function sendOrderConfirmationEmail(order) {
     : 'Levantamento no Gabinete do NEEI (Sala 0.18, Edifício 1, Campus de Gambelas, Faro)';
 
   const smtpFrom = cleanEnvVal(process.env.SMTP_FROM) || 'NEEI · AAUAlg <neei@aaualg.pt>';
+  const appBaseUrl = getCanonicalAppUrl();
+  const trackingUrl = `${appBaseUrl}/merch?track=${encodeURIComponent(order.id)}`;
 
   // Versão em Texto Simples (Garante que NENHUM cliente de email vê o email vazio)
   const plainTextContent = `
@@ -167,7 +170,7 @@ PRÓXIMOS PASSOS:
 Esta é uma campanha oficial de pré-encomenda. Assim que o lote de produção na fábrica estiver concluído, entraremos em contacto por email e/ou através do Instagram (@neeiualg) com as datas para levantamento no gabinete ou o código de rastreio dos CTT.
 
 Podes acompanhar o estado da tua encomenda a qualquer momento em:
-https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}
+${trackingUrl}
 
 Dúvidas ou apoio?
 Envia-nos um email para neei@aaualg.pt ou mensagem no Instagram @neeiualg.
@@ -294,7 +297,7 @@ Núcleo de Estudantes de Engenharia Informática da AAUAlg
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
                 <tr>
                   <td align="center">
-                    <a href="https://neei.aaualg.pt/merch?track=${encodeURIComponent(order.id)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
+                    <a href="${escapeHtml(trackingUrl)}" target="_blank" style="display: inline-block; background-color: #0284c7; color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 13px 28px; border-radius: 12px; box-shadow: 0 4px 10px rgba(2,132,199,0.3);">
                       Acompanhar Estado da Encomenda Online →
                     </a>
                   </td>

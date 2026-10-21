@@ -496,7 +496,13 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   };
 
   const handleOpenEditProduct = (prod: ShopCampaign) => {
-    const isBundle = Boolean(prod.is_bundle);
+    setEditingProduct(prod);
+    setProductError(null);
+    const isBundle = Boolean(
+      prod.is_bundle ||
+      (prod.bundle_items && prod.bundle_items.length > 0) ||
+      prod.category === 'Pack'
+    );
     setProductForm({
       title: prod.title || '',
       description: prod.description || '',

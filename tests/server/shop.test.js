@@ -1172,7 +1172,7 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
     const maliciousHost = security.getCanonicalAppUrl({
       headers: { host: 'evil.com\r\nInjected: Header' },
     });
-    expect(maliciousHost).toBe('https://neei.aaualg.pt');
+    expect(maliciousHost).toBe('https://neei.online');
 
     if (originalAppUrl !== undefined) {
       process.env.APP_URL = originalAppUrl;

@@ -234,9 +234,6 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shop_orders_campaign ON shop_orders(campaign_id);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
-  CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_orders_payment_ref_unique 
-    ON shop_orders(payment_ref) 
-    WHERE payment_ref IS NOT NULL AND payment_ref != '';
 
   CREATE TABLE IF NOT EXISTS shop_webhook_events (
     id TEXT PRIMARY KEY,
@@ -245,6 +242,56 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_shop_webhook_events_processed ON shop_webhook_events(processed_at);
 `);
+
+// Migração defensiva: limpeza de duplicados legados e criação de índice único para payment_ref (C2, M8)
+try {
+  const shopOrdersExists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='shop_orders'")
+    .get();
+
+  if (shopOrdersExists) {
+    // 1. Identificar se existem payment_ref duplicados legados (ex.: 'admin-manual', testes antigos)
+    const duplicates = db
+      .prepare(`
+        SELECT payment_ref, COUNT(*) as cnt
+        FROM shop_orders
+        WHERE payment_ref IS NOT NULL AND payment_ref != ''
+        GROUP BY payment_ref
+        HAVING cnt > 1
+      `)
+      .all();
+
+    if (duplicates.length > 0) {
+      console.warn(
+        `[DB MIGRATION] Encontradas ${duplicates.length} referência(s) de pagamento duplicada(s) legada(s). A desambiguar...`
+      );
+      const disambiguateStmt = db.prepare(`
+        UPDATE shop_orders
+        SET payment_ref = CASE
+          WHEN payment_ref = 'admin-manual' THEN 'admin-manual-' || id
+          ELSE payment_ref || '-legacy-' || id
+        END
+        WHERE payment_ref = ?
+      `);
+
+      for (const dup of duplicates) {
+        disambiguateStmt.run(dup.payment_ref);
+      }
+    }
+
+    // 2. Criação do índice parcial único sem risco de crash no arranque do servidor
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_shop_orders_payment_ref_unique 
+      ON shop_orders(payment_ref) 
+      WHERE payment_ref IS NOT NULL AND payment_ref != '';
+    `);
+  }
+} catch (migErr) {
+  console.error(
+    '[DB MIGRATION WARNING] Falha segura ao criar idx_shop_orders_payment_ref_unique:',
+    migErr.message
+  );
+}
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
 try {
@@ -2919,6 +2966,12 @@ export function createAdminManualOrder(orderData) {
     orderData.order_status || (paymentStatus === 'paid' ? 'confirmed' : 'pending_payment');
   const paidAt = paymentStatus === 'paid' ? orderData.paid_at || createdAt : null;
   const adminNotes = (orderData.admin_notes || '').trim() || null;
+  const paymentProvider = orderData.payment_provider || 'manual_admin';
+  const manualPaymentRef =
+    orderData.payment_ref ||
+    (paymentProvider === 'stripe'
+      ? `admin-manual-stripe-${orderId}`
+      : `admin-manual-${orderId}`);
 
   const stmt = db.prepare(`
     INSERT INTO shop_orders (
@@ -2930,8 +2983,8 @@ export function createAdminManualOrder(orderData) {
     ) VALUES (
       ?, ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, 'manual_admin',
-      'admin-manual', ?, 0, 'none', ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, 0, 'none', ?, ?,
       1, ?
     )
   `);
@@ -2955,6 +3008,8 @@ export function createAdminManualOrder(orderData) {
     paymentFee,
     totalAmount,
     paymentStatus,
+    paymentProvider,
+    manualPaymentRef,
     orderStatus,
     createdAt,
     paidAt,

@@ -83,7 +83,7 @@ export function clientIp(req) {
 
 /**
  * Obtém o URL base canónico da aplicação validando o host para evitar Host Header Injection.
- * Em produção, falha de forma segura para https://neei.aaualg.pt se APP_URL não estiver configurado.
+ * Em produção, falha de forma segura para https://neei.online se APP_URL não estiver configurado.
  */
 export function getCanonicalAppUrl(req = null) {
   const envUrl = (process.env.APP_URL || '').trim();
@@ -102,5 +102,5 @@ export function getCanonicalAppUrl(req = null) {
     }
   }
 
-  return 'https://neei.aaualg.pt';
+  return 'https://neei.online';
 }
