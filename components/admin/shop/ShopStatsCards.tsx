@@ -117,56 +117,69 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
 
       {/* Cartão de Resumo de Lucro Esperado */}
       {stats?.profitSummary && (
-        <div className="bg-gradient-to-r from-emerald-500/10 via-cyan-500/10 to-blue-500/10 p-5 rounded-2xl border border-emerald-500/30 dark:border-cyan-500/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white dark:bg-[#0c1724] p-5 rounded-xl border border-gray-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
-              <TrendingUp size={22} />
+            <span className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+              <TrendingUp size={20} />
             </span>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
-                  Lucro Esperado da Loja (Encomendas Pagas)
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                  Lucro Estimado da Loja
                 </span>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-800 dark:text-cyan-300">
-                  Margem Média: {stats.profitSummary.overallMarginAvgPct}%
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                  {stats.profitSummary.totalPaidUnits} artigos pagos
                 </span>
               </div>
-              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                Estimativa calculada sobre {stats.profitSummary.totalPaidUnits} artigos pagos com base nos custos de produção.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {stats.profitSummary.totalProfitMin === stats.profitSummary.totalProfitMax
+                  ? `Margem sobre vendas: ${stats.profitSummary.overallMarginAvgPct}%`
+                  : `Média estimada: ${stats.profitSummary.totalProfitAvg.toFixed(2)}€ (${stats.profitSummary.overallMarginAvgPct}% margem)`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6 self-start md:self-auto">
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Mínimo</span>
-              <span className="text-base sm:text-lg font-black font-mono text-amber-600 dark:text-amber-400">
-                {stats.profitSummary.totalProfitMin.toFixed(2)}€
-              </span>
-            </div>
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-black text-cyan-600 dark:text-cyan-400 block">Médio</span>
-              <span className="text-lg sm:text-xl font-black font-mono text-cyan-600 dark:text-cyan-400">
-                {stats.profitSummary.totalProfitAvg.toFixed(2)}€
-              </span>
-            </div>
-            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
-            <div className="text-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">Máximo</span>
-              <span className="text-base sm:text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
-                {stats.profitSummary.totalProfitMax.toFixed(2)}€
-              </span>
-            </div>
+            {stats.profitSummary.totalProfitMin === stats.profitSummary.totalProfitMax ? (
+              <div>
+                <span className="text-[10px] uppercase font-medium text-slate-400 block">Lucro Previsto</span>
+                <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  {stats.profitSummary.totalProfitAvg.toFixed(2)}€
+                </span>
+              </div>
+            ) : (
+              <>
+                <div className="text-center">
+                  <span className="text-[10px] uppercase font-medium text-slate-400 block">Mínimo</span>
+                  <span className="text-base sm:text-lg font-bold font-mono text-slate-700 dark:text-slate-300">
+                    {stats.profitSummary.totalProfitMin.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="h-7 w-px bg-slate-200 dark:bg-slate-800" />
+                <div className="text-center">
+                  <span className="text-[10px] uppercase font-bold text-cyan-600 dark:text-cyan-400 block">Médio</span>
+                  <span className="text-lg sm:text-xl font-bold font-mono text-cyan-600 dark:text-cyan-400">
+                    {stats.profitSummary.totalProfitAvg.toFixed(2)}€
+                  </span>
+                </div>
+                <div className="h-7 w-px bg-slate-200 dark:bg-slate-800" />
+                <div className="text-center">
+                  <span className="text-[10px] uppercase font-medium text-slate-400 block">Máximo</span>
+                  <span className="text-base sm:text-lg font-bold font-mono text-slate-700 dark:text-slate-300">
+                    {stats.profitSummary.totalProfitMax.toFixed(2)}€
+                  </span>
+                </div>
+              </>
+            )}
 
             {onOpenProfitPanel && (
               <button
                 type="button"
                 onClick={onOpenProfitPanel}
-                className="ml-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
+                className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-semibold transition-colors cursor-pointer shrink-0"
               >
-                <span>Ver & Editar Margens</span>
-                <ArrowRight size={14} />
+                <span>Configurar</span>
+                <ArrowRight size={13} />
               </button>
             )}
           </div>

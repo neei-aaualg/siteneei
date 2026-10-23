@@ -1892,6 +1892,31 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
       expect(Array.isArray(restored)).toBe(true);
     });
 
+    it('permite definir apenas um campo "profit" simplificado (lucro fixo por peça)', () => {
+      const fixedMargins = [
+        {
+          id: 'item-simples',
+          product_name: 'Artigo Simples',
+          sale_price: 20.0,
+          profit: 4.5,
+        },
+      ];
+      const saved = db.saveShopProfitMargins(fixedMargins);
+      expect(saved[0].profit_min).toBe(4.5);
+      expect(saved[0].profit_max).toBe(4.5);
+      expect(saved[0].profit).toBe(4.5);
+
+      const summary = db.calculateShopProfitSummary([
+        { item_name: 'Artigo Simples', payment_status: 'paid' },
+        { item_name: 'Artigo Simples', payment_status: 'paid' },
+      ], saved);
+      expect(summary.totalProfitMin).toBe(9.0);
+      expect(summary.totalProfitMax).toBe(9.0);
+      expect(summary.totalProfitAvg).toBe(9.0);
+
+      db.resetShopProfitMargins();
+    });
+
     it('suporta endpoints REST /api/admin/shop/profit-margins com autenticação', async () => {
       const auth = await import('../../server/auth.js');
       const { token } = auth.authenticateAdmin('test-admin-secret');

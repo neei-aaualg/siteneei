@@ -2957,19 +2957,24 @@ export function getShopProfitMargins() {
     if (!rows || rows.length === 0) {
       return syncProfitMarginsWithCampaigns();
     }
-    return rows.map((r) => ({
-      id: r.id,
-      product_name: r.product_name,
-      sale_price: Number(r.sale_price) || 0,
-      cost_min: Number(r.cost_min) || 0,
-      cost_max: Number(r.cost_max) || 0,
-      sponsorship: Number(r.sponsorship || 0),
-      profit_min: Number(r.profit_min) || 0,
-      profit_max: Number(r.profit_max) || 0,
-      display_order: Number(r.display_order || 0),
-      created_at: r.created_at,
-      updated_at: r.updated_at,
-    }));
+    return rows.map((r) => {
+      const pMin = Number(r.profit_min) || 0;
+      const pMax = Number(r.profit_max) || 0;
+      return {
+        id: r.id,
+        product_name: r.product_name,
+        sale_price: Number(r.sale_price) || 0,
+        cost_min: Number(r.cost_min) || 0,
+        cost_max: Number(r.cost_max) || 0,
+        sponsorship: Number(r.sponsorship || 0),
+        profit_min: pMin,
+        profit_max: pMax,
+        profit: pMin === pMax ? pMin : Number(((pMin + pMax) / 2).toFixed(2)),
+        display_order: Number(r.display_order || 0),
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+      };
+    });
   } catch (err) {
     console.error('[DB] Erro ao ler margens de lucro:', err);
     return [];
@@ -3072,8 +3077,10 @@ export function saveShopProfitMargins(margins) {
       const costMin = Number(m.cost_min) || 0;
       const costMax = Number(m.cost_max) || 0;
       const sponsorship = Number(m.sponsorship) || 0;
-      const profitMin = Number(m.profit_min) || 0;
-      const profitMax = Number(m.profit_max) || 0;
+      const rawPMin = m.profit_min !== undefined ? m.profit_min : (m.profit !== undefined ? m.profit : 0);
+      const rawPMax = m.profit_max !== undefined ? m.profit_max : (m.profit !== undefined ? m.profit : rawPMin);
+      const profitMin = Number(rawPMin) || 0;
+      const profitMax = Number(rawPMax) || 0;
       const displayOrder = m.display_order !== undefined ? Number(m.display_order) : index + 1;
 
       upsertStmt.run(
