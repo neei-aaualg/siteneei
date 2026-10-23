@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { ShoppingBag, MapPin, Truck, FileSpreadsheet, Download, Layers, Shirt } from 'lucide-react';
+import { ShoppingBag, MapPin, Truck, FileSpreadsheet, Download, Layers, Shirt, TrendingUp, ArrowRight } from 'lucide-react';
 import { ShopSummaryStats, SweatSize, getColorHex } from '../../../types/shop';
 
 interface ShopStatsCardsProps {
   stats: ShopSummaryStats | null;
   onDownloadCsv?: () => void;
   showSizeBreakdown?: boolean;
+  onOpenProfitPanel?: () => void;
 }
 
 const STANDARD_SIZES: SweatSize[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -14,6 +15,7 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
   stats,
   onDownloadCsv,
   showSizeBreakdown = false,
+  onOpenProfitPanel,
 }) => {
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
 
@@ -112,6 +114,64 @@ export const ShopStatsCards: React.FC<ShopStatsCardsProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Cartão de Resumo de Lucro Esperado */}
+      {stats?.profitSummary && (
+        <div className="bg-gradient-to-r from-emerald-500/10 via-cyan-500/10 to-blue-500/10 p-5 rounded-2xl border border-emerald-500/30 dark:border-cyan-500/30 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+              <TrendingUp size={22} />
+            </span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                  Lucro Esperado da Loja (Encomendas Pagas)
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-800 dark:text-cyan-300">
+                  Margem Média: {stats.profitSummary.overallMarginAvgPct}%
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                Estimativa calculada sobre {stats.profitSummary.totalPaidUnits} artigos pagos com base nos custos de produção.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 sm:gap-6 self-start md:self-auto">
+            <div className="text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Mínimo</span>
+              <span className="text-base sm:text-lg font-black font-mono text-amber-600 dark:text-amber-400">
+                {stats.profitSummary.totalProfitMin.toFixed(2)}€
+              </span>
+            </div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="text-center">
+              <span className="text-[10px] uppercase font-black text-cyan-600 dark:text-cyan-400 block">Médio</span>
+              <span className="text-lg sm:text-xl font-black font-mono text-cyan-600 dark:text-cyan-400">
+                {stats.profitSummary.totalProfitAvg.toFixed(2)}€
+              </span>
+            </div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700" />
+            <div className="text-center">
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">Máximo</span>
+              <span className="text-base sm:text-lg font-black font-mono text-emerald-600 dark:text-emerald-400">
+                {stats.profitSummary.totalProfitMax.toFixed(2)}€
+              </span>
+            </div>
+
+            {onOpenProfitPanel && (
+              <button
+                type="button"
+                onClick={onOpenProfitPanel}
+                className="ml-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
+              >
+                <span>Ver & Editar Margens</span>
+                <ArrowRight size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Distribuição por Produtos e Tamanhos para a Fábrica & Botão de Exportação CSV */}
       {showSizeBreakdown && (

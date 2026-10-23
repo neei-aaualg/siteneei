@@ -7,6 +7,8 @@ import {
   ShopSummaryStats,
   OrderStatus,
   AdminCreateOrderPayload,
+  ProductProfitMargin,
+  ShopProfitSummary,
 } from '../types/shop';
 
 /**
@@ -408,3 +410,66 @@ export async function fetchShopProducts(options?: {
   }
   return res.json();
 }
+
+/**
+ * Obtém as margens de lucro configuradas e o resumo financeiro atualizado
+ */
+export async function fetchShopProfitMargins(token: string): Promise<{
+  margins: ProductProfitMargin[];
+  profitSummary?: ShopProfitSummary;
+}> {
+  const res = await fetch('/api/admin/shop/profit-margins', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Erro ao carregar margens de lucro');
+  }
+  return res.json();
+}
+
+/**
+ * Atualiza as margens de lucro e valores esperados para cada artigo
+ */
+export async function updateShopProfitMargins(
+  token: string,
+  margins: ProductProfitMargin[]
+): Promise<{
+  margins: ProductProfitMargin[];
+  profitSummary?: ShopProfitSummary;
+  message?: string;
+}> {
+  const res = await fetch('/api/admin/shop/profit-margins', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ margins }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao guardar margens de lucro');
+  }
+  return data;
+}
+
+/**
+ * Restaura as margens de lucro para os valores predefinidos da tabela original
+ */
+export async function resetShopProfitMargins(token: string): Promise<{
+  margins: ProductProfitMargin[];
+  profitSummary?: ShopProfitSummary;
+  message?: string;
+}> {
+  const res = await fetch('/api/admin/shop/profit-margins/reset', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao restaurar margens de lucro padrão');
+  }
+  return data;
+}
+

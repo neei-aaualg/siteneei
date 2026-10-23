@@ -193,7 +193,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_shop_orders_campaign ON shop_orders(campaign_id);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(payment_status);
   CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at);
+
+  CREATE TABLE IF NOT EXISTS shop_profit_margins (
+    id TEXT PRIMARY KEY,
+    product_name TEXT NOT NULL,
+    sale_price REAL NOT NULL,
+    cost_min REAL NOT NULL,
+    cost_max REAL NOT NULL,
+    sponsorship REAL NOT NULL DEFAULT 0,
+    profit_min REAL NOT NULL,
+    profit_max REAL NOT NULL,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `);
+
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
 try {
@@ -2629,6 +2644,8 @@ export function getShopSummaryStats() {
 
   const byProduct = Array.from(productMap.values()).sort((a, b) => b.totalUnits - a.totalUnits);
 
+  const profitSummary = calculateShopProfitSummary(paidOrders);
+
   return {
     totalOrders: allOrders.length,
     totalPaidOrders: paidOrders.length,
@@ -2639,6 +2656,7 @@ export function getShopSummaryStats() {
     pickupCount,
     shippingCount,
     testOrdersCount: allOrders.filter((o) => o.order_status === 'test').length,
+    profitSummary,
   };
 }
 
@@ -2923,4 +2941,342 @@ export function createAdminManualOrder(orderData) {
 
   return getShopOrderById(orderId);
 }
+
+// =========================================================================
+// GESTÃO DE MARGENS E LUCROS ESPERADOS DA LOJA (100% DINÂMICO VIA ADMIN)
+// =========================================================================
+
+/**
+ * Obtém todas as margens de lucro configuradas na base de dados
+ */
+export function getShopProfitMargins() {
+  try {
+    const rows = db
+      .prepare('SELECT * FROM shop_profit_margins ORDER BY display_order ASC, rowid ASC')
+      .all();
+    if (!rows || rows.length === 0) {
+      return syncProfitMarginsWithCampaigns();
+    }
+    return rows.map((r) => ({
+      id: r.id,
+      product_name: r.product_name,
+      sale_price: Number(r.sale_price) || 0,
+      cost_min: Number(r.cost_min) || 0,
+      cost_max: Number(r.cost_max) || 0,
+      sponsorship: Number(r.sponsorship || 0),
+      profit_min: Number(r.profit_min) || 0,
+      profit_max: Number(r.profit_max) || 0,
+      display_order: Number(r.display_order || 0),
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    }));
+  } catch (err) {
+    console.error('[DB] Erro ao ler margens de lucro:', err);
+    return [];
+  }
+}
+
+/**
+ * Sincroniza a tabela de margens com os produtos existentes no catálogo
+ * (cria entradas com valores a zero para serem editadas pelo administrador)
+ */
+export function syncProfitMarginsWithCampaigns() {
+  try {
+    const campaigns = getAllShopCampaigns();
+    if (!campaigns || campaigns.length === 0) return [];
+
+    const now = new Date().toISOString();
+    const insertStmt = db.prepare(`
+      INSERT OR IGNORE INTO shop_profit_margins (
+        id, product_name, sale_price, cost_min, cost_max, sponsorship,
+        profit_min, profit_max, display_order, created_at, updated_at
+      ) VALUES (?, ?, ?, 0, 0, 0, 0, 0, ?, ?, ?)
+    `);
+
+    campaigns.forEach((camp, index) => {
+      insertStmt.run(
+        camp.id,
+        camp.item_name || camp.title,
+        Number(camp.item_price) || 0,
+        index + 1,
+        now,
+        now
+      );
+    });
+
+    const rows = db
+      .prepare('SELECT * FROM shop_profit_margins ORDER BY display_order ASC, rowid ASC')
+      .all();
+    return rows.map((r) => ({
+      id: r.id,
+      product_name: r.product_name,
+      sale_price: Number(r.sale_price) || 0,
+      cost_min: Number(r.cost_min) || 0,
+      cost_max: Number(r.cost_max) || 0,
+      sponsorship: Number(r.sponsorship || 0),
+      profit_min: Number(r.profit_min) || 0,
+      profit_max: Number(r.profit_max) || 0,
+      display_order: Number(r.display_order || 0),
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    }));
+  } catch (err) {
+    console.error('[DB] Erro ao sincronizar margens com produtos:', err);
+    return [];
+  }
+}
+
+/**
+ * Guarda e atualiza a lista de margens de lucro
+ */
+export function saveShopProfitMargins(margins) {
+  if (!Array.isArray(margins)) {
+    throw new Error('As margens devem ser fornecidas num array.');
+  }
+
+  const now = new Date().toISOString();
+  db.exec('BEGIN TRANSACTION;');
+  try {
+    const existing = db.prepare('SELECT id FROM shop_profit_margins').all();
+    const existingIds = new Set(existing.map((r) => r.id));
+    const newIds = new Set(margins.map((m) => String(m.id || '').trim()));
+
+    // Remove produtos que tenham sido eliminados
+    for (const oldId of existingIds) {
+      if (!newIds.has(oldId)) {
+        db.prepare('DELETE FROM shop_profit_margins WHERE id = ?').run(oldId);
+      }
+    }
+
+    const upsertStmt = db.prepare(`
+      INSERT INTO shop_profit_margins (
+        id, product_name, sale_price, cost_min, cost_max, sponsorship,
+        profit_min, profit_max, display_order, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        product_name = excluded.product_name,
+        sale_price = excluded.sale_price,
+        cost_min = excluded.cost_min,
+        cost_max = excluded.cost_max,
+        sponsorship = excluded.sponsorship,
+        profit_min = excluded.profit_min,
+        profit_max = excluded.profit_max,
+        display_order = excluded.display_order,
+        updated_at = excluded.updated_at
+    `);
+
+    margins.forEach((m, index) => {
+      const id = String(m.id || `custom-${index + 1}`).trim();
+      const productName = String(m.product_name || 'Artigo').trim();
+      const salePrice = Number(m.sale_price) || 0;
+      const costMin = Number(m.cost_min) || 0;
+      const costMax = Number(m.cost_max) || 0;
+      const sponsorship = Number(m.sponsorship) || 0;
+      const profitMin = Number(m.profit_min) || 0;
+      const profitMax = Number(m.profit_max) || 0;
+      const displayOrder = m.display_order !== undefined ? Number(m.display_order) : index + 1;
+
+      upsertStmt.run(
+        id,
+        productName,
+        salePrice,
+        costMin,
+        costMax,
+        sponsorship,
+        profitMin,
+        profitMax,
+        displayOrder,
+        m.created_at || now,
+        now
+      );
+    });
+
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+
+  return getShopProfitMargins();
+}
+
+/**
+ * Limpa todas as margens de lucro e sincroniza com o catálogo
+ */
+export function resetShopProfitMargins() {
+  db.exec('DELETE FROM shop_profit_margins;');
+  return syncProfitMarginsWithCampaigns();
+}
+
+/**
+ * Faz corresponder uma encomenda a um item de margem de lucro dinamicamente
+ */
+export function matchOrderToProfitMargin(order, margins) {
+  if (!margins || margins.length === 0) return null;
+
+  const rawItemName = (order.item_name || '').toLowerCase().trim();
+  const rawCampaignId = (order.campaign_id || '').toLowerCase().trim();
+
+  // 1. Correspondência exata por ID ou Nome
+  for (const m of margins) {
+    if (m.id.toLowerCase() === rawCampaignId || m.id.toLowerCase() === rawItemName) {
+      return m;
+    }
+    const mName = m.product_name.toLowerCase().trim();
+    if (mName === rawItemName) {
+      return m;
+    }
+  }
+
+  // 2. Correspondência parcial por Nome
+  for (const m of margins) {
+    const mName = m.product_name.toLowerCase().trim();
+    if (rawItemName.includes(mName) || mName.includes(rawItemName)) {
+      return m;
+    }
+  }
+
+  // 3. Correspondência por palavras-chave principais do nome
+  const orderWords = rawItemName.split(/[\s+\-_/|]+/).filter((w) => w.length > 2);
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const m of margins) {
+    const mWords = m.product_name.toLowerCase().split(/[\s+\-_/|]+/).filter((w) => w.length > 2);
+    let score = 0;
+    for (const w of orderWords) {
+      if (mWords.includes(w)) score++;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = m;
+    }
+  }
+  if (bestMatch && bestScore > 0) return bestMatch;
+
+  // 4. Correspondência por preço de venda
+  const orderPrice = Number(order.item_price || 0);
+  if (orderPrice > 0) {
+    const priceMatch = margins.find((m) => Math.abs(Number(m.sale_price) - orderPrice) < 0.05);
+    if (priceMatch) return priceMatch;
+  }
+
+  return margins[0] || null;
+}
+
+/**
+ * Calcula o resumo de lucro esperado (mínimo, médio e máximo) com base nas encomendas pagas e margens
+ */
+export function calculateShopProfitSummary(orders, margins = null) {
+  const currentMargins = margins || getShopProfitMargins();
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  // Não contabilizar encomendas de teste se order_status === 'test'
+  const validOrders = safeOrders.filter((o) => o.order_status !== 'test');
+
+  if (!currentMargins || currentMargins.length === 0) {
+    return {
+      totalOrdersCount: validOrders.length,
+      totalPaidUnits: 0,
+      totalRevenue: 0,
+      totalProfitMin: 0,
+      totalProfitMax: 0,
+      totalProfitAvg: 0,
+      overallMarginMinPct: 0,
+      overallMarginMaxPct: 0,
+      overallMarginAvgPct: 0,
+      items: [],
+      unmatchedUnits: validOrders.length,
+    };
+  }
+
+  const countsMap = new Map();
+  currentMargins.forEach((m) => {
+    countsMap.set(m.id, {
+      margin: m,
+      units: 0,
+    });
+  });
+
+  let unmatchedCount = 0;
+
+  for (const order of validOrders) {
+    const matchedMargin = matchOrderToProfitMargin(order, currentMargins);
+    if (matchedMargin && countsMap.has(matchedMargin.id)) {
+      countsMap.get(matchedMargin.id).units++;
+    } else {
+      unmatchedCount++;
+    }
+  }
+
+  let totalPaidUnits = 0;
+  let totalRevenue = 0;
+  let totalProfitMin = 0;
+  let totalProfitMax = 0;
+
+  const items = currentMargins.map((m) => {
+    const entry = countsMap.get(m.id);
+    const units = entry ? entry.units : 0;
+    const salePrice = Number(m.sale_price) || 0;
+    const costMin = Number(m.cost_min) || 0;
+    const costMax = Number(m.cost_max) || 0;
+    const sponsorship = Number(m.sponsorship) || 0;
+    const profitMin = Number(m.profit_min) || 0;
+    const profitMax = Number(m.profit_max) || 0;
+    const profitAvg = Number(((profitMin + profitMax) / 2).toFixed(2));
+
+    const itemRevenue = Number((units * salePrice).toFixed(2));
+    const itemProfitMin = Number((units * profitMin).toFixed(2));
+    const itemProfitMax = Number((units * profitMax).toFixed(2));
+    const itemProfitAvg = Number((units * profitAvg).toFixed(2));
+
+    const marginMinPct = salePrice > 0 ? Number(((profitMin / salePrice) * 100).toFixed(1)) : 0;
+    const marginMaxPct = salePrice > 0 ? Number(((profitMax / salePrice) * 100).toFixed(1)) : 0;
+    const marginAvgPct = salePrice > 0 ? Number(((profitAvg / salePrice) * 100).toFixed(1)) : 0;
+
+    totalPaidUnits += units;
+    totalRevenue += itemRevenue;
+    totalProfitMin += itemProfitMin;
+    totalProfitMax += itemProfitMax;
+
+    return {
+      id: m.id,
+      product_name: m.product_name,
+      sale_price: salePrice,
+      cost_min: costMin,
+      cost_max: costMax,
+      sponsorship,
+      profit_min: profitMin,
+      profit_max: profitMax,
+      profit_avg: profitAvg,
+      margin_min_pct: marginMinPct,
+      margin_max_pct: marginMaxPct,
+      margin_avg_pct: marginAvgPct,
+      units_sold: units,
+      total_revenue: itemRevenue,
+      total_profit_min: itemProfitMin,
+      total_profit_max: itemProfitMax,
+      total_profit_avg: itemProfitAvg,
+    };
+  });
+
+  const totalProfitAvg = Number(((totalProfitMin + totalProfitMax) / 2).toFixed(2));
+  const overallMarginMinPct = totalRevenue > 0 ? Number(((totalProfitMin / totalRevenue) * 100).toFixed(1)) : 0;
+  const overallMarginMaxPct = totalRevenue > 0 ? Number(((totalProfitMax / totalRevenue) * 100).toFixed(1)) : 0;
+  const overallMarginAvgPct = totalRevenue > 0 ? Number(((totalProfitAvg / totalRevenue) * 100).toFixed(1)) : 0;
+
+  return {
+    totalOrdersCount: validOrders.length,
+    totalPaidUnits,
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalProfitMin: Number(totalProfitMin.toFixed(2)),
+    totalProfitMax: Number(totalProfitMax.toFixed(2)),
+    totalProfitAvg,
+    overallMarginMinPct,
+    overallMarginMaxPct,
+    overallMarginAvgPct,
+    items,
+    unmatchedUnits: unmatchedCount,
+  };
+}
+
 

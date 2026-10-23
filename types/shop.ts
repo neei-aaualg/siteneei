@@ -347,4 +347,54 @@ export interface ShopSummaryStats {
   shippingCount: number;
   byProduct?: ProductStatBreakdown[];
   testOrdersCount?: number;
+  profitSummary?: ShopProfitSummary;
 }
+
+export interface ProductProfitMargin {
+  id: string;
+  product_name: string;
+  sale_price: number;
+  cost_min: number;
+  cost_max: number;
+  sponsorship: number;
+  profit_min: number;
+  profit_max: number;
+  display_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductProfitStatsItem {
+  id: string;
+  product_name: string;
+  sale_price: number;
+  cost_min: number;
+  cost_max: number;
+  sponsorship: number;
+  profit_min: number;
+  profit_max: number;
+  profit_avg: number;
+  margin_min_pct: number;
+  margin_max_pct: number;
+  margin_avg_pct: number;
+  units_sold: number;
+  total_revenue: number;
+  total_profit_min: number;
+  total_profit_max: number;
+  total_profit_avg: number;
+}
+
+export interface ShopProfitSummary {
+  totalOrdersCount: number;
+  totalPaidUnits: number;
+  totalRevenue: number;
+  totalProfitMin: number;
+  totalProfitMax: number;
+  totalProfitAvg: number;
+  overallMarginMinPct: number;
+  overallMarginMaxPct: number;
+  overallMarginAvgPct: number;
+  items: ProductProfitStatsItem[];
+  unmatchedUnits?: number;
+}
+

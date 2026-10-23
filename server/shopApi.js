@@ -30,6 +30,10 @@ import {
   isWebhookEventProcessed,
   markWebhookEventProcessed,
   createAdminManualOrder,
+  getShopProfitMargins,
+  saveShopProfitMargins,
+  resetShopProfitMargins,
+  calculateShopProfitSummary,
 } from './db.js';
 import {
   sendOrderConfirmationEmail,
@@ -918,6 +922,48 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         const stats = getShopSummaryStats();
         return sendJson(res, 200, stats);
       }
+
+      // GET /api/admin/shop/profit-margins - Consultar margens e resumo de lucro
+      if (pathname === '/api/admin/shop/profit-margins' && req.method === 'GET') {
+        const margins = getShopProfitMargins();
+        const stats = getShopSummaryStats();
+        return sendJson(res, 200, {
+          margins,
+          profitSummary: stats.profitSummary,
+        });
+      }
+
+      // PUT /api/admin/shop/profit-margins - Atualizar margens de lucro
+      if (pathname === '/api/admin/shop/profit-margins' && req.method === 'PUT') {
+        const body = await readJsonBody(req);
+        try {
+          const marginsList = Array.isArray(body) ? body : body.margins;
+          if (!Array.isArray(marginsList)) {
+            return sendJson(res, 400, { error: 'O corpo do pedido deve conter um array de margens.' });
+          }
+          const updated = saveShopProfitMargins(marginsList);
+          const stats = getShopSummaryStats();
+          return sendJson(res, 200, {
+            margins: updated,
+            profitSummary: stats.profitSummary,
+            message: 'Margens de lucro atualizadas com sucesso.',
+          });
+        } catch (err) {
+          return sendJson(res, 400, { error: err.message || 'Erro ao guardar margens de lucro' });
+        }
+      }
+
+      // POST /api/admin/shop/profit-margins/reset - Restaurar valores originais da tabela
+      if (pathname === '/api/admin/shop/profit-margins/reset' && req.method === 'POST') {
+        const resetMargins = resetShopProfitMargins();
+        const stats = getShopSummaryStats();
+        return sendJson(res, 200, {
+          margins: resetMargins,
+          profitSummary: stats.profitSummary,
+          message: 'Margens restauradas para os valores predefinidos da tabela.',
+        });
+      }
+
 
       // GET /api/admin/shop/orders
       if (pathname === '/api/admin/shop/orders' && req.method === 'GET') {

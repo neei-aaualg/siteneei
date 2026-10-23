@@ -4,6 +4,7 @@ import {
   Tag,
   AlertCircle,
   Loader2,
+  TrendingUp,
 } from 'lucide-react';
 import {
   ShopOrder,
@@ -39,6 +40,7 @@ import { ShopOrdersTable } from './shop/ShopOrdersTable';
 import { ShopProductCatalog } from './shop/ShopProductCatalog';
 import { ShopProductModal } from './shop/ShopProductModal';
 import { ShopManualOrderModal } from './shop/ShopManualOrderModal';
+import { ShopProfitPanel } from './shop/ShopProfitPanel';
 
 interface AdminShopPanelProps {
   token: string;
@@ -46,7 +48,7 @@ interface AdminShopPanelProps {
 }
 
 export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedback }) => {
-  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'profits'>('orders');
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [products, setProducts] = useState<ShopCampaign[]>([]);
   const [stats, setStats] = useState<ShopSummaryStats | null>(null);
@@ -751,6 +753,24 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             {products.length}
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('profits')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'profits'
+              ? 'bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <TrendingUp size={16} />
+          <span>Lucro & Margens de Venda</span>
+          {stats?.profitSummary && (
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-mono font-bold">
+              {stats.profitSummary.totalProfitAvg.toFixed(2)}€
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Alerta de Erro Geral */}
@@ -774,6 +794,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             stats={stats}
             onDownloadCsv={handleDownloadCsv}
             showSizeBreakdown={true}
+            onOpenProfitPanel={() => setActiveTab('profits')}
           />
 
           <ShopOrdersTable
@@ -813,10 +834,14 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             getOrderStatusSelectClasses={getOrderStatusSelectClasses}
           />
         </div>
-      ) : (
+      ) : activeTab === 'products' ? (
         /* Vista de Gestão de Produtos */
         <div className="space-y-6 animate-in fade-in duration-200">
-          <ShopStatsCards stats={stats} showSizeBreakdown={false} />
+          <ShopStatsCards
+            stats={stats}
+            showSizeBreakdown={false}
+            onOpenProfitPanel={() => setActiveTab('profits')}
+          />
 
           <ShopProductCatalog
             products={products}
@@ -827,6 +852,18 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             onUpdatePriority={handleUpdateProductPriority}
           />
         </div>
+      ) : (
+        /* Vista de Lucro & Margens de Venda */
+        <ShopProfitPanel
+          token={token}
+          stats={stats}
+          orders={orders}
+          onRefreshStats={() => {
+            fetchAdminShopStats(token)
+              .then((st) => setStats(st))
+              .catch(() => {});
+          }}
+        />
       )}
 
       {/* Modal para Adicionar Encomenda Manual */}

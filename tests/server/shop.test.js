@@ -599,14 +599,19 @@ describe('Loja NEEI - Base de Dados & Pré-encomendas', () => {
     expect(found).toBeTruthy();
     expect(found.bundle_selections).toHaveLength(2);
 
-    // 4. Verifica em factory export
+    // 4. Verifica em factory export (linhas desdobradas para confeção de cada artigo do pack)
     const factoryRows = db.getFactoryExportData();
-    const row = factoryRows.find((r) => r.id === manualOrder.id);
-    expect(row).toBeTruthy();
-    expect(row.artigo).toBe('Pack Boas-Vindas');
-    expect(row.tamanho).toBe('Sweat Universitária: L | T-Shirt Verão: S');
-    expect(row.cor).toBe('Sweat Universitária: Azul | T-Shirt Verão: Branco');
-    expect(row.origem).toBe('Manual (Admin)');
+    const rows = factoryRows.filter((r) => r.id === manualOrder.id);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].pack_origem).toBe('Pack Boas-Vindas');
+    expect(rows[0].artigo).toBe('Sweat Universitária');
+    expect(rows[0].tamanho).toBe('L');
+    expect(rows[0].cor).toBe('Azul');
+    expect(rows[0].origem).toBe('Manual (Admin)');
+    expect(rows[1].pack_origem).toBe('Pack Boas-Vindas');
+    expect(rows[1].artigo).toBe('T-Shirt Verão');
+    expect(rows[1].tamanho).toBe('S');
+    expect(rows[1].cor).toBe('Branco');
   });
 
   it('cria encomenda manual de pack através do endpoint POST /api/admin/shop/orders com bundle_selections', async () => {
@@ -1813,6 +1818,179 @@ describe('Segurança da Gateway de Pagamento & Webhooks (Issue #4)', () => {
       'Preto': '/assets/hoodie_preto_v2.jpg',
     });
     expect(updated.size_guide.S.shoulder_to_wrist).toBe(73);
+  });
+
+  describe('Margens de Lucro Esperadas & Gestão de Custos por Artigo (Dinâmico)', () => {
+    it('sincroniza dinamicamente as margens com o catálogo da loja sem valores fixos no código', () => {
+      const margins = db.getShopProfitMargins();
+      expect(Array.isArray(margins)).toBe(true);
+      expect(margins.length).toBeGreaterThanOrEqual(1);
+
+      // Cada artigo inicializado vem do catálogo com custos e lucros a 0 até o admin configurar
+      margins.forEach((m) => {
+        expect(m).toHaveProperty('id');
+        expect(m).toHaveProperty('product_name');
+        expect(typeof m.sale_price).toBe('number');
+        expect(typeof m.cost_min).toBe('number');
+        expect(typeof m.cost_max).toBe('number');
+        expect(typeof m.profit_min).toBe('number');
+        expect(typeof m.profit_max).toBe('number');
+      });
+    });
+
+    it('permite ao administrador configurar, guardar e calcular o lucro esperado dinamicamente', () => {
+      // 1. Guardar margens de teste personalizadas
+      const testMargins = [
+        {
+          id: 'artigo-teste-a',
+          product_name: 'Artigo Teste Alpha',
+          sale_price: 30.0,
+          cost_min: 15.0,
+          cost_max: 20.0,
+          sponsorship: 2.0,
+          profit_min: 12.0, // 30 - 20 + 2
+          profit_max: 17.0, // 30 - 15 + 2
+          display_order: 1,
+        },
+        {
+          id: 'artigo-teste-b',
+          product_name: 'Artigo Teste Beta',
+          sale_price: 15.0,
+          cost_min: 8.0,
+          cost_max: 10.0,
+          sponsorship: 0.0,
+          profit_min: 5.0,
+          profit_max: 7.0,
+          display_order: 2,
+        },
+      ];
+
+      const saved = db.saveShopProfitMargins(testMargins);
+      expect(saved).toHaveLength(2);
+      expect(saved[0].product_name).toBe('Artigo Teste Alpha');
+      expect(saved[0].profit_min).toBe(12.0);
+      expect(saved[0].profit_max).toBe(17.0);
+
+      // 2. Simular encomendas pagas e validar cálculo das estatísticas
+      const mockPaidOrders = [
+        { item_name: 'Artigo Teste Alpha', payment_status: 'paid', order_status: 'confirmed' },
+        { item_name: 'Artigo Teste Alpha', payment_status: 'paid', order_status: 'confirmed' },
+        { item_name: 'Artigo Teste Beta', payment_status: 'paid', order_status: 'confirmed' },
+      ];
+
+      const summary = db.calculateShopProfitSummary(mockPaidOrders, saved);
+      expect(summary.totalPaidUnits).toBe(3);
+      // Lucro Alpha (2 un): min = 2 * 12 = 24, max = 2 * 17 = 34
+      // Lucro Beta (1 un): min = 1 * 5 = 5, max = 1 * 7 = 7
+      // Total Min = 29, Total Max = 41, Total Médio = 35
+      expect(summary.totalProfitMin).toBe(29.0);
+      expect(summary.totalProfitMax).toBe(41.0);
+      expect(summary.totalProfitAvg).toBe(35.0);
+
+      // 3. Reset restaura para sincronização do catálogo
+      const restored = db.resetShopProfitMargins();
+      expect(Array.isArray(restored)).toBe(true);
+    });
+
+    it('suporta endpoints REST /api/admin/shop/profit-margins com autenticação', async () => {
+      const auth = await import('../../server/auth.js');
+      const { token } = auth.authenticateAdmin('test-admin-secret');
+
+      // 1. Rejeita sem token
+      let resNoAuth = {
+        statusCode: 0,
+        jsonBody: null,
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(data) {
+          this.jsonBody = JSON.parse(data);
+        },
+      };
+      await shopApi.handleShopApi(
+        { method: 'GET', headers: {} },
+        resNoAuth,
+        '/api/admin/shop/profit-margins'
+      );
+      expect(resNoAuth.statusCode).toBe(401);
+
+      // 2. Consulta GET
+      let resGet = {
+        statusCode: 0,
+        jsonBody: null,
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(data) {
+          this.jsonBody = JSON.parse(data);
+        },
+      };
+      await shopApi.handleShopApi(
+        { method: 'GET', headers: { authorization: `Bearer ${token}` } },
+        resGet,
+        '/api/admin/shop/profit-margins'
+      );
+      expect(resGet.statusCode).toBe(200);
+      expect(Array.isArray(resGet.jsonBody.margins)).toBe(true);
+      expect(resGet.jsonBody.profitSummary).toBeDefined();
+
+      // 3. Atualização PUT
+      const customPayload = [
+        {
+          id: 'item-teste-rest',
+          product_name: 'Produto Teste REST',
+          sale_price: 25.0,
+          cost_min: 10.0,
+          cost_max: 12.0,
+          sponsorship: 1.0,
+          profit_min: 14.0,
+          profit_max: 16.0,
+          display_order: 1,
+        },
+      ];
+      let resPut = {
+        statusCode: 0,
+        jsonBody: null,
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(data) {
+          this.jsonBody = JSON.parse(data);
+        },
+      };
+      await shopApi.handleShopApi(
+        {
+          method: 'PUT',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: { margins: customPayload },
+        },
+        resPut,
+        '/api/admin/shop/profit-margins'
+      );
+      expect(resPut.statusCode).toBe(200);
+      const savedItem = resPut.jsonBody.margins.find((m) => m.id === 'item-teste-rest');
+      expect(savedItem.profit_min).toBe(14.0);
+      expect(savedItem.profit_max).toBe(16.0);
+
+      // 4. Restaurar POST /reset
+      let resReset = {
+        statusCode: 0,
+        jsonBody: null,
+        writeHead(status) {
+          this.statusCode = status;
+        },
+        end(data) {
+          this.jsonBody = JSON.parse(data);
+        },
+      };
+      await shopApi.handleShopApi(
+        { method: 'POST', headers: { authorization: `Bearer ${token}` } },
+        resReset,
+        '/api/admin/shop/profit-margins/reset'
+      );
+      expect(resReset.statusCode).toBe(200);
+      expect(Array.isArray(resReset.jsonBody.margins)).toBe(true);
+    });
   });
 });
 
