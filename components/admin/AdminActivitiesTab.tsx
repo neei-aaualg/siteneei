@@ -171,41 +171,37 @@ export const AdminActivitiesTab: React.FC<AdminActivitiesTabProps> = ({
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setActivityFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activityFilterStatus === 'all'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${activityFilterStatus === 'all'
                   ? 'bg-accent-200 text-white shadow-sm dark:bg-cyan-500 dark:text-slate-950'
                   : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-              }`}
+                }`}
             >
               Todas ({activities.length})
             </button>
             <button
               onClick={() => setActivityFilterStatus('ongoing')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activityFilterStatus === 'ongoing'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${activityFilterStatus === 'ongoing'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-              }`}
+                }`}
             >
               A Decorrer ({ongoingCount})
             </button>
             <button
               onClick={() => setActivityFilterStatus('upcoming')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activityFilterStatus === 'upcoming'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${activityFilterStatus === 'upcoming'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-              }`}
+                }`}
             >
               Futuras ({upcomingCount})
             </button>
             <button
               onClick={() => setActivityFilterStatus('completed')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                activityFilterStatus === 'completed'
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${activityFilterStatus === 'completed'
                   ? 'bg-slate-700 text-white shadow-sm dark:bg-slate-600'
                   : 'bg-gray-100 dark:bg-slate-800 text-text-200 dark:text-slate-400 hover:text-text-100'
-              }`}
+                }`}
             >
               Concluídas ({completedCount})
             </button>
@@ -284,13 +280,12 @@ export const AdminActivitiesTab: React.FC<AdminActivitiesTabProps> = ({
             return (
               <div
                 key={activity.id}
-                className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${
-                  activity.status === 'ongoing'
+                className={`bg-white dark:bg-[#0c1724] rounded-2xl border transition-all duration-200 overflow-hidden shadow-sm ${activity.status === 'ongoing'
                     ? 'border-emerald-500/40 dark:border-emerald-500/30'
                     : activity.status === 'upcoming'
-                    ? 'border-blue-400/40 dark:border-blue-500/30'
-                    : 'border-gray-200 dark:border-slate-800 opacity-90'
-                }`}
+                      ? 'border-blue-400/40 dark:border-blue-500/30'
+                      : 'border-gray-200 dark:border-slate-800 opacity-90'
+                  }`}
               >
                 {/* Cabeçalho do Card da Atividade */}
                 <div className="p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4">
@@ -300,19 +295,18 @@ export const AdminActivitiesTab: React.FC<AdminActivitiesTabProps> = ({
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span
-                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
-                          activity.status === 'ongoing'
+                        className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${activity.status === 'ongoing'
                             ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                             : activity.status === 'upcoming'
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
-                            : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300'
-                        }`}
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300'
+                              : 'bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-slate-300'
+                          }`}
                       >
                         {activity.status === 'ongoing'
                           ? '● A Decorrer'
                           : activity.status === 'upcoming'
-                          ? '○ Futura'
-                          : '✓ Concluída'}
+                            ? '○ Futura'
+                            : '✓ Concluída'}
                       </span>
                       <span className="text-xs font-semibold text-text-200 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded">
                         {activity.category}
@@ -360,31 +354,28 @@ export const AdminActivitiesTab: React.FC<AdminActivitiesTabProps> = ({
                     <div className="flex rounded-xl bg-gray-100 dark:bg-slate-800 p-0.5">
                       <button
                         onClick={() => onToggleStatus(activity, 'ongoing')}
-                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${
-                          activity.status === 'ongoing'
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${activity.status === 'ongoing'
                             ? 'bg-emerald-600 text-white shadow-sm'
                             : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                        }`}
+                          }`}
                       >
                         A Decorrer
                       </button>
                       <button
                         onClick={() => onToggleStatus(activity, 'upcoming')}
-                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${
-                          activity.status === 'upcoming'
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${activity.status === 'upcoming'
                             ? 'bg-blue-600 text-white shadow-sm'
                             : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                        }`}
+                          }`}
                       >
                         Futura
                       </button>
                       <button
                         onClick={() => onToggleStatus(activity, 'completed')}
-                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${
-                          activity.status === 'completed'
+                        className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg transition cursor-pointer ${activity.status === 'completed'
                             ? 'bg-slate-700 dark:bg-slate-600 text-white shadow-sm'
                             : 'text-text-200 dark:text-slate-400 hover:text-text-100'
-                        }`}
+                          }`}
                       >
                         Concluída
                       </button>

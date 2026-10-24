@@ -156,16 +156,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           </button>
-          {activeTab === 'activities' && (
-            <button
-              type="button"
-              onClick={onNewActivity}
-              className="p-2 rounded-xl bg-accent-200 text-white dark:bg-cyan-600 hover:bg-accent-100 transition shadow-sm"
-              title="Nova Atividade"
-            >
-              <Plus size={16} />
-            </button>
-          )}
         </div>
       </div>
 
@@ -179,9 +169,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
       {/* Sidebar Principal (Desktop fixa / Mobile slide-over) */}
       <aside
-        className={`fixed lg:sticky top-0 lg:top-16 z-40 lg:z-10 h-screen lg:h-[calc(100vh-4rem)] w-72 sm:w-80 lg:w-72 shrink-0 bg-white dark:bg-[#0c1724] border-r border-gray-200 dark:border-cyan-950/80 shadow-xl lg:shadow-none flex flex-col justify-between transition-transform duration-300 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
+        className={`fixed lg:sticky top-0 lg:top-16 z-40 lg:z-10 h-screen lg:h-[calc(100vh-4rem)] w-72 sm:w-80 lg:w-72 shrink-0 bg-white dark:bg-[#0c1724] border-r border-gray-200 dark:border-cyan-950/80 shadow-xl lg:shadow-none flex flex-col justify-between transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
       >
         <div className="p-5 space-y-6 overflow-y-auto flex-1">
           {/* Cabeçalho do Menu */}
@@ -212,24 +201,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </button>
           </div>
 
-          {/* Ação Rápida Principal */}
-          <div>
-            <button
-              type="button"
-              onClick={() => {
-                onNewActivity();
-                if (activeTab !== 'activities') {
-                  setActiveTab('activities');
-                }
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full py-2.5 px-3.5 bg-accent-200 hover:bg-accent-100 dark:bg-cyan-600 dark:hover:bg-cyan-500 text-white rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-2 cursor-pointer group"
-            >
-              <Plus size={16} className="transition-transform group-hover:rotate-90" />
-              <span>Nova Atividade</span>
-            </button>
-          </div>
-
           {/* Navegação por Categorias */}
           <nav className="space-y-6">
             {categories.map((category) => {
@@ -247,19 +218,17 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                           key={item.id}
                           type="button"
                           onClick={() => handleSelectTab(item.id)}
-                          className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer group ${
-                            isSelected
-                              ? 'bg-accent-200/10 dark:bg-cyan-500/15 text-accent-200 dark:text-cyan-300 font-bold border border-accent-200/30 dark:border-cyan-500/30 shadow-xs'
-                              : 'text-text-200 dark:text-slate-400 hover:bg-gray-100/80 dark:hover:bg-slate-800/80 hover:text-text-100 dark:hover:text-slate-200 border border-transparent'
-                          }`}
+                          className={`w-full text-left p-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all duration-150 cursor-pointer group ${isSelected
+                            ? 'bg-accent-200/10 dark:bg-cyan-500/15 text-accent-200 dark:text-cyan-300 font-bold border border-accent-200/30 dark:border-cyan-500/30 shadow-xs'
+                            : 'text-text-200 dark:text-slate-400 hover:bg-gray-100/80 dark:hover:bg-slate-800/80 hover:text-text-100 dark:hover:text-slate-200 border border-transparent'
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <span
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                isSelected
-                                  ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950'
-                                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 group-hover:text-accent-200 dark:group-hover:text-cyan-300'
-                              }`}
+                              className={`p-1.5 rounded-lg transition-colors ${isSelected
+                                ? 'bg-accent-200 text-white dark:bg-cyan-500 dark:text-slate-950'
+                                : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 group-hover:text-accent-200 dark:group-hover:text-cyan-300'
+                                }`}
                             >
                               {item.icon}
                             </span>
@@ -283,9 +252,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                             )}
                             <ChevronRight
                               size={14}
-                              className={`transition-opacity ${
-                                isSelected ? 'opacity-100 text-accent-200 dark:text-cyan-300' : 'opacity-0 group-hover:opacity-60'
-                              }`}
+                              className={`transition-opacity ${isSelected ? 'opacity-100 text-accent-200 dark:text-cyan-300' : 'opacity-0 group-hover:opacity-60'
+                                }`}
                             />
                           </div>
                         </button>
