@@ -327,8 +327,10 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       const sessionResult = await createStripeCheckoutSession({
         order: {
           id: order.id,
+          ticket_code: order.ticket_code,
+          quantity: order.quantity,
           item_name: `Passe Churrasco NEEI (${order.quantity}x)`,
-          description: `1 Bifana no pão + 2 Bebidas (cerveja, refrigerante ou água)`,
+          description: `1 Bifana no pão + 2 Bebidas (cerveja, refrigerante ou água à escolha no bar)`,
           total_amount: order.total_amount,
           student_name: order.student_name,
           student_email: order.student_email,
