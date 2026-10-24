@@ -192,7 +192,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         unitPrice: 4.5,
         includes: {
           food: '1 Bifana no pão',
-          drinks: '2 Copos de cerveja ou refrigerante',
+          drinks: 'Bebidas sempre à discrição no bar',
         },
         location: 'Campus de Gambelas (Gabinete NEEI / Pátio)',
       });
@@ -229,7 +229,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         order: {
           id: order.id,
           item_name: `Passe Churrasco NEEI (${order.quantity}x)`,
-          description: `1 Bifana + 2 Bebidas (${order.drink_preference})`,
+          description: `1 Bifana no pão + Bebida à discrição no bar`,
           total_amount: order.total_amount,
           student_name: order.student_name,
           student_email: order.student_email,

@@ -245,11 +245,11 @@ const Churrasco: React.FC = () => {
               <div className="mt-6 pt-4 border-t border-orange-200 dark:border-orange-900/40 text-left space-y-2 text-xs sm:text-sm text-text-200 dark:text-slate-300">
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-slate-400">Passe Inclui:</span>
-                  <span className="font-bold text-text-100 dark:text-white">1 Bifana + 2 Bebidas</span>
+                  <span className="font-bold text-text-100 dark:text-white">1 Bifana no Pão</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-slate-400">Bebidas:</span>
-                  <span className="font-semibold">2 copos por passe (à escolha no dia)</span>
+                  <span className="text-gray-500 dark:text-slate-400">Bebidas no Bar:</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">À discrição</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-slate-400">Quantidade:</span>
@@ -318,7 +318,7 @@ const Churrasco: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-200 mt-1">
-                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Podem adquirir bebida e comida no dia. Encontra-se disponível o nosso passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
+                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. As bebidas são sempre à discrição no bar. Encontra-se disponível o nosso passe com <strong>1 bifana no pão</strong> por apenas <strong>4,50€</strong>.
                   </p>
                 </div>
               </div>
@@ -355,10 +355,10 @@ const Churrasco: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-bold text-text-100 dark:text-white text-sm sm:text-base">
-                    2 Copos de Bebida
+                    Bebida à Discrição
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Cerveja fresca ou refrigerante/água à escolha.
+                    Cerveja fresca ou refrigerante/água sempre à discrição no bar.
                   </p>
                 </div>
               </div>

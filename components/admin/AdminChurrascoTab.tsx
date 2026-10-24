@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   User,
-  Beer,
   RefreshCw,
   QrCode,
   Check,
@@ -65,7 +64,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
   const [manualEmail, setManualEmail] = useState('');
   const [manualPhone, setManualPhone] = useState('');
   const [manualStudentNumber, setManualStudentNumber] = useState('');
-  const [manualDrink, setManualDrink] = useState('Cerveja');
   const [manualQuantity, setManualQuantity] = useState(1);
   const [manualNotes, setManualNotes] = useState('Venda manual presencial (Dinheiro)');
   const [submittingManual, setSubmittingManual] = useState(false);
@@ -138,7 +136,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
         student_email: manualEmail.trim() || undefined,
         phone_number: manualPhone.trim() || undefined,
         student_number: manualStudentNumber.trim() || undefined,
-        drink_preference: manualDrink,
+        drink_preference: 'À discrição no bar',
         quantity: manualQuantity,
         notes: manualNotes,
       });
@@ -216,11 +214,9 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       'Email',
       'Telemóvel',
       'Nº Aluno',
-      'Bebida',
       'Quantidade',
       'Total Pago (€)',
       'Bifanas Servidas',
-      'Bebidas Servidas',
       'Estado Pagamento',
       'Totalmente Servido',
       'Data de Compra',
@@ -233,11 +229,9 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       `"${o.student_email || o.studentEmail || ''}"`,
       `"${o.phone_number || o.phoneNumber || ''}"`,
       `"${o.student_number || o.studentNumber || ''}"`,
-      `"${o.drink_preference || o.drinkPreference || 'Cerveja'}"`,
       o.quantity,
       Number(o.total_amount || o.totalAmount || 0).toFixed(2),
       `"${o.bifanas_served || 0}/${o.bifanas_total || o.quantity || 1}"`,
-      `"${o.drinks_served || 0}/${o.drinks_total || (o.quantity || 1) * 2}"`,
       `"${o.payment_status || o.paymentStatus || 'pending'}"`,
       (o.is_fully_served || o.isFullyServed) ? 'SIM' : 'NÃO',
       `"${o.created_at || o.createdAt || ''}"`,
@@ -279,9 +273,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
     const bifanasServed = order.bifanas_served || 0;
     const bifanasTotal = order.bifanas_total || order.quantity || 1;
-    const drinksServed = order.drinks_served || 0;
-    const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
-    const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
+    const isFullyServed = bifanasServed >= bifanasTotal;
 
     if (statusFilter === 'completed') return matchesQuery && isFullyServed;
     if (statusFilter === 'pending') return matchesQuery && !isFullyServed;
@@ -415,7 +407,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
         {/* ESTATÍSTICAS RÁPIDAS */}
         {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-orange-100 dark:border-orange-950/50">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-orange-100 dark:border-orange-950/50">
             <div className="p-4 rounded-2xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/30">
               <span className="text-xs font-bold text-orange-800 dark:text-orange-300 block">
                 Passes Vendidos
@@ -453,20 +445,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                   : '0%'}
               </span>
             </div>
-
-            <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/30">
-              <span className="text-xs font-bold text-blue-800 dark:text-blue-300 block">
-                Bebidas Entregues
-              </span>
-              <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-400 mt-1">
-                {stats.totalDrinksServed || 0} / {stats.totalDrinks || 0}
-              </div>
-              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
-                {stats.totalDrinks > 0
-                  ? `${Math.round(((stats.totalDrinksServed || 0) / stats.totalDrinks) * 100)}% entregues`
-                  : '0%'}
-              </span>
-            </div>
           </div>
         )}
       </div>
@@ -484,7 +462,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
               </h3>
             </div>
             <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400 max-w-2xl">
-              Página móvel otimizada para os voluntários do bar lerem os bilhetes por QR Code (câmara do telemóvel), consultarem os consumos em tempo real e descontarem cada bifana e bebida servida.
+              Página móvel otimizada para os voluntários do bar lerem os bilhetes por QR Code (câmara do telemóvel), consultarem os consumos em tempo real e descontarem cada bifana servida. As bebidas são sempre à discrição no bar.
             </p>
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <a
@@ -758,9 +736,8 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                 <tr className="border-b border-gray-100 dark:border-slate-800 text-[11px] uppercase tracking-wider text-gray-400 dark:text-slate-400 font-bold">
                   <th className="py-3 px-3">Código</th>
                   <th className="py-3 px-3">Aluno</th>
-                  <th className="py-3 px-3">Bebida</th>
                   <th className="py-3 px-3">Qtd / Valor</th>
-                  <th className="py-3 px-3">Consumo no Bar</th>
+                  <th className="py-3 px-3">Bifanas (Bar)</th>
                   <th className="py-3 px-3">Data</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
@@ -771,8 +748,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
                   const bifanasServed = order.bifanas_served || 0;
                   const bifanasTotal = order.bifanas_total || order.quantity || 1;
-                  const drinksServed = order.drinks_served || 0;
-                  const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
 
                   return (
                     <tr
@@ -809,14 +784,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                         </div>
                       </td>
 
-                      {/* Bebida */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 font-semibold text-text-100 dark:text-slate-200">
-                          <Beer size={14} className="text-amber-500" />
-                          <span>{order.drink_preference || order.drinkPreference || 'Cerveja'}</span>
-                        </span>
-                      </td>
-
                       {/* Quantidade e Valor */}
                       <td className="py-3 px-3 whitespace-nowrap">
                         <div className="font-bold text-text-100 dark:text-white">
@@ -827,46 +794,23 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                         </div>
                       </td>
 
-                      {/* Consumo no Bar (Bifanas / Bebidas) */}
+                      {/* Consumo no Bar (Bifanas) */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="flex flex-col gap-1.5">
-                          {/* Bifanas */}
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bifana:</span>
-                            <span
-                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
-                                bifanasServed >= bifanasTotal
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
-                                  : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
-                              }`}
-                            >
-                              {bifanasServed}/{bifanasTotal}
-                            </span>
-                            {bifanasServed >= bifanasTotal ? (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
-                            ) : (
-                              <span className="text-[10px] text-orange-600 dark:text-orange-400">Pendente</span>
-                            )}
-                          </div>
-
-                          {/* Bebidas */}
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bebida:</span>
-                            <span
-                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
-                                drinksServed >= drinksTotal
-                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
-                                  : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400'
-                              }`}
-                            >
-                              {drinksServed}/{drinksTotal}
-                            </span>
-                            {drinksServed >= drinksTotal ? (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
-                            ) : (
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400">Pendente</span>
-                            )}
-                          </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span
+                            className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
+                              bifanasServed >= bifanasTotal
+                                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
+                            }`}
+                          >
+                            {bifanasServed}/{bifanasTotal}
+                          </span>
+                          {bifanasServed >= bifanasTotal ? (
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
+                          ) : (
+                            <span className="text-[10px] text-orange-600 dark:text-orange-400">Pendente</span>
+                          )}
                         </div>
                       </td>
 
@@ -964,35 +908,18 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-1.5">
-                    Bebida
-                  </label>
-                  <select
-                    value={manualDrink}
-                    onChange={(e) => setManualDrink(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm text-text-100 dark:text-white"
-                  >
-                    <option value="Cerveja">Cerveja</option>
-                    <option value="Refrigerante">Refrigerante</option>
-                    <option value="Água">Água</option>
-                    <option value="À escolha no bar">À escolha no bar</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-1.5">
-                    Quantidade
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={10}
-                    value={manualQuantity}
-                    onChange={(e) => setManualQuantity(parseInt(e.target.value, 10) || 1)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm text-text-100 dark:text-white font-bold"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-1.5">
+                  Quantidade de Passes
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={manualQuantity}
+                  onChange={(e) => setManualQuantity(parseInt(e.target.value, 10) || 1)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm text-text-100 dark:text-white font-bold"
+                />
               </div>
 
               <div>
