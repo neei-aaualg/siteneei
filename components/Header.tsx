@@ -7,7 +7,6 @@ import {
   Box,
   ExternalLink,
   ChevronDown,
-  Calendar,
   FolderOpen,
   Briefcase,
   FileText,
@@ -16,31 +15,44 @@ import {
   Sun,
   Moon,
   Info,
+  Users,
+  Wrench,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
-interface ExploreItem {
+interface NavDropdownItem {
   name: string;
   path: string;
   icon: React.ReactNode;
   desc: string;
   isExternal?: boolean;
+  badge?: string;
+  title?: string;
 }
 
 const Header: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
+  const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const toolsDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const exploreItems: ExploreItem[] = [
+  const exploreItems: NavDropdownItem[] = [
     {
       name: 'Sobre',
       path: '/sobre',
       icon: <Info size={18} />,
       desc: 'História, missão e equipa',
+    },
+    {
+      name: 'Colaborar',
+      path: '/colaborar',
+      icon: <Users size={18} />,
+      desc: 'Candidaturas e voluntariado',
     },
     {
       name: 'Vagas',
@@ -49,10 +61,10 @@ const Header: React.FC = () => {
       desc: 'Estágios e oportunidades',
     },
     {
-      name: 'CV Builder',
-      path: 'https://cv.neei.online',
-      icon: <FileUser size={18} />,
-      desc: 'Constrói e personaliza o teu currículo',
+      name: 'Documentos',
+      path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgCiZkWkiUSDR42VAH_iE99lAXHzPGqNFg-qekFAX2zOGSc?e=7QL1NJ',
+      icon: <FileText size={18} />,
+      desc: 'Documentos oficiais em vigor',
       isExternal: true,
     },
     {
@@ -60,13 +72,6 @@ const Header: React.FC = () => {
       path: '/links',
       icon: <QrCode size={18} />,
       desc: 'Canais oficiais e QR Codes',
-    },
-    {
-      name: 'Documentos',
-      path: 'https://aaualg-my.sharepoint.com/:f:/g/personal/neei_aaualg_pt/IgCiZkWkiUSDR42VAH_iE99lAXHzPGqNFg-qekFAX2zOGSc?e=7QL1NJ',
-      icon: <FileText size={18} />,
-      desc: 'Documentos oficiais em vigor',
-      isExternal: true,
     },
     {
       name: 'Projetos',
@@ -77,9 +82,41 @@ const Header: React.FC = () => {
     },
   ];
 
+  const toolItems: NavDropdownItem[] = [
+    {
+      name: 'Quack',
+      path: '/quack',
+      icon: <Terminal size={18} />,
+      desc: 'IDE online & Tutor com IA',
+      badge: 'Interativo',
+      title: 'Quack Executor & Tutor com IA',
+    },
+    {
+      name: 'NEEI-CV',
+      path: 'https://cv.neei.online',
+      icon: <FileUser size={18} />,
+      desc: 'Construtor e editor de currículos',
+      isExternal: true,
+      title: 'CV Builder do NEEI (cv.neei.online)',
+    },
+    {
+      name: 'NEEIBox',
+      path: 'https://box.neei.online',
+      icon: <Box size={18} />,
+      desc: 'Cloud & partilha de ficheiros',
+      isExternal: true,
+      title: 'NEEIBox (box.neei.online)',
+    },
+  ];
+
   const isExploreActive = exploreItems.some(
     (item) => !item.isExternal && location.pathname === item.path
   );
+
+  const isToolsActive = toolItems.some(
+    (item) => !item.isExternal && location.pathname === item.path
+  );
+
   const isActive = (path: string) => location.pathname === path;
 
   // Função para saltar para o início da respetiva página ao clicar no logótipo ou separadores
@@ -98,17 +135,22 @@ const Header: React.FC = () => {
     }
   };
 
-  // Fecha dropdown desktop ao clicar fora ou pressionar Escape
+  // Fecha dropdowns desktop ao clicar fora ou pressionar Escape
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setIsDropdownOpen(false);
+      }
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(target)) {
+        setIsToolsDropdownOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsDropdownOpen(false);
+        setIsToolsDropdownOpen(false);
       }
     };
 
@@ -123,6 +165,7 @@ const Header: React.FC = () => {
   // Fecha menus ao mudar de rota
   useEffect(() => {
     setIsDropdownOpen(false);
+    setIsToolsDropdownOpen(false);
     setIsMenuOpen(false);
   }, [location.pathname]);
 
@@ -131,14 +174,17 @@ const Header: React.FC = () => {
     if (isExploreActive) {
       setIsMobileDropdownOpen(true);
     }
-  }, [isExploreActive]);
+    if (isToolsActive) {
+      setIsMobileToolsOpen(true);
+    }
+  }, [isExploreActive, isToolsActive]);
 
   return (
     <header className="sticky top-0 z-50 bg-bg-100/90 dark:bg-[#0a1420]/90 backdrop-blur-md border-b border-primary-200 dark:border-cyan-950/60 shadow-sm print:hidden transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side: Logo & Desktop Nav */}
-          <div className="flex items-center gap-4 md:gap-6 lg:gap-12">
+          <div className="flex items-center gap-4 md:gap-6 lg:gap-8">
             {/* Logo com Jump to Top */}
             <div className="flex-shrink-0 flex items-center">
               <Link
@@ -150,7 +196,7 @@ const Header: React.FC = () => {
                 <img
                   src="/assets/logoneeipequeno-removebg-preview.png"
                   alt="NEEI Logo"
-                  className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                  className="h-9 md:h-10 w-auto object-contain transition-transform group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
@@ -159,14 +205,15 @@ const Header: React.FC = () => {
             </div>
 
             {/* Desktop Nav com Jump to Top */}
-            <nav className="hidden md:flex items-center gap-1 lg:gap-2 xl:gap-3">
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2">
               <Link
                 to="/"
                 onClick={() => jumpToPageTop('/')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Início
               </Link>
@@ -175,18 +222,24 @@ const Header: React.FC = () => {
               <div className="relative inline-flex items-center" ref={dropdownRef}>
                 <button
                   type="button"
-                  onClick={() => setIsDropdownOpen((prev) => !prev)}
+                  onClick={() => {
+                    setIsDropdownOpen((prev) => !prev);
+                    setIsToolsDropdownOpen(false);
+                  }}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="true"
-                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isExploreActive || isDropdownOpen
-                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                    }`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                    isExploreActive || isDropdownOpen
+                      ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                      : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                  }`}
                 >
                   <span>Explorar</span>
                   <ChevronDown
                     size={15}
-                    className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400 opacity-70'}`}
+                    className={`transition-transform duration-200 ${
+                      isDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400 opacity-70'
+                    }`}
                   />
                 </button>
 
@@ -200,6 +253,7 @@ const Header: React.FC = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => setIsDropdownOpen(false)}
+                          title={item.title}
                           className="flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300 transition-all duration-150 group"
                         >
                           <div className="p-2 rounded-lg bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300 group-hover:bg-accent-200 group-hover:text-white transition-colors">
@@ -226,16 +280,19 @@ const Header: React.FC = () => {
                             setIsDropdownOpen(false);
                             jumpToPageTop(item.path);
                           }}
-                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${isActive(item.path)
-                            ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
-                            : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
-                            }`}
+                          title={item.title}
+                          className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${
+                            isActive(item.path)
+                              ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
+                              : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
+                          }`}
                         >
                           <div
-                            className={`p-2 rounded-lg transition-colors ${isActive(item.path)
-                              ? 'bg-accent-200 text-white'
-                              : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
-                              }`}
+                            className={`p-2 rounded-lg transition-colors ${
+                              isActive(item.path)
+                                ? 'bg-accent-200 text-white'
+                                : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
+                            }`}
                           >
                             {item.icon}
                           </div>
@@ -255,10 +312,11 @@ const Header: React.FC = () => {
               <Link
                 to="/merch"
                 onClick={() => jumpToPageTop('/merch')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/merch') || isActive('/loja')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/merch') || isActive('/loja')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Merch
               </Link>
@@ -266,29 +324,120 @@ const Header: React.FC = () => {
               <Link
                 to="/atividades"
                 onClick={() => jumpToPageTop('/atividades')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/atividades')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  isActive('/atividades')
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 Atividades
-              </Link>
-
-              <Link
-                to="/colaborar"
-                onClick={() => jumpToPageTop('/colaborar')}
-                className={`inline-flex items-center px-2.5 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium transition-all duration-200 cursor-pointer ${isActive('/colaborar')
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
-              >
-                Colaborar
               </Link>
             </nav>
           </div>
 
-          {/* Action Buttons & Theme Toggle */}
+          {/* Right side: NEEI-Tools Dropdown & Theme Toggle */}
           <div className="hidden md:flex items-center gap-2 lg:gap-3">
+            {/* Dropdown NEEI-Tools */}
+            <div className="relative inline-flex items-center" ref={toolsDropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsToolsDropdownOpen((prev) => !prev);
+                  setIsDropdownOpen(false);
+                }}
+                aria-expanded={isToolsDropdownOpen}
+                aria-haspopup="true"
+                title="NEEI-Tools"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-semibold transition-all duration-200 cursor-pointer shadow-sm ${
+                  isToolsActive || isToolsDropdownOpen
+                    ? 'bg-accent-200 text-white shadow-md'
+                    : 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 border border-primary-200/80 dark:border-cyan-900/60 hover:bg-accent-200 hover:text-white dark:hover:bg-cyan-900 dark:hover:text-white'
+                }`}
+              >
+                <Wrench size={15} />
+                <span>NEEI-Tools</span>
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${isToolsDropdownOpen ? 'rotate-180' : 'opacity-70'}`}
+                />
+              </button>
+
+              {isToolsDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-64 rounded-xl bg-white dark:bg-[#0c1724] border border-primary-200 dark:border-cyan-900/60 shadow-xl py-2 z-50">
+                  <div className="px-3.5 py-1 text-[11px] font-semibold tracking-wider uppercase text-gray-400 dark:text-cyan-400/80 border-b border-primary-100 dark:border-cyan-950/80 mb-1">
+                    Ferramentas Digitais
+                  </div>
+                  {toolItems.map((item) =>
+                    item.isExternal ? (
+                      <a
+                        key={item.path}
+                        href={item.path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsToolsDropdownOpen(false)}
+                        title={item.title}
+                        className="flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300 transition-all duration-150 group"
+                      >
+                        <div className="p-2 rounded-lg bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300 group-hover:bg-accent-200 group-hover:text-white transition-colors">
+                          {item.icon}
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold leading-tight">{item.name}</span>
+                            <ExternalLink
+                              size={12}
+                              className="opacity-60 group-hover:opacity-100 transition-opacity"
+                            />
+                          </div>
+                          <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">
+                            {item.desc}
+                          </span>
+                        </div>
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => {
+                          setIsToolsDropdownOpen(false);
+                          jumpToPageTop(item.path);
+                        }}
+                        title={item.title}
+                        className={`flex items-center gap-3 px-3.5 py-2.5 text-xs lg:text-sm transition-all duration-150 cursor-pointer ${
+                          isActive(item.path)
+                            ? 'bg-primary-100 dark:bg-cyan-950/70 text-accent-200 dark:text-cyan-300 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:bg-bg-200 dark:hover:bg-slate-800/80 hover:text-accent-200 dark:hover:text-cyan-300'
+                        }`}
+                      >
+                        <div
+                          className={`p-2 rounded-lg transition-colors ${
+                            isActive(item.path)
+                              ? 'bg-accent-200 text-white'
+                              : 'bg-primary-100 dark:bg-cyan-950/80 text-accent-200 dark:text-cyan-300'
+                          }`}
+                        >
+                          {item.icon}
+                        </div>
+                        <div className="flex flex-col flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold leading-tight">{item.name}</span>
+                            {item.badge && (
+                              <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-accent-200/10 text-accent-200 dark:bg-cyan-400/10 dark:text-cyan-300 border border-accent-200/20 dark:border-cyan-400/20">
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-gray-500 dark:text-slate-400 font-normal mt-0.5">
+                            {item.desc}
+                          </span>
+                        </div>
+                      </Link>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Theme Toggle Button */}
             <button
               type="button"
@@ -299,41 +448,6 @@ const Header: React.FC = () => {
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-
-            <a
-              href="https://cv.neei.online"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm bg-accent-200 text-white hover:bg-accent-100 hover:shadow-md"
-              title="CV Builder do NEEI (cv.neei.online)"
-            >
-              <FileUser size={16} />
-              <span>NEEI-CV</span>
-              <ExternalLink size={14} className="opacity-80" />
-            </a>
-
-            <a
-              href="https://box.neei.online"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm bg-accent-200 text-white hover:bg-accent-100 hover:shadow-md"
-              title="NEEIBox (box.neei.online)"
-            >
-              <Box size={16} />
-              <span><span className="hidden xl:inline"></span>NEEI-Box</span>
-              <ExternalLink size={14} className="opacity-80" />
-            </a>
-
-            <Link
-              to="/quack"
-              className={`inline-flex items-center gap-2 px-3 lg:px-4 py-2 rounded-full font-bold text-xs lg:text-sm transition-all shadow-sm ${isActive('/quack')
-                ? 'bg-accent-200 text-white ring-2 ring-offset-2 ring-accent-100'
-                : 'bg-primary-300 text-white hover:bg-accent-200 hover:shadow-md'
-                }`}
-            >
-              <Terminal size={16} />
-              <span>Quack</span>
-            </Link>
           </div>
 
           {/* Mobile menu button & Theme Toggle */}
@@ -368,29 +482,32 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Início
             </Link>
-
 
             {/* Mobile Dropdown Explorar */}
             <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => setIsMobileDropdownOpen((prev) => !prev)}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${isExploreActive
-                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                  }`}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  isExploreActive
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                }`}
               >
                 <span>Explorar</span>
                 <ChevronDown
                   size={18}
-                  className={`transition-transform duration-200 ${isMobileDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400'}`}
+                  className={`transition-transform duration-200 ${
+                    isMobileDropdownOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400'
+                  }`}
                 />
               </button>
 
@@ -404,6 +521,7 @@ const Header: React.FC = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setIsMenuOpen(false)}
+                        title={item.title}
                         className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80"
                       >
                         <div className="flex items-center gap-2.5">
@@ -423,10 +541,12 @@ const Header: React.FC = () => {
                           setIsMenuOpen(false);
                           jumpToPageTop(item.path);
                         }}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
-                          ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                          : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                          }`}
+                        title={item.title}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${
+                          isActive(item.path)
+                            ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                        }`}
                       >
                         <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
                         <span>{item.name}</span>
@@ -443,10 +563,11 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/merch');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/merch') || isActive('/loja')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/merch') || isActive('/loja')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Merch
             </Link>
@@ -457,66 +578,82 @@ const Header: React.FC = () => {
                 setIsMenuOpen(false);
                 jumpToPageTop('/atividades');
               }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/atividades')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
-                }`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                isActive('/atividades')
+                  ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                  : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+              }`}
             >
               Atividades
             </Link>
 
-            <Link
-              to="/colaborar"
-              onClick={() => {
-                setIsMenuOpen(false);
-                jumpToPageTop('/colaborar');
-              }}
-              className={`block px-3 py-2 rounded-md text-base font-medium ${isActive('/colaborar')
-                ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
-                : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+            {/* Mobile Dropdown NEEI-Tools */}
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => setIsMobileToolsOpen((prev) => !prev)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  isToolsActive
+                    ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                    : 'text-text-200 dark:text-slate-300 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
                 }`}
-            >
-              Colaborar
-            </Link>
-
-            <div className="pt-3 space-y-2 border-t border-primary-200 dark:border-cyan-950/60 mt-2">
-              <a
-                href="https://cv.neei.online"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-between px-3 py-2.5 rounded-md text-base font-bold bg-accent-200 text-white hover:bg-accent-100 transition-colors"
-                title="CV Builder do NEEI (cv.neei.online)"
               >
                 <div className="flex items-center gap-2">
-                  <FileUser size={18} />
-                  <span>CV Builder</span>
+                  <Wrench size={18} className="text-accent-200 dark:text-cyan-300" />
+                  <span>NEEI-Tools</span>
                 </div>
-                <ExternalLink size={16} />
-              </a>
+                <ChevronDown
+                  size={18}
+                  className={`transition-transform duration-200 ${
+                    isMobileToolsOpen ? 'rotate-180 text-accent-200 dark:text-cyan-300' : 'text-text-200 dark:text-slate-400'
+                  }`}
+                />
+              </button>
 
-              <a
-                href="https://box.neei.online"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center justify-between px-3 py-2.5 rounded-md text-base font-bold bg-accent-200 text-white hover:bg-accent-100 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Box size={18} />
-                  <span>NEEIBox</span>
+              {isMobileToolsOpen && (
+                <div className="pl-4 pr-1 py-1 space-y-1 border-l-2 border-primary-200 dark:border-cyan-900/50 ml-3">
+                  {toolItems.map((item) =>
+                    item.isExternal ? (
+                      <a
+                        key={item.path}
+                        href={item.path}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setIsMenuOpen(false)}
+                        title={item.title}
+                        className="flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
+                          <span>{item.name}</span>
+                        </div>
+                        <ExternalLink
+                          size={14}
+                          className="opacity-60 text-text-200 dark:text-slate-400"
+                        />
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          jumpToPageTop(item.path);
+                        }}
+                        title={item.title}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium ${
+                          isActive(item.path)
+                            ? 'text-accent-200 dark:text-cyan-300 bg-primary-100 dark:bg-cyan-950/70 font-semibold'
+                            : 'text-text-200 dark:text-slate-200 hover:text-accent-200 dark:hover:text-cyan-300 hover:bg-bg-200 dark:hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <span className="text-accent-200 dark:text-cyan-300">{item.icon}</span>
+                        <span>{item.name}</span>
+                      </Link>
+                    )
+                  )}
                 </div>
-                <ExternalLink size={16} />
-              </a>
-
-              <Link
-                to="/quack"
-                onClick={() => setIsMenuOpen(false)}
-                className="flex items-center gap-2 w-full text-left px-3 py-2.5 rounded-md text-base font-bold bg-primary-300 text-white hover:bg-primary-200 transition-colors"
-              >
-                <Terminal size={18} />
-                Quack Executor
-              </Link>
+              )}
             </div>
           </div>
         </div>

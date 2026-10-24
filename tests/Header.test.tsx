@@ -21,12 +21,13 @@ describe('Header', () => {
       </MemoryRouter>
     );
 
-  it('apresenta a navegação principal', () => {
+  it('apresenta a navegação principal mais compacta', () => {
     renderHeader();
     expect(screen.getByText('Início')).toBeInTheDocument();
+    expect(screen.getAllByText('Explorar')[0]).toBeInTheDocument();
     expect(screen.getByText('Merch')).toBeInTheDocument();
     expect(screen.getByText('Atividades')).toBeInTheDocument();
-    expect(screen.getByText('Colaborar')).toBeInTheDocument();
+    expect(screen.getAllByText('NEEI-Tools')[0]).toBeInTheDocument();
   });
 
   it('alterna o tema através do botão', async () => {
@@ -44,37 +45,54 @@ describe('Header', () => {
     expect(screen.getAllByLabelText('Mudar para Tema Escuro')).toHaveLength(2);
   });
 
-  it('abre e fecha o dropdown Explorar (desktop)', async () => {
+  it('abre e fecha o dropdown Explorar (desktop) contendo Colaborar', async () => {
     const user = userEvent.setup();
     renderHeader();
 
     expect(screen.queryByText('Sobre')).not.toBeInTheDocument();
+    expect(screen.queryByText('Colaborar')).not.toBeInTheDocument();
     expect(screen.queryByText('Vagas')).not.toBeInTheDocument();
 
     await user.click(screen.getAllByText('Explorar')[0]);
     expect(screen.getByText('Sobre')).toBeInTheDocument();
+    expect(screen.getByText('Colaborar')).toBeInTheDocument();
+    expect(screen.getByText('Candidaturas e voluntariado')).toBeInTheDocument();
     expect(screen.getByText('Vagas')).toBeInTheDocument();
-    expect(screen.getByText('Constrói e personaliza o teu currículo')).toBeInTheDocument();
-    expect(screen.getAllByText('CV Builder').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('NEEI-CV').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Links')).toBeInTheDocument();
+    expect(screen.getByText('Documentos')).toBeInTheDocument();
+    expect(screen.getByText('Projetos')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
     expect(screen.queryByText('Sobre')).not.toBeInTheDocument();
-    expect(screen.queryByText('Vagas')).not.toBeInTheDocument();
-    expect(screen.queryByText('Constrói e personaliza o teu currículo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Colaborar')).not.toBeInTheDocument();
   });
 
-  it('liga para o CV Builder, o NEEIBox e o Quack', () => {
+  it('abre e fecha o dropdown NEEI-Tools com Quack, NEEI-CV e NEEIBox', async () => {
+    const user = userEvent.setup();
     renderHeader();
-    const cvButtons = screen.getAllByTitle('CV Builder do NEEI (cv.neei.online)');
-    expect(cvButtons.length).toBeGreaterThan(0);
-    expect(cvButtons[0]).toHaveAttribute('href', 'https://cv.neei.online');
 
-    expect(screen.getByTitle('NEEIBox (box.neei.online)')).toHaveAttribute(
-      'href',
-      'https://box.neei.online'
-    );
-    expect(screen.getByText('Quack').closest('a')).toHaveAttribute('href', '/quack');
+    expect(screen.queryByText('IDE online & Tutor com IA')).not.toBeInTheDocument();
+
+    // Clica no botão de dropdown NEEI-Tools desktop
+    await user.click(screen.getAllByText('NEEI-Tools')[0]);
+
+    expect(screen.getByText('Ferramentas Digitais')).toBeInTheDocument();
+    expect(screen.getByText('Quack')).toBeInTheDocument();
+    expect(screen.getByText('IDE online & Tutor com IA')).toBeInTheDocument();
+    expect(screen.getByText('NEEI-CV')).toBeInTheDocument();
+    expect(screen.getByText('NEEIBox')).toBeInTheDocument();
+
+    const cvLink = screen.getByTitle('CV Builder do NEEI (cv.neei.online)');
+    expect(cvLink).toHaveAttribute('href', 'https://cv.neei.online');
+
+    const boxLink = screen.getByTitle('NEEIBox (box.neei.online)');
+    expect(boxLink).toHaveAttribute('href', 'https://box.neei.online');
+
+    const quackLink = screen.getByText('Quack').closest('a');
+    expect(quackLink).toHaveAttribute('href', '/quack');
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByText('Ferramentas Digitais')).not.toBeInTheDocument();
   });
 });
+
