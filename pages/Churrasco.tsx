@@ -42,7 +42,7 @@ const Churrasco: React.FC = () => {
   const [studentEmail, setStudentEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
-  const [drinkPreference, setDrinkPreference] = useState('Cerveja');
+  const [drinkPreference] = useState('À escolha no dia');
   const [quantity, setQuantity] = useState(1);
 
   // Submission / Loading
@@ -245,8 +245,8 @@ const Churrasco: React.FC = () => {
                   <span className="font-bold text-text-100 dark:text-white">1 Bifana + 2 Bebidas</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500 dark:text-slate-400">Bebida Selecionada:</span>
-                  <span className="font-semibold">{confirmedOrder.drink_preference || confirmedOrder.drinkPreference || 'Cerveja'}</span>
+                  <span className="text-gray-500 dark:text-slate-400">Bebidas:</span>
+                  <span className="font-semibold">2 copos por passe (à escolha no dia)</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-slate-400">Quantidade:</span>
@@ -287,18 +287,18 @@ const Churrasco: React.FC = () => {
             <header className="text-center space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30 text-xs font-semibold tracking-wide">
                 <Flame size={14} className="text-orange-500" />
-                <span>NEEI &times; NEISE &bull; Entrada Gratuita</span>
+                <span>NEEI &bull; Entrada Gratuita</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-100 dark:text-white tracking-tight">
                 Churrasco de <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 bg-clip-text text-transparent">
-                  Engenharia Informática &amp; ISE
+                  Engenharia Informática
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-text-200 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                Organizado pelo <strong>NEEI</strong> em colaboração com o <strong>NEISE</strong> (Núcleo de Estudantes do Instituto Superior de Engenharia). Entrada livre e aberta a todos os estudantes da Universidade do Algarve!
+                Organizado pelo <strong>NEEI</strong> em colaboração com o <strong>NEISE</strong>. Entrada livre e aberta a todos os estudantes da Universidade do Algarve!
               </p>
             </header>
 
@@ -311,14 +311,11 @@ const Churrasco: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
                     <span className="text-base sm:text-lg font-bold text-emerald-950 dark:text-emerald-100">
-                      Entrada 100% Gratuita para Todos
-                    </span>
-                    <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-600 text-white tracking-wider">
-                      Acesso Livre
+                      Entrada Livre para Todos
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-200 mt-1">
-                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Para quem pretender comer e beber no churrasco, está disponível o passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
+                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Podem adquirir bebida no dia. Encontra-se disponível o nosso passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
                   </p>
                 </div>
               </div>
@@ -358,7 +355,7 @@ const Churrasco: React.FC = () => {
                     2 Copos de Bebida
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Cerveja fresca ou refrigerante/água à escolha no momento do levantamento.
+                    Cerveja fresca ou refrigerante/água à escolha.
                   </p>
                 </div>
               </div>
@@ -372,7 +369,7 @@ const Churrasco: React.FC = () => {
                     4,50€ Tudo Incluído
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Preço fixo por passe, com taxas de processamento Stripe já incluídas.
+                    Levanta a tua pulseira no dia.
                   </p>
                 </div>
               </div>
@@ -452,7 +449,7 @@ const Churrasco: React.FC = () => {
                         required
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
-                        placeholder="Ex: Diogo Rodrigues"
+                        placeholder="Ex: David Rodrigues"
                         className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-[#09121d] border border-gray-200 dark:border-cyan-950/80 text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                       />
                     </div>
@@ -467,7 +464,7 @@ const Churrasco: React.FC = () => {
                         required
                         value={studentEmail}
                         onChange={(e) => setStudentEmail(e.target.value)}
-                        placeholder="a12345@ualg.pt ou pessoal"
+                        placeholder="a79994@ualg.pt ou pessoal"
                         className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-[#09121d] border border-gray-200 dark:border-cyan-950/80 text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                       />
                     </div>
@@ -475,7 +472,7 @@ const Churrasco: React.FC = () => {
                     {/* Telemóvel */}
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-2">
-                        Telemóvel (9 dígitos) <span className="text-red-500">*</span>
+                        Telemóvel <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="tel"
@@ -500,28 +497,6 @@ const Churrasco: React.FC = () => {
                         placeholder="Ex: a74123"
                         className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-[#09121d] border border-gray-200 dark:border-cyan-950/80 text-text-100 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                       />
-                    </div>
-                  </div>
-
-                  {/* Preferência de Bebida */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300">
-                      Preferência de Bebida (2 copos por passe)
-                    </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      {['Cerveja', 'Refrigerante', 'Água', 'À escolha no bar'].map((drink) => (
-                        <button
-                          key={drink}
-                          type="button"
-                          onClick={() => setDrinkPreference(drink)}
-                          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-center border ${drinkPreference === drink
-                            ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                            : 'bg-gray-50 dark:bg-slate-800/60 text-text-200 dark:text-slate-300 border-gray-200 dark:border-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                            }`}
-                        >
-                          {drink}
-                        </button>
-                      ))}
                     </div>
                   </div>
 

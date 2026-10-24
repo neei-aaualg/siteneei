@@ -46,32 +46,28 @@ describe('Churrasco Page', () => {
       expect(screen.getByText(/Churrasco de/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Entrada 100% Gratuita/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Entrada Livre/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/NEISE/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/1 Bifana no Pão/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/2 Copos de Bebida/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/4,50€ Tudo Incluído/i)).toBeInTheDocument();
   });
 
-  it('permite preencher o formulário e selecionar bebida e quantidade', async () => {
+  it('permite preencher o formulário e selecionar a quantidade de passes', async () => {
     const user = userEvent.setup();
     renderChurrasco();
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Ex: Diogo Rodrigues/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Ex: David Rodrigues/i)).toBeInTheDocument();
     });
 
-    const nameInput = screen.getByPlaceholderText(/Ex: Diogo Rodrigues/i);
-    const emailInput = screen.getByPlaceholderText(/a12345@ualg.pt ou pessoal/i);
+    const nameInput = screen.getByPlaceholderText(/Ex: David Rodrigues/i);
+    const emailInput = screen.getByPlaceholderText(/a79994@ualg\.pt ou pessoal/i);
     const phoneInput = screen.getByPlaceholderText(/912 345 678/i);
 
     await user.type(nameInput, 'João Silva');
     await user.type(emailInput, 'joao@ualg.pt');
     await user.type(phoneInput, '912345678');
-
-    // Seleciona Refrigerante
-    const refriBtn = screen.getByRole('button', { name: 'Refrigerante' });
-    await user.click(refriBtn);
 
     // Aumenta quantidade para 2
     const plusBtn = screen.getByRole('button', { name: '+' });
