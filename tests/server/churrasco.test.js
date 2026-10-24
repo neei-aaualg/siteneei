@@ -495,6 +495,20 @@ describe('Churrasco NEEI - Backend & API', () => {
         });
         expect(newLoginStatus).toBe(200);
       });
+
+      it('envia email com bilhete e anexa o código QR correspondente', async () => {
+        const order = db.preparePendingChurrascoOrder({
+          student_name: 'Ana Rodrigues',
+          student_email: 'ana.rodrigues@ualg.pt',
+          phone_number: '917777777',
+          quantity: 1,
+        });
+        const confirmed = db.confirmChurrascoOrderPayment(order.id, 'pi_test_email_qr');
+
+        const result = await churrascoApi.sendChurrascoTicketEmail(confirmed);
+        expect(result.success).toBe(true);
+        expect(result.qrGenerated).toBe(true);
+      });
     });
   });
 });

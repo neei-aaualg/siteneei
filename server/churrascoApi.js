@@ -1,6 +1,7 @@
 import { readJsonBody, sendJson } from './api.js';
 import { verifyAdminToken } from './auth.js';
 import { getCanonicalAppUrl } from './security.js';
+import QRCode from 'qrcode';
 import {
   isChurrascoVisible,
   setChurrascoVisibility,
@@ -115,9 +116,9 @@ async function syncPendingChurrascoOrdersWithStripe() {
 }
 
 /**
- * Envia email com o bilhete digital ao estudante
+ * Envia email com o bilhete digital e código QR ao estudante
  */
-async function sendChurrascoTicketEmail(order) {
+export async function sendChurrascoTicketEmail(order) {
   try {
     const transporter = getTransporter();
     const studentEmail = order.student_email;
@@ -125,6 +126,33 @@ async function sendChurrascoTicketEmail(order) {
 
     const fromAddress = process.env.SMTP_FROM || 'NEEI - Núcleo de Estudantes de Engenharia Informática <neei@aaualg.pt>';
     const subject = `🍖 O teu Passe para o Churrasco NEEI está Confirmado! (Código: ${order.ticket_code})`;
+
+    // Gerar imagem do QR Code em buffer para envio como anexo inline (CID)
+    let qrBuffer = null;
+    const baseUrl = getCanonicalAppUrl();
+    const qrData = `${baseUrl}/churrasco-admin?code=${order.ticket_code}`;
+
+    try {
+      qrBuffer = await QRCode.toBuffer(qrData, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: '#9a3412',
+          light: '#ffffff',
+        },
+      });
+    } catch (qrErr) {
+      console.warn('[CHURRASCO QR WARN] Falha ao gerar buffer do QR code:', qrErr.message);
+    }
+
+    const attachments = [];
+    if (qrBuffer) {
+      attachments.push({
+        filename: `qrcode-${order.ticket_code}.png`,
+        content: qrBuffer,
+        cid: 'ticket-qr-code',
+      });
+    }
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
@@ -138,19 +166,23 @@ async function sendChurrascoTicketEmail(order) {
             O teu pagamento foi confirmado com sucesso! Tens lugar garantido no churrasco do semestre.
           </p>
 
-          <div style="background: #fff7ed; border: 2px dashed #f97316; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
-            <span style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #ea580c; letter-spacing: 1px;">Código do Bilhete</span>
-            <div style="font-size: 32px; font-weight: 800; color: #9a3412; letter-spacing: 2px; margin: 8px 0;">
+          <div style="background: #fff7ed; border: 2px dashed #f97316; border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+            <span style="font-size: 12px; font-weight: bold; text-transform: uppercase; color: #ea580c; letter-spacing: 1px;">O teu Código QR de Acesso</span>
+            ${qrBuffer ? `
+            <div style="margin: 16px auto; width: 200px; height: 200px; padding: 8px; background: #ffffff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #fed7aa;">
+              <img src="cid:ticket-qr-code" alt="QR Code Bilhete ${order.ticket_code}" width="200" height="200" style="display: block; width: 100%; height: auto;" />
+            </div>
+            ` : ''}
+            <div style="font-size: 30px; font-weight: 800; color: #9a3412; letter-spacing: 2px; margin: 8px 0; font-family: monospace;">
               ${order.ticket_code}
             </div>
-            <p style="margin: 0; font-size: 13px; color: #7c2d12;">Apresenta este código ou o teu nome na receção/bar no dia do evento.</p>
+            <p style="margin: 0; font-size: 13px; color: #7c2d12;">Apresenta este código QR ou o código do bilhete à entrada/balcão no dia do evento.</p>
           </div>
 
           <h3 style="font-size: 16px; margin: 20px 0 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Detalhes do Passe:</h3>
           <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; color: #334155; line-height: 1.8;">
             <li>🥩 <strong>Refeição:</strong> 1 Bifana quentinha no pão (por passe)</li>
-            <li>🍻 <strong>Bebidas:</strong> 2 Copos de cerveja fresca ou refrigerante</li>
-            <li>🥤 <strong>Preferência:</strong> ${order.drink_preference}</li>
+            <li>🍻 <strong>Bebidas:</strong> Sempre à discrição no bar durante o evento</li>
             <li>🎟️ <strong>Quantidade:</strong> ${order.quantity} passe(s)</li>
             <li>💶 <strong>Total Pago:</strong> ${Number(order.total_amount).toFixed(2)}€</li>
           </ul>
@@ -168,10 +200,13 @@ async function sendChurrascoTicketEmail(order) {
       to: studentEmail,
       subject,
       html,
+      attachments,
     });
-    console.log(`[CHURRASCO EMAIL] Bilhete enviado com sucesso para ${studentEmail} (${order.ticket_code})`);
+    console.log(`[CHURRASCO EMAIL] Bilhete enviado com sucesso para ${studentEmail} (${order.ticket_code}) com QR Code`);
+    return { success: true, qrGenerated: Boolean(qrBuffer) };
   } catch (err) {
     console.warn(`[CHURRASCO EMAIL WARN] Falha ao enviar email do bilhete para ${order.student_email}:`, err.message);
+    return { success: false, error: err.message };
   }
 }
 
