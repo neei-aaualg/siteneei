@@ -28,7 +28,8 @@ describe('Churrasco Page', () => {
         food: '1 Bifana no pão',
         drinks: '2 Copos de cerveja ou refrigerante',
       },
-      location: 'Campus de Gambelas (Gabinete NEEI / Pátio)',
+      location: 'Campus da Penha (Bar do ISE)',
+      schedule: 'Quinta-feira, a partir das 16h00',
     });
   });
 
@@ -51,6 +52,8 @@ describe('Churrasco Page', () => {
     expect(screen.getAllByText(/1 Bifana no Pão/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/2 Copos de Bebida/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/4,50€ Tudo Incluído/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Campus da Penha/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Quinta-feira/i).length).toBeGreaterThan(0);
   });
 
   it('permite preencher o formulário e selecionar a quantidade de passes', async () => {

@@ -71,6 +71,7 @@ export interface ChurrascoStatusResponse {
     drinks: string;
   };
   location: string;
+  schedule?: string;
 }
 
 export interface ChurrascoCheckoutPayload {
@@ -101,7 +102,8 @@ export async function fetchChurrascoStatus(): Promise<ChurrascoStatusResponse> {
       food: '1 Bifana no pão',
       drinks: '2 Copos de cerveja ou refrigerante',
     },
-    location: 'Campus de Gambelas (Gabinete NEEI / Pátio)',
+    location: 'Campus da Penha (Bar do ISE)',
+    schedule: 'Quinta-feira, a partir das 16h00',
   };
 }
 

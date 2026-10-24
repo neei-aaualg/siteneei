@@ -266,8 +266,12 @@ const Churrasco: React.FC = () => {
                   <span className="font-bold text-orange-600 dark:text-orange-400">{Number(confirmedOrder.total_amount || confirmedOrder.totalAmount || unitPrice).toFixed(2)}€</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-gray-500 dark:text-slate-400">Data &amp; Horário:</span>
+                  <span className="font-semibold text-orange-600 dark:text-orange-400">Quinta-feira, a partir das 16h00</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-500 dark:text-slate-400">Local:</span>
-                  <span className="font-medium">Campus de Gambelas</span>
+                  <span className="font-medium">Campus da Penha (Bar do ISE)</span>
                 </div>
               </div>
             </div>
@@ -296,7 +300,7 @@ const Churrasco: React.FC = () => {
             <header className="text-center space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30 text-xs font-semibold tracking-wide">
                 <Flame size={14} className="text-orange-500" />
-                <span>NEEI &bull; Entrada Gratuita</span>
+                <span>Quinta-feira &bull; A partir das 16h &bull; Campus da Penha (Bar do ISE)</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-100 dark:text-white tracking-tight">
@@ -592,11 +596,11 @@ const Churrasco: React.FC = () => {
             <div className="p-6 rounded-3xl bg-gray-50 dark:bg-[#0c1724]/60 border border-gray-200/80 dark:border-slate-800/80 text-xs sm:text-sm text-text-200 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <MapPin size={18} className="text-orange-500 shrink-0" />
-                <span>Campus de Gambelas, junto ao Edifício 1 (ISE)</span>
+                <span>Campus da Penha, Bar do ISE</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar size={18} className="text-orange-500 shrink-0" />
-                <span>A partir das 17h00</span>
+                <span>Quinta-feira, a partir das 16h00</span>
               </div>
               <div className="flex items-center gap-2 font-medium text-text-100 dark:text-slate-200">
                 <Users size={18} className="text-orange-500 shrink-0" />

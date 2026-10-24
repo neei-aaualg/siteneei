@@ -243,7 +243,8 @@ export async function sendChurrascoTicketEmail(order, options = {}) {
           </ul>
 
           <div style="margin-top: 24px; padding: 14px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: #64748b;">
-            📍 <strong>Localização:</strong> Campus de Gambelas (junto ao Edifício 1 / Gabinete NEEI)<br/>
+            📍 <strong>Localização:</strong> Campus da Penha (Bar do ISE)<br/>
+            🕒 <strong>Data &amp; Horário:</strong> Quinta-feira, a partir das 16h00<br/>
             Dúvidas ou informações adicionais? Contacta-nos através de <a href="mailto:neei@aaualg.pt" style="color: #ea580c;">neei@aaualg.pt</a> ou no Instagram <a href="https://instagram.com/neeiualg" style="color: #ea580c;">@neeiualg</a>.
           </div>
         </div>
@@ -291,7 +292,8 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
           food: '1 Bifana no pão',
           drinks: '2 Copos de bebida (cerveja, refrigerante ou água à escolha no bar)',
         },
-        location: 'Campus de Gambelas (Gabinete NEEI / Pátio)',
+        location: 'Campus da Penha (Bar do ISE)',
+        schedule: 'Quinta-feira a partir das 16h00',
       });
     }
 
