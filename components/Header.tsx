@@ -17,8 +17,10 @@ import {
   Info,
   Users,
   Wrench,
+  Flame,
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { fetchAppConfig } from '../services/activitiesService';
 
 interface NavDropdownItem {
   name: string;
@@ -37,9 +39,32 @@ const Header: React.FC = () => {
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false);
   const [isMobileToolsOpen, setIsMobileToolsOpen] = useState(false);
+  const [showChurrasco, setShowChurrasco] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const toolsDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchAppConfig().then((cfg) => {
+      if (isMounted && cfg.showChurrasco !== undefined) {
+        setShowChurrasco(cfg.showChurrasco);
+      }
+    });
+
+    const handleVisibility = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail.visible === 'boolean') {
+        setShowChurrasco(detail.visible);
+      }
+    };
+
+    window.addEventListener('churrasco-visibility-changed', handleVisibility);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('churrasco-visibility-changed', handleVisibility);
+    };
+  }, []);
 
   const exploreItems: NavDropdownItem[] = [
     {
@@ -328,6 +353,28 @@ const Header: React.FC = () => {
               >
                 Atividades
               </Link>
+
+              {/* Aba Temporária Destacada - Churrasco NEEI */}
+              {showChurrasco && (
+                <Link
+                  to="/churrasco"
+                  onClick={() => jumpToPageTop('/churrasco')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-bold transition-all duration-200 cursor-pointer shadow-xs group ${isActive('/churrasco')
+                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-400/50'
+                    : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300/80 dark:border-orange-500/40 hover:from-orange-500 hover:via-amber-500 hover:to-red-500 hover:text-white hover:shadow-md hover:shadow-orange-500/20'
+                    }`}
+                  title="Passe de Churrasco: 1 Bifana + 2 Bebidas (4,50€)"
+                >
+                  <Flame
+                    size={15}
+                    className={`transition-colors ${isActive('/churrasco')
+                      ? 'text-white'
+                      : 'text-orange-500 dark:text-orange-400 group-hover:text-white'
+                      }`}
+                  />
+                  <span>Churrasco</span>
+                </Link>
+              )}
             </nav>
           </div>
 
@@ -573,6 +620,32 @@ const Header: React.FC = () => {
             >
               Atividades
             </Link>
+
+            {/* Mobile Churrasco Highlight */}
+            {showChurrasco && (
+              <Link
+                to="/churrasco"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  jumpToPageTop('/churrasco');
+                }}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-base font-bold transition-all duration-200 ${isActive('/churrasco')
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25'
+                  : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Flame
+                    size={18}
+                    className={isActive('/churrasco') ? 'text-white' : 'text-orange-500 dark:text-orange-400'}
+                  />
+                  <span>Churrasco NEEI</span>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500 text-white font-extrabold">
+                  4,50€
+                </span>
+              </Link>
+            )}
 
             {/* Mobile Dropdown NEEI-Tools */}
             <div className="space-y-1">

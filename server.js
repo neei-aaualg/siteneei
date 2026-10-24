@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from '@google/genai';
 import { handleActivitiesApi } from './server/api.js';
 import { handleShopApi } from './server/shopApi.js';
+import { handleChurrascoApi } from './server/churrascoApi.js';
 import { createRateLimiter, setSecurityHeaders, clientIp } from './server/security.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -368,6 +369,15 @@ const server = http.createServer(async (req, res) => {
     pathname === '/api/webhooks/ifthenpay'
   ) {
     const handled = await handleShopApi(req, res, pathname, url.searchParams);
+    if (handled !== false) return;
+  }
+
+  // API Churrasco NEEI (Passes, Check-in & Administração)
+  if (
+    pathname.startsWith('/api/churrasco') ||
+    pathname.startsWith('/api/admin/churrasco')
+  ) {
+    const handled = await handleChurrascoApi(req, res, pathname, url.searchParams);
     if (handled !== false) return;
   }
 

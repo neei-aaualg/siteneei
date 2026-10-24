@@ -35,24 +35,27 @@ export function clearStoredAdminToken(): void {
 /**
  * Obtém as configurações da aplicação (ex.: visibilidade do calendário)
  */
-export async function fetchAppConfig(): Promise<{ showCalendar: boolean }> {
+export async function fetchAppConfig(): Promise<{ showCalendar: boolean; showChurrasco: boolean }> {
   try {
     const res = await fetch('/api/config');
     if (res.ok) {
       const data = await res.json();
-      return { showCalendar: Boolean(data.showCalendar) };
+      return {
+        showCalendar: Boolean(data.showCalendar),
+        showChurrasco: data.showChurrasco !== undefined ? Boolean(data.showChurrasco) : true,
+      };
     }
   } catch {
     // Ignora erro de rede em ambiente offline/dev
   }
 
-  // Fallback para variável de ambiente Vite
-  const viteEnv = (import.meta as any).env?.VITE_SHOW_CALENDAR;
-  if (viteEnv !== undefined) {
-    return { showCalendar: viteEnv !== 'false' && viteEnv !== '0' };
-  }
+  // Fallback para variáveis de ambiente Vite
+  const viteCalEnv = (import.meta as any).env?.VITE_SHOW_CALENDAR;
+  const viteChurrEnv = (import.meta as any).env?.VITE_SHOW_CHURRASCO;
+  const showCalendar = viteCalEnv !== undefined ? viteCalEnv !== 'false' && viteCalEnv !== '0' : true;
+  const showChurrasco = viteChurrEnv !== undefined ? viteChurrEnv !== 'false' && viteChurrEnv !== '0' : true;
 
-  return { showCalendar: true };
+  return { showCalendar, showChurrasco };
 }
 
 /**

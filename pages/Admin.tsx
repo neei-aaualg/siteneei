@@ -38,6 +38,7 @@ import { AdminActivitiesTab } from '../components/admin/AdminActivitiesTab';
 import { AdminCollaboratorsTab } from '../components/admin/AdminCollaboratorsTab';
 import { AdminJobsTab } from '../components/admin/AdminJobsTab';
 import { AdminShopPanel } from '../components/admin/AdminShopPanel';
+import { AdminChurrascoTab } from '../components/admin/AdminChurrascoTab';
 import { ActivityModal } from '../components/admin/modals/ActivityModal';
 import {
   ConfirmDeleteRegistrationModal,
@@ -604,6 +605,12 @@ export const Admin: React.FC = () => {
         {activeTab === 'shop' && (
           <div className="animate-fadeIn">
             <AdminShopPanel token={token} />
+          </div>
+        )}
+
+        {activeTab === 'churrasco' && (
+          <div className="animate-fadeIn">
+            <AdminChurrascoTab adminToken={token} />
           </div>
         )}
       </main>

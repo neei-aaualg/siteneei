@@ -15,6 +15,7 @@ import {
   getPublishedJobOffers,
   updateJobOfferStatus,
   deleteJobOffer,
+  isChurrascoVisible,
 } from './db.js';
 import { authenticateAdmin, verifyAdminToken } from './auth.js';
 
@@ -95,6 +96,7 @@ export async function handleActivitiesApi(req, res, pathname) {
       const showCalendar = rawShow === undefined ? true : rawShow !== 'false' && rawShow !== '0';
       return sendJson(res, 200, {
         showCalendar,
+        showChurrasco: isChurrascoVisible(),
         stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
       });
     }

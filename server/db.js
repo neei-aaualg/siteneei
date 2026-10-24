@@ -207,7 +207,79 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS churrasco_orders (
+    id TEXT PRIMARY KEY,
+    ticket_code TEXT UNIQUE NOT NULL,
+    student_name TEXT NOT NULL,
+    student_email TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    student_number TEXT,
+    drink_preference TEXT NOT NULL DEFAULT 'Cerveja',
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price REAL NOT NULL DEFAULT 4.5,
+    total_amount REAL NOT NULL DEFAULT 4.5,
+    payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'cancelled')),
+    payment_provider TEXT NOT NULL DEFAULT 'stripe',
+    payment_ref TEXT,
+    check_in INTEGER NOT NULL DEFAULT 0,
+    check_in_at TEXT,
+    bifanas_served INTEGER NOT NULL DEFAULT 0,
+    drinks_served INTEGER NOT NULL DEFAULT 0,
+    email_sent INTEGER NOT NULL DEFAULT 0,
+    email_sent_at TEXT,
+    is_admin_created INTEGER NOT NULL DEFAULT 0,
+    admin_notes TEXT,
+    created_at TEXT NOT NULL,
+    paid_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_churrasco_status ON churrasco_orders(payment_status);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_created ON churrasco_orders(created_at);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_ticket ON churrasco_orders(ticket_code);
+
+  CREATE TABLE IF NOT EXISTS churrasco_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id TEXT NOT NULL,
+    ticket_code TEXT,
+    student_name TEXT,
+    item_type TEXT NOT NULL,
+    action TEXT NOT NULL,
+    staff_name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_churrasco_logs_order ON churrasco_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_logs_created ON churrasco_logs(created_at);
 `);
+
+// Migração: adiciona colunas bifanas_served e drinks_served à tabela churrasco_orders
+try {
+  const churrascoCols = db
+    .prepare('PRAGMA table_info(churrasco_orders)')
+    .all()
+    .map((c) => c.name);
+  if (!churrascoCols.includes('bifanas_served')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN bifanas_served INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('drinks_served')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN drinks_served INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('email_sent')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('email_sent_at')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN email_sent_at TEXT;');
+  }
+} catch (e) {
+  // Ignora se não existir
+}
 
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
@@ -3284,6 +3356,511 @@ export function calculateShopProfitSummary(orders, margins = null) {
     items,
     unmatchedUnits: unmatchedCount,
   };
+}
+
+/* =========================================================================
+   CONFIGURAÇÕES GERAIS DA APLICAÇÃO (APP_SETTINGS)
+   ========================================================================= */
+
+export function getAppSetting(key, defaultValue = '') {
+  try {
+    const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+    return row ? row.value : defaultValue;
+  } catch (err) {
+    console.warn(`[SETTINGS] Falha ao ler configuração ${key}:`, err.message);
+    return defaultValue;
+  }
+}
+
+export function setAppSetting(key, value) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(key, String(value), now);
+  return value;
+}
+
+export function isChurrascoVisible() {
+  const envVal = process.env.SHOW_CHURRASCO ?? process.env.VITE_SHOW_CHURRASCO;
+  if (envVal === 'false' || envVal === '0') return false;
+  const dbVal = getAppSetting('show_churrasco', 'true');
+  return dbVal !== 'false' && dbVal !== '0';
+}
+
+export function setChurrascoVisibility(visible) {
+  setAppSetting('show_churrasco', visible ? 'true' : 'false');
+  return visible;
+}
+
+/* =========================================================================
+   GESTÃO DO CHURRASCO NEEI (PASSES & BILHETES)
+   ========================================================================= */
+
+function generateChurrascoTicketCode() {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = 'CH-';
+    for (let i = 0; i < 4; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const existing = db.prepare('SELECT id FROM churrasco_orders WHERE ticket_code = ?').get(code);
+    if (!existing) return code;
+  }
+  return `CH-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+}
+
+export function preparePendingChurrascoOrder(orderData) {
+  const studentName = (orderData.student_name || orderData.studentName || '').trim();
+  if (!studentName || studentName.length < 3) {
+    const err = new Error('Nome do aluno é obrigatório (mínimo 3 caracteres).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const studentEmail = (orderData.student_email || orderData.studentEmail || '').toLowerCase().trim();
+  if (!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)) {
+    const err = new Error('Email de contacto válido é obrigatório.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const rawPhone = (orderData.phone_number || orderData.phoneNumber || '')
+    .replace(/\s+/g, '')
+    .replace(/^\+351/, '');
+  if (!/^9\d{8}$/.test(rawPhone)) {
+    const err = new Error('Número de telemóvel inválido (deve ter 9 dígitos e começar por 9).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let studentNumber = null;
+  const rawStudentNumber = orderData.student_number || orderData.studentNumber;
+  if (rawStudentNumber) {
+    try {
+      studentNumber = cleanStudentNumber(rawStudentNumber);
+    } catch {
+      studentNumber = String(rawStudentNumber).trim().toLowerCase();
+    }
+  }
+
+  const rawDrink = (orderData.drink_preference || orderData.drinkPreference || 'Cerveja').trim();
+  const validDrinks = ['Cerveja', 'Refrigerante', 'Água', 'À escolha no bar'];
+  const drinkPreference = validDrinks.includes(rawDrink) ? rawDrink : 'Cerveja';
+
+  const rawQty = parseInt(orderData.quantity || '1', 10);
+  const quantity = Math.min(Math.max(isNaN(rawQty) ? 1 : rawQty, 1), 10);
+
+  const unitPrice = 4.5;
+  const totalAmount = Number((unitPrice * quantity).toFixed(2));
+  const orderId = `churr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const ticketCode = generateChurrascoTicketCode();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO churrasco_orders (
+      id, ticket_code, student_name, student_email, phone_number, student_number,
+      drink_preference, quantity, unit_price, total_amount, payment_status,
+      payment_provider, check_in, is_admin_created, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'stripe', 0, 0, ?)
+  `).run(
+    orderId,
+    ticketCode,
+    studentName,
+    studentEmail,
+    rawPhone,
+    studentNumber,
+    drinkPreference,
+    quantity,
+    unitPrice,
+    totalAmount,
+    now
+  );
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function formatChurrascoOrderWithDetails(order) {
+  if (!order) return null;
+  const quantity = Number(order.quantity) || 1;
+  const bifanasTotal = quantity * 1;
+  const drinksTotal = quantity * 2;
+  const bifanasServed = Number(order.bifanas_served) || 0;
+  const drinksServed = Number(order.drinks_served) || 0;
+  const bifanasRemaining = Math.max(0, bifanasTotal - bifanasServed);
+  const drinksRemaining = Math.max(0, drinksTotal - drinksServed);
+  const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
+
+  return {
+    ...order,
+    // CamelCase aliases
+    studentName: order.student_name,
+    studentEmail: order.student_email,
+    phoneNumber: order.phone_number,
+    studentNumber: order.student_number,
+    drinkPreference: order.drink_preference,
+    unitPrice: order.unit_price,
+    totalAmount: order.total_amount,
+    paymentStatus: order.payment_status,
+    ticketCode: order.ticket_code,
+    checkIn: Boolean(order.check_in),
+    // Item consumption fields (both styles)
+    bifanas_total: bifanasTotal,
+    bifanasTotal,
+    bifanas_served: bifanasServed,
+    bifanasServed,
+    bifanas_remaining: bifanasRemaining,
+    bifanasRemaining,
+    drinks_total: drinksTotal,
+    drinksTotal,
+    drinks_served: drinksServed,
+    drinksServed,
+    drinks_remaining: drinksRemaining,
+    drinksRemaining,
+    is_fully_served: isFullyServed,
+    isFullyServed,
+    email_sent: Boolean(order.email_sent),
+    emailSent: Boolean(order.email_sent),
+    email_sent_at: order.email_sent_at || null,
+    emailSentAt: order.email_sent_at || null,
+  };
+}
+
+export function getChurrascoOrderById(id) {
+  if (!id) return null;
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE id = ?').get(id);
+  return formatChurrascoOrderWithDetails(row);
+}
+
+export function getChurrascoOrderByTicketCode(code) {
+  if (!code) return null;
+  const cleanCode = String(code).trim().toUpperCase();
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE ticket_code = ?').get(cleanCode);
+  return formatChurrascoOrderWithDetails(row);
+}
+
+export function getChurrascoOrderByPaymentRef(paymentRef) {
+  if (!paymentRef) return null;
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE payment_ref = ?').get(paymentRef);
+  return formatChurrascoOrderWithDetails(row);
+}
+
+export function confirmChurrascoOrderPayment(id, paymentRef = null) {
+  const order = getChurrascoOrderById(id);
+  if (!order) {
+    const err = new Error('Pedido de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (order.payment_status === 'paid') {
+    return order;
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET payment_status = 'paid',
+        payment_ref = COALESCE(?, payment_ref),
+        paid_at = ?
+    WHERE id = ?
+  `).run(paymentRef, now, id);
+
+  return getChurrascoOrderById(id);
+}
+
+export function getAllChurrascoOrders() {
+  const rows = db.prepare(`
+    SELECT * FROM churrasco_orders
+    ORDER BY created_at DESC
+  `).all();
+  return rows.map(formatChurrascoOrderWithDetails);
+}
+
+export function getChurrascoStats() {
+  const paidRows = db.prepare(`
+    SELECT quantity, total_amount, check_in, bifanas_served, drinks_served
+    FROM churrasco_orders
+    WHERE payment_status = 'paid'
+  `).all();
+
+  const totalOrders = paidRows.length;
+  let totalTickets = 0;
+  let totalRevenue = 0;
+  let totalCheckedIn = 0;
+  let totalBifanasServed = 0;
+  let totalDrinksServed = 0;
+
+  for (const r of paidRows) {
+    const q = Number(r.quantity) || 1;
+    totalTickets += q;
+    totalRevenue += Number(r.total_amount) || 0;
+    if (r.check_in === 1) {
+      totalCheckedIn += q;
+    }
+    totalBifanasServed += Number(r.bifanas_served) || 0;
+    totalDrinksServed += Number(r.drinks_served) || 0;
+  }
+
+  const pendingOrders = db.prepare(`
+    SELECT COUNT(*) as count FROM churrasco_orders WHERE payment_status = 'pending'
+  `).get()?.count || 0;
+
+  return {
+    totalOrders,
+    totalTickets,
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalCheckedIn,
+    pendingCheckIn: Math.max(0, totalTickets - totalCheckedIn),
+    pendingOrders,
+    totalBifanas: totalTickets * 1,
+    totalBifanasServed,
+    totalDrinks: totalTickets * 2,
+    totalDrinksServed,
+    visibility: isChurrascoVisible(),
+  };
+}
+
+export function toggleChurrascoCheckIn(id, status = true) {
+  const order = getChurrascoOrderById(id);
+  if (!order) {
+    const err = new Error('Passe de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const checkInVal = status ? 1 : 0;
+  const checkInAt = status ? new Date().toISOString() : null;
+
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET check_in = ?, check_in_at = ?
+    WHERE id = ?
+  `).run(checkInVal, checkInAt, id);
+
+  return getChurrascoOrderById(id);
+}
+
+export function addChurrascoLog({ orderId, ticketCode, studentName, itemType, action, staffName }) {
+  try {
+    const now = new Date().toISOString();
+    const cleanStaff = String(staffName || 'Staff').trim() || 'Staff';
+    db.prepare(`
+      INSERT INTO churrasco_logs (order_id, ticket_code, student_name, item_type, action, staff_name, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      orderId,
+      ticketCode || null,
+      studentName || null,
+      itemType,
+      action,
+      cleanStaff,
+      now
+    );
+  } catch (err) {
+    console.warn('[CHURRASCO LOG WARN]:', err.message);
+  }
+}
+
+export function getChurrascoLogs(limit = 200) {
+  try {
+    return db.prepare(`
+      SELECT * FROM churrasco_logs
+      ORDER BY id DESC
+      LIMIT ?
+    `).all(limit);
+  } catch {
+    return [];
+  }
+}
+
+export function serveChurrascoItem(orderId, item, action = 'serve', staffName = 'Staff') {
+  const order = getChurrascoOrderById(orderId);
+  if (!order) {
+    const err = new Error('Pedido de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const quantity = Number(order.quantity) || 1;
+  const maxBifanas = quantity * 1;
+  const maxDrinks = quantity * 2;
+
+  let bifanasServed = Number(order.bifanas_served) || 0;
+  let drinksServed = Number(order.drinks_served) || 0;
+
+  if (item === 'bifana') {
+    if (action === 'serve') {
+      if (bifanasServed >= maxBifanas) {
+        const err = new Error('Todas as bifanas deste passe já foram servidas.');
+        err.statusCode = 400;
+        throw err;
+      }
+      bifanasServed += 1;
+    } else if (action === 'undo') {
+      bifanasServed = Math.max(0, bifanasServed - 1);
+    }
+  } else if (item === 'drink') {
+    if (action === 'serve') {
+      if (drinksServed >= maxDrinks) {
+        const err = new Error('Todas as bebidas deste passe já foram servidas.');
+        err.statusCode = 400;
+        throw err;
+      }
+      drinksServed += 1;
+    } else if (action === 'undo') {
+      drinksServed = Math.max(0, drinksServed - 1);
+    }
+  } else {
+    const err = new Error("Item inválido. Utilize 'bifana' ou 'drink'.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const checkIn = (bifanasServed > 0 || drinksServed > 0) ? 1 : 0;
+  const now = new Date().toISOString();
+  const checkInAt = checkIn ? (order.check_in_at || now) : null;
+
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET bifanas_served = ?,
+        drinks_served = ?,
+        check_in = ?,
+        check_in_at = ?
+    WHERE id = ?
+  `).run(bifanasServed, drinksServed, checkIn, checkInAt, orderId);
+
+  // Regista log com o nome do voluntário/staff que efetuou a operação
+  addChurrascoLog({
+    orderId,
+    ticketCode: order.ticket_code || order.ticketCode,
+    studentName: order.student_name || order.studentName,
+    itemType: item,
+    action,
+    staffName: staffName || 'Staff',
+  });
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function getChurrascoAdminPassword() {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('churrasco_admin_password');
+  return row?.value || 'churrasco2026';
+}
+
+export function setChurrascoAdminPassword(password) {
+  const cleanPass = String(password || '').trim();
+  if (cleanPass.length < 4) {
+    const err = new Error('A senha do balcão deve ter pelo menos 4 caracteres.');
+    err.statusCode = 400;
+    throw err;
+  }
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES ('churrasco_admin_password', ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(cleanPass, now);
+  return cleanPass;
+}
+
+export function verifyChurrascoAdminPassword(inputPassword) {
+  if (!inputPassword) return false;
+  const currentPass = getChurrascoAdminPassword();
+  const masterPass = (process.env.ADMIN_PASSWORD || '').trim();
+  return inputPassword === currentPass || (Boolean(masterPass) && inputPassword === masterPass);
+}
+
+export function createAdminManualChurrascoOrder(data) {
+  const studentName = (data.student_name || '').trim();
+  if (!studentName || studentName.length < 3) {
+    const err = new Error('Nome do aluno é obrigatório (mínimo 3 caracteres).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const studentEmail = (data.student_email || '').toLowerCase().trim();
+  const rawPhone = (data.phone_number || '').replace(/\s+/g, '');
+  const quantity = Math.max(parseInt(data.quantity || '1', 10), 1);
+  const unitPrice = 4.5;
+  const totalAmount = Number((unitPrice * quantity).toFixed(2));
+  const orderId = `churr_admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const ticketCode = generateChurrascoTicketCode();
+  const now = new Date().toISOString();
+  const drink = (data.drink_preference || 'Cerveja').trim();
+  const notes = (data.admin_notes || data.notes || 'Venda manual presencial').trim();
+
+  db.prepare(`
+    INSERT INTO churrasco_orders (
+      id, ticket_code, student_name, student_email, phone_number, student_number,
+      drink_preference, quantity, unit_price, total_amount, payment_status,
+      payment_provider, check_in, is_admin_created, admin_notes, created_at, paid_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'manual', 0, 1, ?, ?, ?)
+  `).run(
+    orderId,
+    ticketCode,
+    studentName,
+    studentEmail || 'presencial@neei.pt',
+    rawPhone || '900000000',
+    data.student_number || null,
+    drink,
+    quantity,
+    unitPrice,
+    totalAmount,
+    notes,
+    now,
+    now
+  );
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function deleteChurrascoOrder(id) {
+  const result = db.prepare('DELETE FROM churrasco_orders WHERE id = ?').run(id);
+  return result.changes > 0;
+}
+
+/**
+ * Tenta reservar atomicamente o envio de email para o pedido de churrasco.
+ * Retorna true apenas para o primeiro chamador concorrente (changes > 0),
+ * garantindo idempotência absoluta mesmo com concorrência ou reloads rápidos.
+ */
+export function claimChurrascoOrderEmail(orderId) {
+  if (!orderId) return false;
+  const now = new Date().toISOString();
+  const res = db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 1, email_sent_at = ?
+    WHERE id = ? AND (email_sent = 0 OR email_sent IS NULL)
+  `).run(now, orderId);
+  return res.changes > 0;
+}
+
+/**
+ * Liberta o bloqueio de envio de email caso o envio SMTP falhe,
+ * permitindo que tentativas subsequentes ou reenviar manual funcionem.
+ */
+export function releaseChurrascoOrderEmail(orderId) {
+  if (!orderId) return;
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 0, email_sent_at = NULL
+    WHERE id = ? AND email_sent = 1
+  `).run(orderId);
+}
+
+/**
+ * Força a marcação de email como enviado
+ */
+export function markChurrascoOrderEmailSent(orderId) {
+  if (!orderId) return;
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 1, email_sent_at = ?
+    WHERE id = ?
+  `).run(now, orderId);
 }
 
 

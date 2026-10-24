@@ -12,6 +12,7 @@ import {
   X,
   ChevronRight,
   ExternalLink,
+  Flame,
 } from 'lucide-react';
 import { AdminTab, AdminNavItemConfig } from './adminTypes';
 
@@ -97,6 +98,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       description: 'Catálogo de artigos, packs e encomendas',
       category: 'Operações & Loja',
       icon: <ShoppingBag size={18} />,
+    },
+    {
+      id: 'churrasco',
+      label: 'Churrasco NEEI',
+      shortLabel: 'Churrasco',
+      description: 'Vendas de passes, check-in e visibilidade',
+      category: 'Operações & Loja',
+      icon: <Flame size={18} className="text-orange-500" />,
     },
   ];
 

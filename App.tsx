@@ -11,6 +11,8 @@ import Events from './pages/Events';
 import Links from './pages/Links';
 import Admin from './pages/Admin';
 import Shop from './pages/Shop';
+import Churrasco from './pages/Churrasco';
+import ChurrascoAdmin from './pages/ChurrascoAdmin';
 
 const ExternalRedirect: React.FC<{ to: string }> = ({ to }) => {
   React.useEffect(() => {
@@ -30,6 +32,10 @@ const App: React.FC = () => {
             <Route path="/merch" element={<Shop />} />
             <Route path="/loja" element={<Shop />} />
             <Route path="/shop" element={<Shop />} />
+            <Route path="/churrasco" element={<Churrasco />} />
+            <Route path="/bbq" element={<Churrasco />} />
+            <Route path="/churrasco-admin" element={<ChurrascoAdmin />} />
+            <Route path="/churrasco/admin" element={<ChurrascoAdmin />} />
             <Route path="/eventos" element={<Events />} />
             <Route path="/atividades" element={<Events />} />
             <Route
