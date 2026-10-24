@@ -242,5 +242,63 @@ describe('Admin', () => {
       })
     );
   });
+
+  it('permite alternar entre separadores através da sidebar de navegação modular', async () => {
+    const user = userEvent.setup();
+    (getStoredAdminToken as ReturnType<typeof vi.fn>).mockReturnValue('tok-guardado');
+    (fetchAdminCollaborators as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'collab-1',
+        name: 'Maria João',
+        student_number: 'a73333',
+        email: 'a73333@ualg.pt',
+        phone: '912345678',
+        course: 'LEI',
+        academic_year: '2',
+        areas_of_interest: 'Eventos, Web',
+        motivation: 'Quero ajudar no núcleo',
+        status: 'pending',
+        created_at: '2026-10-01',
+      },
+    ]);
+    (fetchAdminJobs as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'job-1',
+        title: 'Estágio Frontend',
+        company: 'Tech Algarve',
+        type: 'Estágio Curricular',
+        location: 'Faro',
+        email: 'recrutamento@tech.pt',
+        status: 'published',
+        created_at: '2026-10-01',
+        description: 'Vaga para estágio',
+      },
+    ]);
+
+    render(<Admin />);
+
+    expect(await screen.findByText('Painel de Administração')).toBeInTheDocument();
+
+    // Navega para Pedidos de Colaborador através da sidebar
+    const collabTabBtn = screen.getByRole('button', { name: /Pedidos de Colaborador/ });
+    await user.click(collabTabBtn);
+
+    expect(await screen.findByText('Maria João')).toBeInTheDocument();
+    expect(screen.getByText('Quero ajudar no núcleo')).toBeInTheDocument();
+
+    // Navega para Vagas & Oportunidades através da sidebar
+    const jobsTabBtn = screen.getByRole('button', { name: /Vagas & Oportunidades/ });
+    await user.click(jobsTabBtn);
+
+    expect(await screen.findByText('Estágio Frontend')).toBeInTheDocument();
+    expect(screen.getByText('Tech Algarve')).toBeInTheDocument();
+
+    // Navega de volta para Atividades
+    const activitiesTabBtn = screen.getByRole('button', { name: /Atividades & Inscrições/ });
+    await user.click(activitiesTabBtn);
+
+    expect(screen.getByText('Atividades Registadas (0)')).toBeInTheDocument();
+  });
 });
+
 
