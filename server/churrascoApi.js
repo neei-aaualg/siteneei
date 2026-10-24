@@ -57,36 +57,59 @@ async function syncPendingChurrascoOrdersWithStripe() {
     if (!stripe || isStripeSandbox()) return;
 
     const pendingOrders = db.prepare(`
-      SELECT id, student_email, student_name
+      SELECT id, student_email, student_name, payment_ref
       FROM churrasco_orders
       WHERE payment_status = 'pending'
       ORDER BY created_at DESC
-      LIMIT 15
+      LIMIT 20
     `).all();
 
     if (!pendingOrders || pendingOrders.length === 0) return;
 
+    // 1. Tenta recuperar sessão diretamente se payment_ref tiver o checkout session_id (cs_...)
+    const remainingPending = [];
     for (const pending of pendingOrders) {
-      try {
-        const sessions = await stripe.checkout.sessions.list({
-          client_reference_id: pending.id,
-          limit: 1,
-        });
-
-        if (sessions.data && sessions.data.length > 0) {
-          const s = sessions.data[0];
-          if (s.payment_status === 'paid') {
+      if (pending.payment_ref && pending.payment_ref.startsWith('cs_')) {
+        try {
+          const s = await stripe.checkout.sessions.retrieve(pending.payment_ref);
+          if (s && s.payment_status === 'paid') {
             const confirmed = confirmChurrascoOrderPayment(pending.id, s.payment_intent || s.id);
             sendChurrascoTicketEmail(confirmed).catch(() => {});
-            console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout`);
+            console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${s.id})`);
+            continue;
           }
+        } catch {
+          // Se falhar retrieve, tenta pesquisa na lista geral abaixo
         }
-      } catch (err) {
-        console.warn(`[CHURRASCO SYNC WARN] Pedido ${pending.id}:`, err.message);
+      }
+      remainingPending.push(pending);
+    }
+
+    if (remainingPending.length === 0) return;
+
+    // 2. Consulta as sessões Stripe recentes (Stripe API não aceita client_reference_id como filtro em sessions.list)
+    const sessions = await stripe.checkout.sessions.list({
+      limit: 100,
+    });
+
+    if (!sessions || !sessions.data || sessions.data.length === 0) return;
+
+    for (const pending of remainingPending) {
+      const match = sessions.data.find(
+        (s) =>
+          s.client_reference_id === pending.id ||
+          s.metadata?.order_id === pending.id ||
+          s.metadata?.orderId === pending.id
+      );
+
+      if (match && match.payment_status === 'paid') {
+        const confirmed = confirmChurrascoOrderPayment(pending.id, match.payment_intent || match.id);
+        sendChurrascoTicketEmail(confirmed).catch(() => {});
+        console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${match.id})`);
       }
     }
   } catch (err) {
-    console.warn('[CHURRASCO SYNC WARN] Falha geral ao sincronizar pendentes:', err.message);
+    console.warn('[CHURRASCO SYNC WARN] Falha ao sincronizar pedidos pendentes:', err.message);
   }
 }
 
@@ -222,6 +245,16 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         });
       }
 
+      // Guarda o ID da sessão Stripe para reconciliação direta
+      if (sessionResult.sessionId) {
+        try {
+          db.prepare('UPDATE churrasco_orders SET payment_ref = ? WHERE id = ?').run(
+            sessionResult.sessionId,
+            order.id
+          );
+        } catch {}
+      }
+
       return sendJson(res, 201, {
         success: true,
         orderId: order.id,
@@ -295,17 +328,23 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         return sendJson(res, 200, { success: true, order });
       }
 
-      // Modo Real Stripe: validação por sessionId ou pesquisa por client_reference_id
+      // Modo Real Stripe: validação por sessionId ou pesquisa nas sessões recentes
       try {
         const stripe = getStripeClient();
         if (stripe) {
           let session = null;
-          if (sessionId && !sessionId.startsWith('{')) {
-            session = await stripe.checkout.sessions.retrieve(sessionId);
+          const targetSessionId = sessionId && !sessionId.startsWith('{') ? sessionId : (order.payment_ref?.startsWith('cs_') ? order.payment_ref : null);
+          if (targetSessionId) {
+            session = await stripe.checkout.sessions.retrieve(targetSessionId);
           } else {
-            const list = await stripe.checkout.sessions.list({ client_reference_id: orderId, limit: 1 });
-            if (list.data && list.data.length > 0) {
-              session = list.data[0];
+            const list = await stripe.checkout.sessions.list({ limit: 50 });
+            if (list.data) {
+              session = list.data.find(
+                (s) =>
+                  s.client_reference_id === orderId ||
+                  s.metadata?.order_id === orderId ||
+                  s.metadata?.orderId === orderId
+              );
             }
           }
           if (session && session.payment_status === 'paid') {
