@@ -43,11 +43,12 @@ describe('Churrasco Page', () => {
     renderChurrasco();
 
     await waitFor(() => {
-      expect(screen.getByText(/Grande Churrasco de/i)).toBeInTheDocument();
+      expect(screen.getByText(/Churrasco de/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/1 Bifana no Pão/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 Copos de Bebida/i)).toBeInTheDocument();
+    expect(screen.getByText(/Entrada 100% Gratuita/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/1 Bifana no Pão/i)[0]).toBeInTheDocument();
+    expect(screen.getAllByText(/2 Copos de Bebida/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/4,50€ Tudo Incluído/i)).toBeInTheDocument();
   });
 

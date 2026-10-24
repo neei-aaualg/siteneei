@@ -287,22 +287,53 @@ const Churrasco: React.FC = () => {
             <header className="text-center space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30 text-xs font-bold tracking-wide uppercase">
                 <Flame size={14} className="text-orange-500 animate-pulse" />
-                <span>Evento Oficial NEEI &bull; Vagas Limitadas</span>
+                <span>Evento Oficial NEEI &bull; Entrada Gratuita</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-100 dark:text-white tracking-tight">
-                Grande Churrasco de <br className="hidden sm:inline" />
+                Churrasco de <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 bg-clip-text text-transparent">
                   Engenharia Informática 🍖
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-text-200 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                O convívio mais esperado do semestre está de regresso! Junta-te aos teus colegas e professores para uma tarde descontraída com boa comida, bebidas frescas e música.
+                Junta-te aos teus colegas do curso, bem como de outros, para uma tarde descontraída com boa comida, bebidas frescas e música!
               </p>
             </header>
 
-            {/* DESTAQUES DO QUE ESTÁ INCLUÍDO (4,50€) */}
+            {/* BANNER EM DESTAQUE: ENTRADA GRATUITA VS PASSE OPCIONAL */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/20 dark:from-emerald-500/20 dark:via-teal-500/20 dark:to-emerald-500/25 border-2 border-emerald-400 dark:border-emerald-500/50 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-center md:text-left">
+                <div className="p-3.5 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 shrink-0 hidden sm:flex">
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
+                    <span className="text-base sm:text-lg font-black text-emerald-950 dark:text-emerald-100">
+                      Entrada 100% Gratuita para Todos!
+                    </span>
+                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-600 text-white tracking-wider shadow-xs">
+                      Entrada Livre
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-200 mt-1">
+                    Não precisas de pagar nada para entrar e conviver com a malta. Se quiseres comer e beber no churrasco, podes comprar aqui o teu passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>!
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 text-center md:text-right bg-white/70 dark:bg-[#0c1827]/80 p-3 px-4 rounded-2xl border border-emerald-300 dark:border-emerald-500/40">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 block uppercase tracking-wide">
+                  Passe Refeição (Opcional)
+                </span>
+                <span className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400">
+                  4,50€
+                </span>
+              </div>
+            </div>
+
+            {/* DESTAQUES DO QUE ESTÁ INCLUÍDO NO PASSE (4,50€) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-sm flex items-start gap-3.5">
                 <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950/80 text-orange-600 dark:text-orange-400 shrink-0">
@@ -341,7 +372,7 @@ const Churrasco: React.FC = () => {
                     4,50€ Tudo Incluído
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Preço final com taxas Stripe já incluídas. Sem surpresas no checkout.
+                    Passe opcional de comida e bebida com taxas Stripe já incluídas.
                   </p>
                 </div>
               </div>
@@ -382,12 +413,15 @@ const Churrasco: React.FC = () => {
               <div className="bg-white dark:bg-[#0c1724] rounded-3xl border border-orange-200 dark:border-orange-950/70 shadow-xl p-6 sm:p-10 space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-gray-100 dark:border-slate-800/80 gap-3">
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-black text-text-100 dark:text-white flex items-center gap-2">
-                      <span>Comprar Passe de Churrasco</span>
+                    <h2 className="text-xl sm:text-2xl font-black text-text-100 dark:text-white flex items-center gap-2 flex-wrap">
+                      <span>Comprar Passe de Refeição</span>
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
+                        Entrada Grátis
+                      </span>
                       <Sparkles size={18} className="text-amber-500" />
                     </h2>
                     <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400 mt-1">
-                      Preenche os teus dados abaixo para gerar o teu bilhete digital com código QR.
+                      A entrada no convívio é livre e aberta a todos! Adquire aqui o teu passe se quiseres garantir 1 bifana no pão e 2 copos de bebida fresca.
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
@@ -481,11 +515,10 @@ const Churrasco: React.FC = () => {
                           key={drink}
                           type="button"
                           onClick={() => setDrinkPreference(drink)}
-                          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-center border ${
-                            drinkPreference === drink
-                              ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                              : 'bg-gray-50 dark:bg-slate-800/60 text-text-200 dark:text-slate-300 border-gray-200 dark:border-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                          }`}
+                          className={`py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-center border ${drinkPreference === drink
+                            ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                            : 'bg-gray-50 dark:bg-slate-800/60 text-text-200 dark:text-slate-300 border-gray-200 dark:border-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                            }`}
                         >
                           {drink}
                         </button>
