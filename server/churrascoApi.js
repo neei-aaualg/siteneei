@@ -87,6 +87,11 @@ async function syncPendingChurrascoOrdersWithStripe() {
             }
             console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${s.id})`);
             continue;
+          } else if (s && (s.status === 'expired' || (s.status === 'complete' && s.payment_status === 'unpaid'))) {
+            // Sessão expirada ou fechada sem pagamento
+            db.prepare("UPDATE churrasco_orders SET payment_status = 'cancelled' WHERE id = ?").run(pending.id);
+            console.log(`[CHURRASCO SYNC] Pedido ${pending.id} cancelado/expirado na Stripe (${s.status})`);
+            continue;
           }
         } catch {
           // Se falhar retrieve, tenta pesquisa na lista geral abaixo
@@ -120,6 +125,17 @@ async function syncPendingChurrascoOrdersWithStripe() {
         console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${match.id})`);
       }
     }
+
+    // Limpeza de pendentes abandonados com mais de 2 horas
+    try {
+      db.prepare(`
+        UPDATE churrasco_orders
+        SET payment_status = 'cancelled'
+        WHERE payment_status = 'pending'
+          AND is_admin_created != 1
+          AND datetime(created_at) < datetime('now', '-2 hours')
+      `).run();
+    } catch { }
   } catch (err) {
     console.warn('[CHURRASCO SYNC WARN] Falha ao sincronizar pedidos pendentes:', err.message);
   }
@@ -517,10 +533,20 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         });
       }
 
+      if (order.payment_status !== 'paid') {
+        return sendJson(res, 400, {
+          success: false,
+          valid: false,
+          isPaid: false,
+          error: `O bilhete "${cleanCode}" não é válido porque a compra não foi concluída/paga.`,
+          order: null,
+        });
+      }
+
       return sendJson(res, 200, {
         success: true,
         valid: true,
-        isPaid: order.payment_status === 'paid',
+        isPaid: true,
         order,
       });
     }
@@ -567,7 +593,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       await syncPendingChurrascoOrdersWithStripe();
 
       const stats = getChurrascoStats();
-      const orders = getAllChurrascoOrders();
+      const orders = getAllChurrascoOrders({ status: 'paid' });
       const barPassword = getChurrascoAdminPassword();
       const logs = getChurrascoLogs(200);
 

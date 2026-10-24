@@ -80,7 +80,10 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       setLoading(true);
       const data = await fetchAdminChurrasco(adminToken);
       setStats(data.stats);
-      setOrders(data.orders);
+      const paidOnly = (data.orders || []).filter(
+        (o: ChurrascoOrder) => (o.payment_status || o.paymentStatus || 'paid') === 'paid'
+      );
+      setOrders(paidOnly);
       setVisibility(data.visibility);
       if (data.logs) {
         setLogs(data.logs);
@@ -279,8 +282,11 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
     document.body.removeChild(link);
   };
 
-  // Filtragem de participantes
+  // Filtragem de participantes (apenas bilhetes confirmados e pagos)
   const filteredOrders = orders.filter((order) => {
+    const isPaid = (order.payment_status || order.paymentStatus || 'paid') === 'paid';
+    if (!isPaid) return false;
+
     const query = searchQuery.toLowerCase().trim();
     const name = (order.student_name || order.studentName || '').toLowerCase();
     const email = (order.student_email || order.studentEmail || '').toLowerCase();

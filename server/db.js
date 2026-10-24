@@ -281,6 +281,13 @@ try {
   // Ignora se não existir
 }
 
+// Limpeza de encomendas de churrasco abandonadas ou canceladas
+try {
+  db.exec("DELETE FROM churrasco_orders WHERE payment_status = 'cancelled' OR (payment_status = 'pending' AND is_admin_created != 1 AND datetime(created_at) < datetime('now', '-2 hours'));");
+} catch (e) {
+  // Ignora se não existir
+}
+
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
 try {
@@ -3570,11 +3577,21 @@ export function confirmChurrascoOrderPayment(id, paymentRef = null) {
   return getChurrascoOrderById(id);
 }
 
-export function getAllChurrascoOrders() {
+export function getAllChurrascoOrders(options = {}) {
+  const status = options.status || 'paid';
+  if (status === 'all') {
+    const rows = db.prepare(`
+      SELECT * FROM churrasco_orders
+      ORDER BY created_at DESC
+    `).all();
+    return rows.map(formatChurrascoOrderWithDetails);
+  }
+
   const rows = db.prepare(`
     SELECT * FROM churrasco_orders
+    WHERE payment_status = ?
     ORDER BY created_at DESC
-  `).all();
+  `).all(status);
   return rows.map(formatChurrascoOrderWithDetails);
 }
 
@@ -3630,6 +3647,12 @@ export function toggleChurrascoCheckIn(id, status = true) {
     throw err;
   }
 
+  if (order.payment_status !== 'paid') {
+    const err = new Error('Não é possível efetuar check-in de um bilhete não pago.');
+    err.statusCode = 400;
+    throw err;
+  }
+
   const checkInVal = status ? 1 : 0;
   const checkInAt = status ? new Date().toISOString() : null;
 
@@ -3680,6 +3703,12 @@ export function serveChurrascoItem(orderId, item, action = 'serve', staffName = 
   if (!order) {
     const err = new Error('Pedido de churrasco não encontrado.');
     err.statusCode = 404;
+    throw err;
+  }
+
+  if (order.payment_status !== 'paid') {
+    const err = new Error('Este bilhete não é válido porque a compra não foi concluída/paga.');
+    err.statusCode = 400;
     throw err;
   }
 
