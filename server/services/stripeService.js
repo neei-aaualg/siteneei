@@ -443,6 +443,32 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
       });
     }
 
+    const productName =
+      order.item_name || `Sweat Oficial Engenharia Informática 2026 (${order.size || 'Único'})`;
+    const productDesc =
+      order.description ||
+      `Tamanho: ${order.size || 'Único'} | Cor: ${order.color || 'Preto'} | Entrega: ${
+        order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
+      }`;
+
+    const orderMeta = {
+      order_id: order.id,
+      type: order.type || (order.id.startsWith('churr_') ? 'churrasco' : 'shop'),
+      size: order.size || '',
+      color: order.color || 'Preto',
+      delivery_type: order.delivery_type || 'pickup',
+      shipping_address: order.shipping_address || '',
+      shipping_postal_code: order.shipping_postal_code || '',
+      shipping_city: order.shipping_city || '',
+      item_price: String(order.item_price || order.total_amount),
+      shipping_fee: String(order.shipping_fee || 0),
+      payment_fee: String(order.payment_fee || 0),
+      total_amount: String(order.total_amount),
+      student_name: order.student_name || '',
+      student_email: order.student_email || '',
+      phone_number: order.phone_number || '',
+    };
+
     const sessionPayload = {
       payment_method_types: ['card', 'mb_way'],
       line_items: [
@@ -450,10 +476,8 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `Sweat Oficial Engenharia Informática 2026 (${order.size})`,
-              description: `Tamanho: ${order.size} | Cor: ${order.color || 'Preto'} | Entrega: ${
-                order.delivery_type === 'shipping' ? 'Envio CTT' : 'Recolha Gambelas'
-              }`,
+              name: productName,
+              description: productDesc,
             },
             unit_amount: amountInCents,
           },
@@ -463,39 +487,9 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
       mode: 'payment',
       client_reference_id: order.id,
       payment_intent_data: {
-        metadata: {
-          order_id: order.id,
-          size: order.size,
-          color: order.color || 'Preto',
-          delivery_type: order.delivery_type,
-          shipping_address: order.shipping_address || '',
-          shipping_postal_code: order.shipping_postal_code || '',
-          shipping_city: order.shipping_city || '',
-          item_price: String(order.item_price),
-          shipping_fee: String(order.shipping_fee),
-          payment_fee: String(order.payment_fee || 0),
-          total_amount: String(order.total_amount),
-          student_name: order.student_name,
-          student_email: order.student_email,
-          phone_number: order.phone_number,
-        },
+        metadata: orderMeta,
       },
-      metadata: {
-        order_id: order.id,
-        size: order.size,
-        color: order.color || 'Preto',
-        delivery_type: order.delivery_type,
-        shipping_address: order.shipping_address || '',
-        shipping_postal_code: order.shipping_postal_code || '',
-        shipping_city: order.shipping_city || '',
-        item_price: String(order.item_price),
-        shipping_fee: String(order.shipping_fee),
-        payment_fee: String(order.payment_fee || 0),
-        total_amount: String(order.total_amount),
-        student_name: order.student_name,
-        student_email: order.student_email,
-        phone_number: order.phone_number,
-      },
+      metadata: orderMeta,
       success_url: successUrl,
       cancel_url: cancelUrl,
     };

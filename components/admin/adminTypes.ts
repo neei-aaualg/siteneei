@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AdminTab = 'activities' | 'collaborators' | 'jobs' | 'shop';
+export type AdminTab = 'activities' | 'collaborators' | 'jobs' | 'shop' | 'churrasco';
 
 export interface AdminNavItemConfig {
   id: AdminTab;

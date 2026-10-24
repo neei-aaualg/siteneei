@@ -42,8 +42,8 @@ describe('activitiesService', () => {
 
   describe('fetchAppConfig', () => {
     it('usa o valor do servidor', async () => {
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ showCalendar: false })));
-      await expect(fetchAppConfig()).resolves.toEqual({ showCalendar: false });
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({ showCalendar: false, showChurrasco: true })));
+      await expect(fetchAppConfig()).resolves.toEqual({ showCalendar: false, showChurrasco: true });
     });
 
     // O ramo via `import.meta.env.VITE_SHOW_CALENDAR` (fallback quando o
@@ -51,7 +51,7 @@ describe('activitiesService', () => {
     // `import.meta.env` por ficheiro e não deixa defini-lo per-case.
     it('devolve true por omissão em caso de erro sem env', async () => {
       vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network')));
-      await expect(fetchAppConfig()).resolves.toEqual({ showCalendar: true });
+      await expect(fetchAppConfig()).resolves.toEqual({ showCalendar: true, showChurrasco: true });
     });
   });
 

@@ -53,6 +53,15 @@ function activitiesApiPlugin() {
           }
 
           if (
+            url.pathname.startsWith('/api/churrasco') ||
+            url.pathname.startsWith('/api/admin/churrasco')
+          ) {
+            const { handleChurrascoApi } = await import('./server/churrascoApi.js');
+            const handled = await handleChurrascoApi(req, res, url.pathname, url.searchParams);
+            if (handled !== false) return;
+          }
+
+          if (
             url.pathname.startsWith('/api/activities') ||
             url.pathname.startsWith('/api/admin/') ||
             url.pathname.startsWith('/api/collaborators') ||

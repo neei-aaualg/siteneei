@@ -207,6 +207,38 @@ db.exec(`
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS churrasco_orders (
+    id TEXT PRIMARY KEY,
+    ticket_code TEXT UNIQUE NOT NULL,
+    student_name TEXT NOT NULL,
+    student_email TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    student_number TEXT,
+    drink_preference TEXT NOT NULL DEFAULT 'Cerveja',
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price REAL NOT NULL DEFAULT 4.5,
+    total_amount REAL NOT NULL DEFAULT 4.5,
+    payment_status TEXT NOT NULL DEFAULT 'pending' CHECK(payment_status IN ('pending', 'paid', 'cancelled')),
+    payment_provider TEXT NOT NULL DEFAULT 'stripe',
+    payment_ref TEXT,
+    check_in INTEGER NOT NULL DEFAULT 0,
+    check_in_at TEXT,
+    is_admin_created INTEGER NOT NULL DEFAULT 0,
+    admin_notes TEXT,
+    created_at TEXT NOT NULL,
+    paid_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_churrasco_status ON churrasco_orders(payment_status);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_created ON churrasco_orders(created_at);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_ticket ON churrasco_orders(ticket_code);
 `);
 
 
@@ -3284,6 +3316,281 @@ export function calculateShopProfitSummary(orders, margins = null) {
     items,
     unmatchedUnits: unmatchedCount,
   };
+}
+
+/* =========================================================================
+   CONFIGURAÇÕES GERAIS DA APLICAÇÃO (APP_SETTINGS)
+   ========================================================================= */
+
+export function getAppSetting(key, defaultValue = '') {
+  try {
+    const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key);
+    return row ? row.value : defaultValue;
+  } catch (err) {
+    console.warn(`[SETTINGS] Falha ao ler configuração ${key}:`, err.message);
+    return defaultValue;
+  }
+}
+
+export function setAppSetting(key, value) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(key, String(value), now);
+  return value;
+}
+
+export function isChurrascoVisible() {
+  const envVal = process.env.SHOW_CHURRASCO ?? process.env.VITE_SHOW_CHURRASCO;
+  if (envVal === 'false' || envVal === '0') return false;
+  const dbVal = getAppSetting('show_churrasco', 'true');
+  return dbVal !== 'false' && dbVal !== '0';
+}
+
+export function setChurrascoVisibility(visible) {
+  setAppSetting('show_churrasco', visible ? 'true' : 'false');
+  return visible;
+}
+
+/* =========================================================================
+   GESTÃO DO CHURRASCO NEEI (PASSES & BILHETES)
+   ========================================================================= */
+
+function generateChurrascoTicketCode() {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = 'CH-';
+    for (let i = 0; i < 4; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    const existing = db.prepare('SELECT id FROM churrasco_orders WHERE ticket_code = ?').get(code);
+    if (!existing) return code;
+  }
+  return `CH-${Date.now().toString(36).slice(-4).toUpperCase()}`;
+}
+
+export function preparePendingChurrascoOrder(orderData) {
+  const studentName = (orderData.student_name || orderData.studentName || '').trim();
+  if (!studentName || studentName.length < 3) {
+    const err = new Error('Nome do aluno é obrigatório (mínimo 3 caracteres).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const studentEmail = (orderData.student_email || orderData.studentEmail || '').toLowerCase().trim();
+  if (!studentEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(studentEmail)) {
+    const err = new Error('Email de contacto válido é obrigatório.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const rawPhone = (orderData.phone_number || orderData.phoneNumber || '')
+    .replace(/\s+/g, '')
+    .replace(/^\+351/, '');
+  if (!/^9\d{8}$/.test(rawPhone)) {
+    const err = new Error('Número de telemóvel inválido (deve ter 9 dígitos e começar por 9).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let studentNumber = null;
+  const rawStudentNumber = orderData.student_number || orderData.studentNumber;
+  if (rawStudentNumber) {
+    try {
+      studentNumber = cleanStudentNumber(rawStudentNumber);
+    } catch {
+      studentNumber = String(rawStudentNumber).trim().toLowerCase();
+    }
+  }
+
+  const rawDrink = (orderData.drink_preference || orderData.drinkPreference || 'Cerveja').trim();
+  const validDrinks = ['Cerveja', 'Refrigerante', 'Água', 'À escolha no bar'];
+  const drinkPreference = validDrinks.includes(rawDrink) ? rawDrink : 'Cerveja';
+
+  const rawQty = parseInt(orderData.quantity || '1', 10);
+  const quantity = Math.min(Math.max(isNaN(rawQty) ? 1 : rawQty, 1), 10);
+
+  const unitPrice = 4.5;
+  const totalAmount = Number((unitPrice * quantity).toFixed(2));
+  const orderId = `churr_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const ticketCode = generateChurrascoTicketCode();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO churrasco_orders (
+      id, ticket_code, student_name, student_email, phone_number, student_number,
+      drink_preference, quantity, unit_price, total_amount, payment_status,
+      payment_provider, check_in, is_admin_created, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'stripe', 0, 0, ?)
+  `).run(
+    orderId,
+    ticketCode,
+    studentName,
+    studentEmail,
+    rawPhone,
+    studentNumber,
+    drinkPreference,
+    quantity,
+    unitPrice,
+    totalAmount,
+    now
+  );
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function getChurrascoOrderById(id) {
+  if (!id) return null;
+  return db.prepare('SELECT * FROM churrasco_orders WHERE id = ?').get(id) || null;
+}
+
+export function getChurrascoOrderByTicketCode(code) {
+  if (!code) return null;
+  const cleanCode = String(code).trim().toUpperCase();
+  return db.prepare('SELECT * FROM churrasco_orders WHERE ticket_code = ?').get(cleanCode) || null;
+}
+
+export function getChurrascoOrderByPaymentRef(paymentRef) {
+  if (!paymentRef) return null;
+  return db.prepare('SELECT * FROM churrasco_orders WHERE payment_ref = ?').get(paymentRef) || null;
+}
+
+export function confirmChurrascoOrderPayment(id, paymentRef = null) {
+  const order = getChurrascoOrderById(id);
+  if (!order) {
+    const err = new Error('Pedido de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (order.payment_status === 'paid') {
+    return order;
+  }
+
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET payment_status = 'paid',
+        payment_ref = COALESCE(?, payment_ref),
+        paid_at = ?
+    WHERE id = ?
+  `).run(paymentRef, now, id);
+
+  return getChurrascoOrderById(id);
+}
+
+export function getAllChurrascoOrders() {
+  return db.prepare(`
+    SELECT * FROM churrasco_orders
+    ORDER BY created_at DESC
+  `).all();
+}
+
+export function getChurrascoStats() {
+  const paidRows = db.prepare(`
+    SELECT quantity, total_amount, check_in
+    FROM churrasco_orders
+    WHERE payment_status = 'paid'
+  `).all();
+
+  const totalOrders = paidRows.length;
+  let totalTickets = 0;
+  let totalRevenue = 0;
+  let totalCheckedIn = 0;
+
+  for (const r of paidRows) {
+    const q = Number(r.quantity) || 1;
+    totalTickets += q;
+    totalRevenue += Number(r.total_amount) || 0;
+    if (r.check_in === 1) {
+      totalCheckedIn += q;
+    }
+  }
+
+  const pendingOrders = db.prepare(`
+    SELECT COUNT(*) as count FROM churrasco_orders WHERE payment_status = 'pending'
+  `).get()?.count || 0;
+
+  return {
+    totalOrders,
+    totalTickets,
+    totalRevenue: Number(totalRevenue.toFixed(2)),
+    totalCheckedIn,
+    pendingCheckIn: Math.max(0, totalTickets - totalCheckedIn),
+    pendingOrders,
+    visibility: isChurrascoVisible(),
+  };
+}
+
+export function toggleChurrascoCheckIn(id, status = true) {
+  const order = getChurrascoOrderById(id);
+  if (!order) {
+    const err = new Error('Passe de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const checkInVal = status ? 1 : 0;
+  const checkInAt = status ? new Date().toISOString() : null;
+
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET check_in = ?, check_in_at = ?
+    WHERE id = ?
+  `).run(checkInVal, checkInAt, id);
+
+  return getChurrascoOrderById(id);
+}
+
+export function createAdminManualChurrascoOrder(data) {
+  const studentName = (data.student_name || '').trim();
+  if (!studentName || studentName.length < 3) {
+    const err = new Error('Nome do aluno é obrigatório (mínimo 3 caracteres).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const studentEmail = (data.student_email || '').toLowerCase().trim();
+  const rawPhone = (data.phone_number || '').replace(/\s+/g, '');
+  const quantity = Math.max(parseInt(data.quantity || '1', 10), 1);
+  const unitPrice = 4.5;
+  const totalAmount = Number((unitPrice * quantity).toFixed(2));
+  const orderId = `churr_admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  const ticketCode = generateChurrascoTicketCode();
+  const now = new Date().toISOString();
+  const drink = (data.drink_preference || 'Cerveja').trim();
+  const notes = (data.admin_notes || data.notes || 'Venda manual presencial').trim();
+
+  db.prepare(`
+    INSERT INTO churrasco_orders (
+      id, ticket_code, student_name, student_email, phone_number, student_number,
+      drink_preference, quantity, unit_price, total_amount, payment_status,
+      payment_provider, check_in, is_admin_created, admin_notes, created_at, paid_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paid', 'manual', 0, 1, ?, ?, ?)
+  `).run(
+    orderId,
+    ticketCode,
+    studentName,
+    studentEmail || 'presencial@neei.pt',
+    rawPhone || '900000000',
+    data.student_number || null,
+    drink,
+    quantity,
+    unitPrice,
+    totalAmount,
+    notes,
+    now,
+    now
+  );
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function deleteChurrascoOrder(id) {
+  const result = db.prepare('DELETE FROM churrasco_orders WHERE id = ?').run(id);
+  return result.changes > 0;
 }
 
 

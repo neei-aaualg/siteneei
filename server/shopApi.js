@@ -472,6 +472,18 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         }
 
         if (orderId) {
+          if (orderId.startsWith('churr_') || paymentIntent.metadata?.type === 'churrasco') {
+            const { confirmChurrascoOrderPayment } = await import('./db.js');
+            try {
+              confirmChurrascoOrderPayment(orderId, paymentIntent.id);
+              console.log(`[STRIPE WEBHOOK] Passe Churrasco ${orderId} pago com sucesso via PaymentIntent`);
+              return sendJson(res, 200, { received: true, churrasco: true });
+            } catch (err) {
+              console.error(`[STRIPE WEBHOOK ERROR] Churrasco ${orderId}:`, err.message);
+              return sendJson(res, 400, { error: err.message });
+            }
+          }
+
           // Prevenção contra reutilização de PI
           const existingWithRef = getShopOrderByPaymentRef(paymentIntent.id);
           if (existingWithRef && existingWithRef.id !== orderId) {
@@ -597,6 +609,18 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         }
 
         if (orderId) {
+          if (orderId.startsWith('churr_') || session.metadata?.type === 'churrasco') {
+            const { confirmChurrascoOrderPayment } = await import('./db.js');
+            try {
+              confirmChurrascoOrderPayment(orderId, paymentRef);
+              console.log(`[STRIPE WEBHOOK] Passe Churrasco ${orderId} pago com sucesso via Checkout`);
+              return sendJson(res, 200, { received: true, churrasco: true });
+            } catch (err) {
+              console.error(`[STRIPE WEBHOOK ERROR] Churrasco ${orderId}:`, err.message);
+              return sendJson(res, 400, { error: err.message });
+            }
+          }
+
           const existingWithRef = getShopOrderByPaymentRef(paymentRef);
           if (existingWithRef && existingWithRef.id !== orderId) {
             console.warn(
