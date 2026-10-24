@@ -217,6 +217,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       'Quantidade',
       'Total Pago (€)',
       'Bifanas Servidas',
+      'Bebidas Servidas',
       'Estado Pagamento',
       'Totalmente Servido',
       'Data de Compra',
@@ -232,6 +233,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       o.quantity,
       Number(o.total_amount || o.totalAmount || 0).toFixed(2),
       `"${o.bifanas_served || 0}/${o.bifanas_total || o.quantity || 1}"`,
+      `"${o.drinks_served || 0}/${o.drinks_total || (o.quantity || 1) * 2}"`,
       `"${o.payment_status || o.paymentStatus || 'pending'}"`,
       (o.is_fully_served || o.isFullyServed) ? 'SIM' : 'NÃO',
       `"${o.created_at || o.createdAt || ''}"`,
@@ -273,7 +275,9 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
     const bifanasServed = order.bifanas_served || 0;
     const bifanasTotal = order.bifanas_total || order.quantity || 1;
-    const isFullyServed = bifanasServed >= bifanasTotal;
+    const drinksServed = order.drinks_served || 0;
+    const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
+    const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
 
     if (statusFilter === 'completed') return matchesQuery && isFullyServed;
     if (statusFilter === 'pending') return matchesQuery && !isFullyServed;
@@ -407,7 +411,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
         {/* ESTATÍSTICAS RÁPIDAS */}
         {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 pt-6 border-t border-orange-100 dark:border-orange-950/50">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-orange-100 dark:border-orange-950/50">
             <div className="p-4 rounded-2xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/30">
               <span className="text-xs font-bold text-orange-800 dark:text-orange-300 block">
                 Passes Vendidos
@@ -442,6 +446,20 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
                 {stats.totalBifanas > 0
                   ? `${Math.round(((stats.totalBifanasServed || 0) / stats.totalBifanas) * 100)}% entregues`
+                  : '0%'}
+              </span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/30">
+              <span className="text-xs font-bold text-blue-800 dark:text-blue-300 block">
+                Bebidas Entregues
+              </span>
+              <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-400 mt-1">
+                {stats.totalDrinksServed || 0} / {stats.totalDrinks || 0}
+              </div>
+              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
+                {stats.totalDrinks > 0
+                  ? `${Math.round(((stats.totalDrinksServed || 0) / stats.totalDrinks) * 100)}% entregues`
                   : '0%'}
               </span>
             </div>
@@ -737,7 +755,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                   <th className="py-3 px-3">Código</th>
                   <th className="py-3 px-3">Aluno</th>
                   <th className="py-3 px-3">Qtd / Valor</th>
-                  <th className="py-3 px-3">Bifanas (Bar)</th>
+                  <th className="py-3 px-3">Consumo no Bar</th>
                   <th className="py-3 px-3">Data</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
@@ -748,6 +766,8 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
                   const bifanasServed = order.bifanas_served || 0;
                   const bifanasTotal = order.bifanas_total || order.quantity || 1;
+                  const drinksServed = order.drinks_served || 0;
+                  const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
 
                   return (
                     <tr
@@ -794,23 +814,46 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                         </div>
                       </td>
 
-                      {/* Consumo no Bar (Bifanas) */}
+                      {/* Consumo no Bar (Bifanas & Bebidas) */}
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <span
-                            className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
-                              bifanasServed >= bifanasTotal
-                                ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
-                                : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
-                            }`}
-                          >
-                            {bifanasServed}/{bifanasTotal}
-                          </span>
-                          {bifanasServed >= bifanasTotal ? (
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
-                          ) : (
-                            <span className="text-[10px] text-orange-600 dark:text-orange-400">Pendente</span>
-                          )}
+                        <div className="flex flex-col gap-1.5">
+                          {/* Bifanas */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bifana:</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
+                                bifanasServed >= bifanasTotal
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
+                              }`}
+                            >
+                              {bifanasServed}/{bifanasTotal}
+                            </span>
+                            {bifanasServed >= bifanasTotal ? (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
+                            ) : (
+                              <span className="text-[10px] text-orange-600 dark:text-orange-400">Pendente</span>
+                            )}
+                          </div>
+
+                          {/* Bebidas */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bebidas:</span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
+                                drinksServed >= drinksTotal
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400'
+                              }`}
+                            >
+                              {drinksServed}/{drinksTotal}
+                            </span>
+                            {drinksServed >= drinksTotal ? (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
+                            ) : (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400">Pendente</span>
+                            )}
+                          </div>
                         </div>
                       </td>
 

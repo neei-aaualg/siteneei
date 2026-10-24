@@ -3482,7 +3482,7 @@ export function formatChurrascoOrderWithDetails(order) {
   const drinksServed = Number(order.drinks_served) || 0;
   const bifanasRemaining = Math.max(0, bifanasTotal - bifanasServed);
   const drinksRemaining = Math.max(0, drinksTotal - drinksServed);
-  const isFullyServed = bifanasServed >= bifanasTotal;
+  const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
 
   return {
     ...order,

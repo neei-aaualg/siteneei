@@ -182,7 +182,7 @@ export async function sendChurrascoTicketEmail(order) {
           <h3 style="font-size: 16px; margin: 20px 0 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">Detalhes do Passe:</h3>
           <ul style="list-style: none; padding: 0; margin: 0; font-size: 14px; color: #334155; line-height: 1.8;">
             <li>🥩 <strong>Refeição:</strong> 1 Bifana quentinha no pão (por passe)</li>
-            <li>🍻 <strong>Bebidas:</strong> Sempre à discrição no bar durante o evento</li>
+            <li>🍻 <strong>Bebidas:</strong> 2 Copos de bebida por passe (cerveja, refrigerante ou água à escolha no bar)</li>
             <li>🎟️ <strong>Quantidade:</strong> ${order.quantity} passe(s)</li>
             <li>💶 <strong>Total Pago:</strong> ${Number(order.total_amount).toFixed(2)}€</li>
           </ul>
@@ -227,7 +227,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         unitPrice: 4.5,
         includes: {
           food: '1 Bifana no pão',
-          drinks: 'Bebidas sempre à discrição no bar',
+          drinks: '2 Copos de bebida (cerveja, refrigerante ou água à escolha no bar)',
         },
         location: 'Campus de Gambelas (Gabinete NEEI / Pátio)',
       });
@@ -264,7 +264,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         order: {
           id: order.id,
           item_name: `Passe Churrasco NEEI (${order.quantity}x)`,
-          description: `1 Bifana no pão + Bebida à discrição no bar`,
+          description: `1 Bifana no pão + 2 Bebidas (cerveja, refrigerante ou água)`,
           total_amount: order.total_amount,
           student_name: order.student_name,
           student_email: order.student_email,

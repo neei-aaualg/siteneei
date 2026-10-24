@@ -631,20 +631,66 @@ const ChurrascoAdmin: React.FC = () => {
                   </div>
                 </div>
 
-                {/* NOTA BEBIDAS À DISCRIÇÃO */}
-                <div className="p-5 rounded-3xl border border-dashed border-amber-300 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20 flex flex-col justify-center">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
-                      <Beer size={22} />
+                {/* CARTÃO BEBIDAS */}
+                <div className={`p-5 rounded-3xl border-2 transition-all ${
+                  (activeOrder.drinks_remaining ?? 0) === 0
+                    ? 'bg-gray-50 dark:bg-slate-900/40 border-gray-200 dark:border-slate-800 opacity-80'
+                    : 'bg-amber-50/70 dark:bg-amber-950/20 border-amber-300 dark:border-amber-500/50 shadow-sm'
+                }`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 rounded-2xl bg-amber-500 text-white shadow-xs">
+                        <Beer size={24} />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-base text-text-100 dark:text-white">
+                          Copos de Bebida
+                        </h4>
+                        <span className="text-xs text-text-200 dark:text-slate-400">
+                          {activeOrder.drinks_served ?? 0} de {activeOrder.drinks_total ?? (activeOrder.quantity * 2)} entregues (Cerveja, refrigerante ou água)
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">
-                        Bebidas Sempre à Discrição
-                      </h4>
-                      <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-                        Cerveja e refrigerantes são servidos livremente no bar sem necessidade de registo de consumo.
-                      </p>
-                    </div>
+
+                    <span className={`text-xs font-black px-2.5 py-1 rounded-full uppercase ${
+                      (activeOrder.drinks_remaining ?? 0) === 0
+                        ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                        : 'bg-amber-500 text-white'
+                    }`}>
+                      {(activeOrder.drinks_remaining ?? 0) === 0 ? 'Concluído' : `${activeOrder.drinks_remaining ?? 0} restante${(activeOrder.drinks_remaining ?? 0) !== 1 ? 's' : ''}`}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      disabled={
+                        (activeOrder.drinks_remaining ?? 0) <= 0 ||
+                        processingAction === 'drink-serve' ||
+                        activeOrder.payment_status !== 'paid'
+                      }
+                      onClick={() => handleServeItem('drink', 'serve')}
+                      className="flex-1 py-3 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-sm shadow-sm transition disabled:opacity-40 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {processingAction === 'drink-serve' ? (
+                        <RefreshCw size={16} className="animate-spin" />
+                      ) : (
+                        <span>Servir 1 Bebida</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={
+                        (activeOrder.drinks_served ?? 0) <= 0 ||
+                        processingAction === 'drink-undo'
+                      }
+                      onClick={() => handleServeItem('drink', 'undo')}
+                      className="py-3 px-3 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-text-200 dark:text-slate-300 font-bold text-xs transition disabled:opacity-30 cursor-pointer"
+                      title="Desfazer / repor 1 bebida"
+                    >
+                      -1
+                    </button>
                   </div>
                 </div>
               </div>
