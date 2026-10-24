@@ -230,6 +230,8 @@ db.exec(`
     payment_ref TEXT,
     check_in INTEGER NOT NULL DEFAULT 0,
     check_in_at TEXT,
+    bifanas_served INTEGER NOT NULL DEFAULT 0,
+    drinks_served INTEGER NOT NULL DEFAULT 0,
     is_admin_created INTEGER NOT NULL DEFAULT 0,
     admin_notes TEXT,
     created_at TEXT NOT NULL,
@@ -240,6 +242,22 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_churrasco_created ON churrasco_orders(created_at);
   CREATE INDEX IF NOT EXISTS idx_churrasco_ticket ON churrasco_orders(ticket_code);
 `);
+
+// Migração: adiciona colunas bifanas_served e drinks_served à tabela churrasco_orders
+try {
+  const churrascoCols = db
+    .prepare('PRAGMA table_info(churrasco_orders)')
+    .all()
+    .map((c) => c.name);
+  if (!churrascoCols.includes('bifanas_served')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN bifanas_served INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('drinks_served')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN drinks_served INTEGER NOT NULL DEFAULT 0;');
+  }
+} catch (e) {
+  // Ignora se não existir
+}
 
 
 // Migração: adiciona suporte ao estado 'test' na tabela shop_orders se necessário
@@ -3441,20 +3459,65 @@ export function preparePendingChurrascoOrder(orderData) {
   return getChurrascoOrderById(orderId);
 }
 
+export function formatChurrascoOrderWithDetails(order) {
+  if (!order) return null;
+  const quantity = Number(order.quantity) || 1;
+  const bifanasTotal = quantity * 1;
+  const drinksTotal = quantity * 2;
+  const bifanasServed = Number(order.bifanas_served) || 0;
+  const drinksServed = Number(order.drinks_served) || 0;
+  const bifanasRemaining = Math.max(0, bifanasTotal - bifanasServed);
+  const drinksRemaining = Math.max(0, drinksTotal - drinksServed);
+  const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
+
+  return {
+    ...order,
+    // CamelCase aliases
+    studentName: order.student_name,
+    studentEmail: order.student_email,
+    phoneNumber: order.phone_number,
+    studentNumber: order.student_number,
+    drinkPreference: order.drink_preference,
+    unitPrice: order.unit_price,
+    totalAmount: order.total_amount,
+    paymentStatus: order.payment_status,
+    ticketCode: order.ticket_code,
+    checkIn: Boolean(order.check_in),
+    // Item consumption fields (both styles)
+    bifanas_total: bifanasTotal,
+    bifanasTotal,
+    bifanas_served: bifanasServed,
+    bifanasServed,
+    bifanas_remaining: bifanasRemaining,
+    bifanasRemaining,
+    drinks_total: drinksTotal,
+    drinksTotal,
+    drinks_served: drinksServed,
+    drinksServed,
+    drinks_remaining: drinksRemaining,
+    drinksRemaining,
+    is_fully_served: isFullyServed,
+    isFullyServed,
+  };
+}
+
 export function getChurrascoOrderById(id) {
   if (!id) return null;
-  return db.prepare('SELECT * FROM churrasco_orders WHERE id = ?').get(id) || null;
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE id = ?').get(id);
+  return formatChurrascoOrderWithDetails(row);
 }
 
 export function getChurrascoOrderByTicketCode(code) {
   if (!code) return null;
   const cleanCode = String(code).trim().toUpperCase();
-  return db.prepare('SELECT * FROM churrasco_orders WHERE ticket_code = ?').get(cleanCode) || null;
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE ticket_code = ?').get(cleanCode);
+  return formatChurrascoOrderWithDetails(row);
 }
 
 export function getChurrascoOrderByPaymentRef(paymentRef) {
   if (!paymentRef) return null;
-  return db.prepare('SELECT * FROM churrasco_orders WHERE payment_ref = ?').get(paymentRef) || null;
+  const row = db.prepare('SELECT * FROM churrasco_orders WHERE payment_ref = ?').get(paymentRef);
+  return formatChurrascoOrderWithDetails(row);
 }
 
 export function confirmChurrascoOrderPayment(id, paymentRef = null) {
@@ -3482,15 +3545,16 @@ export function confirmChurrascoOrderPayment(id, paymentRef = null) {
 }
 
 export function getAllChurrascoOrders() {
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT * FROM churrasco_orders
     ORDER BY created_at DESC
   `).all();
+  return rows.map(formatChurrascoOrderWithDetails);
 }
 
 export function getChurrascoStats() {
   const paidRows = db.prepare(`
-    SELECT quantity, total_amount, check_in
+    SELECT quantity, total_amount, check_in, bifanas_served, drinks_served
     FROM churrasco_orders
     WHERE payment_status = 'paid'
   `).all();
@@ -3499,6 +3563,8 @@ export function getChurrascoStats() {
   let totalTickets = 0;
   let totalRevenue = 0;
   let totalCheckedIn = 0;
+  let totalBifanasServed = 0;
+  let totalDrinksServed = 0;
 
   for (const r of paidRows) {
     const q = Number(r.quantity) || 1;
@@ -3507,6 +3573,8 @@ export function getChurrascoStats() {
     if (r.check_in === 1) {
       totalCheckedIn += q;
     }
+    totalBifanasServed += Number(r.bifanas_served) || 0;
+    totalDrinksServed += Number(r.drinks_served) || 0;
   }
 
   const pendingOrders = db.prepare(`
@@ -3520,6 +3588,10 @@ export function getChurrascoStats() {
     totalCheckedIn,
     pendingCheckIn: Math.max(0, totalTickets - totalCheckedIn),
     pendingOrders,
+    totalBifanas: totalTickets * 1,
+    totalBifanasServed,
+    totalDrinks: totalTickets * 2,
+    totalDrinksServed,
     visibility: isChurrascoVisible(),
   };
 }
@@ -3542,6 +3614,93 @@ export function toggleChurrascoCheckIn(id, status = true) {
   `).run(checkInVal, checkInAt, id);
 
   return getChurrascoOrderById(id);
+}
+
+export function serveChurrascoItem(orderId, item, action = 'serve') {
+  const order = getChurrascoOrderById(orderId);
+  if (!order) {
+    const err = new Error('Pedido de churrasco não encontrado.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const quantity = Number(order.quantity) || 1;
+  const maxBifanas = quantity * 1;
+  const maxDrinks = quantity * 2;
+
+  let bifanasServed = Number(order.bifanas_served) || 0;
+  let drinksServed = Number(order.drinks_served) || 0;
+
+  if (item === 'bifana') {
+    if (action === 'serve') {
+      if (bifanasServed >= maxBifanas) {
+        const err = new Error('Todas as bifanas deste passe já foram servidas.');
+        err.statusCode = 400;
+        throw err;
+      }
+      bifanasServed += 1;
+    } else if (action === 'undo') {
+      bifanasServed = Math.max(0, bifanasServed - 1);
+    }
+  } else if (item === 'drink') {
+    if (action === 'serve') {
+      if (drinksServed >= maxDrinks) {
+        const err = new Error('Todas as bebidas deste passe já foram servidas.');
+        err.statusCode = 400;
+        throw err;
+      }
+      drinksServed += 1;
+    } else if (action === 'undo') {
+      drinksServed = Math.max(0, drinksServed - 1);
+    }
+  } else {
+    const err = new Error("Item inválido. Utilize 'bifana' ou 'drink'.");
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const checkIn = (bifanasServed > 0 || drinksServed > 0) ? 1 : 0;
+  const now = new Date().toISOString();
+  const checkInAt = checkIn ? (order.check_in_at || now) : null;
+
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET bifanas_served = ?,
+        drinks_served = ?,
+        check_in = ?,
+        check_in_at = ?
+    WHERE id = ?
+  `).run(bifanasServed, drinksServed, checkIn, checkInAt, orderId);
+
+  return getChurrascoOrderById(orderId);
+}
+
+export function getChurrascoAdminPassword() {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get('churrasco_admin_password');
+  return row?.value || 'churrasco2026';
+}
+
+export function setChurrascoAdminPassword(password) {
+  const cleanPass = String(password || '').trim();
+  if (cleanPass.length < 4) {
+    const err = new Error('A senha do balcão deve ter pelo menos 4 caracteres.');
+    err.statusCode = 400;
+    throw err;
+  }
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES ('churrasco_admin_password', ?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+  `).run(cleanPass, now);
+  return cleanPass;
+}
+
+export function verifyChurrascoAdminPassword(inputPassword) {
+  if (!inputPassword) return false;
+  const currentPass = getChurrascoAdminPassword();
+  const masterPass = (process.env.ADMIN_PASSWORD || '').trim();
+  return inputPassword === currentPass || (Boolean(masterPass) && inputPassword === masterPass);
 }
 
 export function createAdminManualChurrascoOrder(data) {

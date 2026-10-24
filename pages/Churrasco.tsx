@@ -103,7 +103,10 @@ const Churrasco: React.FC = () => {
         width: 180,
         height: 180,
         type: 'svg',
-        data: `NEEI-CHURR:${ticketCode}`,
+        data:
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/churrasco-admin?code=${ticketCode}`
+            : `NEEI-CHURR:${ticketCode}`,
         dotsOptions: {
           color: '#9a3412',
           type: 'rounded',
@@ -315,7 +318,7 @@ const Churrasco: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-200 mt-1">
-                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Podem adquirir bebida no dia. Encontra-se disponível o nosso passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
+                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Podem adquirir bebida e comida no dia. Encontra-se disponível o nosso passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
                   </p>
                 </div>
               </div>

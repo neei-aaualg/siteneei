@@ -13,6 +13,11 @@ import {
   toggleChurrascoCheckIn,
   createAdminManualChurrascoOrder,
   deleteChurrascoOrder,
+  serveChurrascoItem,
+  getChurrascoAdminPassword,
+  setChurrascoAdminPassword,
+  verifyChurrascoAdminPassword,
+  db,
 } from './db.js';
 import {
   createStripeCheckoutSession,
@@ -20,6 +25,70 @@ import {
   getStripeClient,
 } from './services/stripeService.js';
 import { getTransporter } from './services/emailService.js';
+
+/**
+ * Valida autorização de staff do balcão (churrasco-admin)
+ */
+function verifyBarStaffAuth(req) {
+  if (verifyAdminToken(req)) return true;
+
+  const authHeader = req.headers['authorization'] || req.headers['x-churrasco-token'] || '';
+  let token = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+  if (token.startsWith('churr_bar_')) {
+    try {
+      const b64 = token.replace('churr_bar_', '');
+      const pass = Buffer.from(b64, 'base64').toString('utf-8');
+      return verifyChurrascoAdminPassword(pass);
+    } catch {
+      return false;
+    }
+  }
+
+  return verifyChurrascoAdminPassword(token);
+}
+
+/**
+ * Sincroniza encomendas pendentes com a Stripe (útil para desenvolvimento local e falhas de webhook)
+ */
+async function syncPendingChurrascoOrdersWithStripe() {
+  try {
+    const stripe = getStripeClient();
+    if (!stripe || isStripeSandbox()) return;
+
+    const pendingOrders = db.prepare(`
+      SELECT id, student_email, student_name
+      FROM churrasco_orders
+      WHERE payment_status = 'pending'
+      ORDER BY created_at DESC
+      LIMIT 15
+    `).all();
+
+    if (!pendingOrders || pendingOrders.length === 0) return;
+
+    for (const pending of pendingOrders) {
+      try {
+        const sessions = await stripe.checkout.sessions.list({
+          client_reference_id: pending.id,
+          limit: 1,
+        });
+
+        if (sessions.data && sessions.data.length > 0) {
+          const s = sessions.data[0];
+          if (s.payment_status === 'paid') {
+            const confirmed = confirmChurrascoOrderPayment(pending.id, s.payment_intent || s.id);
+            sendChurrascoTicketEmail(confirmed).catch(() => {});
+            console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout`);
+          }
+        }
+      } catch (err) {
+        console.warn(`[CHURRASCO SYNC WARN] Pedido ${pending.id}:`, err.message);
+      }
+    }
+  } catch (err) {
+    console.warn('[CHURRASCO SYNC WARN] Falha geral ao sincronizar pendentes:', err.message);
+  }
+}
 
 /**
  * Envia email com o bilhete digital ao estudante
@@ -143,7 +212,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
           phone_number: order.phone_number,
           type: 'churrasco',
         },
-        successUrl: `${baseUrl}/churrasco?success=1&order_id=${order.id}`,
+        successUrl: `${baseUrl}/churrasco?success=1&order_id=${order.id}&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/churrasco?canceled=1`,
       });
 
@@ -189,6 +258,12 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
           totalAmount: order.total_amount,
           paymentStatus: order.payment_status,
           checkIn: Boolean(order.check_in),
+          bifanasTotal: order.bifanas_total,
+          bifanasServed: order.bifanas_served,
+          bifanasRemaining: order.bifanas_remaining,
+          drinksTotal: order.drinks_total,
+          drinksServed: order.drinks_served,
+          drinksRemaining: order.drinks_remaining,
           createdAt: order.created_at,
           paidAt: order.paid_at,
         },
@@ -220,46 +295,171 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
         return sendJson(res, 200, { success: true, order });
       }
 
-      if (sessionId) {
-        try {
-          const stripe = getStripeClient();
-          if (stripe) {
-            const session = await stripe.checkout.sessions.retrieve(sessionId);
-            if (session && session.payment_status === 'paid') {
-              order = confirmChurrascoOrderPayment(orderId, session.payment_intent || session.id);
-              sendChurrascoTicketEmail(order).catch(() => {});
-              return sendJson(res, 200, { success: true, order });
+      // Modo Real Stripe: validação por sessionId ou pesquisa por client_reference_id
+      try {
+        const stripe = getStripeClient();
+        if (stripe) {
+          let session = null;
+          if (sessionId && !sessionId.startsWith('{')) {
+            session = await stripe.checkout.sessions.retrieve(sessionId);
+          } else {
+            const list = await stripe.checkout.sessions.list({ client_reference_id: orderId, limit: 1 });
+            if (list.data && list.data.length > 0) {
+              session = list.data[0];
             }
           }
-        } catch (sErr) {
-          console.warn('[CHURRASCO STRIPE CONFIRM WARN]:', sErr.message);
+          if (session && session.payment_status === 'paid') {
+            order = confirmChurrascoOrderPayment(orderId, session.payment_intent || session.id);
+            sendChurrascoTicketEmail(order).catch(() => {});
+            return sendJson(res, 200, { success: true, order });
+          }
         }
+      } catch (sErr) {
+        console.warn('[CHURRASCO STRIPE CONFIRM WARN]:', sErr.message);
       }
 
       return sendJson(res, 200, { success: false, paymentStatus: order.payment_status, order });
     }
 
     /* =========================================================================
-       ROTAS PROTEGIDAS DE ADMINISTRAÇÃO DO CHURRASCO
+       ROTAS DO BALCÃO / LEITURA DE QR CODE (CHURRASCO-ADMIN & CHURRASCO-QR)
        ========================================================================= */
 
-    // 5. GET /api/admin/churrasco - Listar estatísticas e todos os bilhetes vendidos
+    // 5. POST /api/churrasco-admin/login - Login do staff do bar com a senha do churrasco
+    if (pathname === '/api/churrasco-admin/login' && req.method === 'POST') {
+      const body = await readJsonBody(req);
+      const { password } = body;
+      if (!verifyChurrascoAdminPassword(password)) {
+        return sendJson(res, 401, { error: 'Senha de acesso ao balcão incorreta.' });
+      }
+      const token = `churr_bar_${Buffer.from(String(password).trim()).toString('base64')}`;
+      return sendJson(res, 200, {
+        success: true,
+        token,
+        message: 'Acesso ao balcão autorizado.',
+      });
+    }
+
+    // 6. GET /api/churrasco-admin/verify-code OU /api/churrasco-qr - Ler e validar QR Code
+    if (
+      (pathname === '/api/churrasco-admin/verify-code' ||
+        pathname === '/api/churrasco-qr' ||
+        pathname === '/api/churrasco/qr') &&
+      req.method === 'GET'
+    ) {
+      if (!verifyBarStaffAuth(req)) {
+        return sendJson(res, 401, { error: 'Não autorizado. Introduz a senha do churrasco-admin.' });
+      }
+
+      const rawCode = (
+        searchParams.get('code') ||
+        searchParams.get('ticket') ||
+        searchParams.get('id') ||
+        searchParams.get('qr') ||
+        ''
+      ).trim();
+
+      if (!rawCode) {
+        return sendJson(res, 400, { error: 'Código do QR Code não fornecido.' });
+      }
+
+      // Normaliza o código: aceita URL completa, NEEI-CHURR:XXXX, ou código direto
+      let cleanCode = rawCode;
+      if (cleanCode.includes('code=')) {
+        cleanCode = cleanCode.split('code=')[1].split('&')[0];
+      }
+      cleanCode = cleanCode.replace(/^NEEI-CHURR:/i, '').trim();
+
+      let order = getChurrascoOrderByTicketCode(cleanCode);
+      if (!order) {
+        order = getChurrascoOrderById(cleanCode);
+      }
+
+      if (!order) {
+        return sendJson(res, 404, {
+          valid: false,
+          error: `Bilhete não encontrado para o código "${cleanCode}".`,
+        });
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        valid: true,
+        isPaid: order.payment_status === 'paid',
+        order,
+      });
+    }
+
+    // 7. POST /api/churrasco-admin/serve - Servir bebida ou bifana e abater do passe
+    if (pathname === '/api/churrasco-admin/serve' && req.method === 'POST') {
+      if (!verifyBarStaffAuth(req)) {
+        return sendJson(res, 401, { error: 'Não autorizado. Introduz a senha do churrasco-admin.' });
+      }
+
+      const body = await readJsonBody(req);
+      const { orderId } = body;
+      const item = body.item || body.itemType;
+      const action = body.action || (body.delta && body.delta < 0 ? 'undo' : 'serve');
+
+      if (!orderId || !item) {
+        return sendJson(res, 400, { error: 'orderId e item (bifana ou drink) são obrigatórios.' });
+      }
+
+      const updated = serveChurrascoItem(orderId, item, action);
+      return sendJson(res, 200, {
+        success: true,
+        order: updated,
+        message:
+          action === 'undo'
+            ? `1 ${item === 'bifana' ? 'bifana' : 'bebida'} reposta com sucesso.`
+            : `1 ${item === 'bifana' ? 'bifana' : 'bebida'} servida com sucesso!`,
+      });
+    }
+
+    /* =========================================================================
+       ROTAS PROTEGIDAS DE ADMINISTRAÇÃO DO CHURRASCO (PAINEL PRINCIPAL)
+       ========================================================================= */
+
+    // 8. GET /api/admin/churrasco - Listar estatísticas e todos os bilhetes vendidos
     if (pathname === '/api/admin/churrasco' && req.method === 'GET') {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
       }
 
+      // Sincroniza pedidos pendentes com a Stripe (resolve pagamentos que não dispararam webhook local)
+      await syncPendingChurrascoOrdersWithStripe();
+
       const stats = getChurrascoStats();
       const orders = getAllChurrascoOrders();
+      const barPassword = getChurrascoAdminPassword();
+
       return sendJson(res, 200, {
         success: true,
         stats,
         orders,
+        barPassword,
         visibility: isChurrascoVisible(),
       });
     }
 
-    // 6. POST /api/admin/churrasco/toggle-visibility - Mostrar/esconder aba de churrasco no site
+    // 9. POST /api/admin/churrasco/password - Alterar senha de acesso ao balcão/churrasco-admin
+    if (pathname === '/api/admin/churrasco/password' && req.method === 'POST') {
+      if (!verifyAdminToken(req)) {
+        return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
+      }
+
+      const body = await readJsonBody(req);
+      const newPass = setChurrascoAdminPassword(body.password);
+
+      return sendJson(res, 200, {
+        success: true,
+        password: newPass,
+        barPassword: newPass,
+        message: 'Senha do balcão (churrasco-admin) atualizada com sucesso.',
+      });
+    }
+
+    // 10. POST /api/admin/churrasco/toggle-visibility - Mostrar/esconder aba de churrasco no site
     if (pathname === '/api/admin/churrasco/toggle-visibility' && req.method === 'POST') {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
@@ -278,7 +478,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 7. POST /api/admin/churrasco/check-in - Alternar estado de levantamento do bilhete (Check-in)
+    // 11. POST /api/admin/churrasco/check-in - Alternar estado de levantamento do bilhete (Check-in)
     if (pathname === '/api/admin/churrasco/check-in' && req.method === 'POST') {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
@@ -297,7 +497,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 8. POST /api/admin/churrasco/manual-order - Registar bilhete manual (Presencial / Dinheiro)
+    // 12. POST /api/admin/churrasco/manual-order - Registar bilhete manual (Presencial / Dinheiro)
     if (pathname === '/api/admin/churrasco/manual-order' && req.method === 'POST') {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
@@ -315,7 +515,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       });
     }
 
-    // 9. DELETE /api/admin/churrasco/order/:id - Eliminar pedido de churrasco
+    // 13. DELETE /api/admin/churrasco/order/:id - Eliminar pedido de churrasco
     if (pathname.startsWith('/api/admin/churrasco/order/') && req.method === 'DELETE') {
       if (!verifyAdminToken(req)) {
         return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });

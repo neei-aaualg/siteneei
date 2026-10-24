@@ -23,6 +23,20 @@ export interface ChurrascoOrder {
   check_in?: number | boolean;
   checkIn?: boolean;
   check_in_at?: string | null;
+  bifanas_total?: number;
+  bifanasTotal?: number;
+  bifanas_served?: number;
+  bifanasServed?: number;
+  bifanas_remaining?: number;
+  bifanasRemaining?: number;
+  drinks_total?: number;
+  drinksTotal?: number;
+  drinks_served?: number;
+  drinksServed?: number;
+  drinks_remaining?: number;
+  drinksRemaining?: number;
+  is_fully_served?: boolean;
+  isFullyServed?: boolean;
   is_admin_created?: number | boolean;
   admin_notes?: string | null;
   created_at?: string;
@@ -38,6 +52,10 @@ export interface ChurrascoStats {
   totalCheckedIn: number;
   pendingCheckIn: number;
   pendingOrders: number;
+  totalBifanas?: number;
+  totalBifanasServed?: number;
+  totalDrinks?: number;
+  totalDrinksServed?: number;
   visibility: boolean;
 }
 
@@ -159,6 +177,7 @@ function getAuthHeader(token: string) {
 export async function fetchAdminChurrasco(token: string): Promise<{
   stats: ChurrascoStats;
   orders: ChurrascoOrder[];
+  barPassword?: string;
   visibility: boolean;
 }> {
   const res = await fetch('/api/admin/churrasco', {
@@ -169,6 +188,93 @@ export async function fetchAdminChurrasco(token: string): Promise<{
     throw new Error('Falha ao carregar dados do churrasco no painel de administração.');
   }
   return await res.json();
+}
+
+export async function updateAdminChurrascoBarPassword(
+  token: string,
+  password: string
+): Promise<string> {
+  const res = await fetch('/api/admin/churrasco/password', {
+    method: 'POST',
+    headers: getAuthHeader(token),
+    body: JSON.stringify({ password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Falha ao atualizar a senha do churrasco-admin.');
+  }
+  return data.password;
+}
+
+/* =========================================================================
+   MÉTODOS DO BALCÃO / CHURRASCO-ADMIN & CHURRASCO-QR
+   ========================================================================= */
+
+function getBarAuthHeader(token: string) {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+export async function loginChurrascoAdmin(password: string): Promise<{ token: string }> {
+  const res = await fetch('/api/churrasco-admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Senha de acesso ao balcão incorreta.');
+  }
+  return data;
+}
+
+export async function verifyChurrascoQrCode(
+  token: string,
+  code: string
+): Promise<{
+  valid: boolean;
+  isPaid: boolean;
+  order: ChurrascoOrder;
+}> {
+  const res = await fetch(
+    `/api/churrasco-admin/verify-code?code=${encodeURIComponent(code)}`,
+    {
+      headers: getBarAuthHeader(token),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao validar código QR.');
+  }
+  return data;
+}
+
+export async function serveChurrascoOrderItem(
+  token: string,
+  orderId: string,
+  item: 'bifana' | 'drink',
+  action: 'serve' | 'undo' = 'serve'
+): Promise<{
+  success: boolean;
+  order: ChurrascoOrder;
+  message: string;
+}> {
+  const res = await fetch('/api/churrasco-admin/serve', {
+    method: 'POST',
+    headers: getBarAuthHeader(token),
+    body: JSON.stringify({ orderId, item, action }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Erro ao registar entrega do item.');
+  }
+  return data;
 }
 
 export async function toggleAdminChurrascoVisibility(

@@ -359,31 +359,20 @@ const Header: React.FC = () => {
                 <Link
                   to="/churrasco"
                   onClick={() => jumpToPageTop('/churrasco')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-bold transition-all duration-200 cursor-pointer shadow-xs group ${
-                    isActive('/churrasco')
-                      ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-400/50'
-                      : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300/80 dark:border-orange-500/40 hover:from-orange-500 hover:via-amber-500 hover:to-red-500 hover:text-white hover:shadow-md hover:shadow-orange-500/20'
-                  }`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-bold transition-all duration-200 cursor-pointer shadow-xs group ${isActive('/churrasco')
+                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-400/50'
+                    : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300/80 dark:border-orange-500/40 hover:from-orange-500 hover:via-amber-500 hover:to-red-500 hover:text-white hover:shadow-md hover:shadow-orange-500/20'
+                    }`}
                   title="Passe de Churrasco: 1 Bifana + 2 Bebidas (4,50€)"
                 >
                   <Flame
                     size={15}
-                    className={`transition-colors ${
-                      isActive('/churrasco')
-                        ? 'text-white'
-                        : 'text-orange-500 dark:text-orange-400 group-hover:text-white'
-                    }`}
+                    className={`transition-colors ${isActive('/churrasco')
+                      ? 'text-white'
+                      : 'text-orange-500 dark:text-orange-400 group-hover:text-white'
+                      }`}
                   />
                   <span>Churrasco</span>
-                  <span
-                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-extrabold tracking-wide uppercase transition-colors ${
-                      isActive('/churrasco')
-                        ? 'bg-white/20 text-white'
-                        : 'bg-orange-500 text-white group-hover:bg-white group-hover:text-orange-600'
-                    }`}
-                  >
-                    4,50€
-                  </span>
                 </Link>
               )}
             </nav>
@@ -640,11 +629,10 @@ const Header: React.FC = () => {
                   setIsMenuOpen(false);
                   jumpToPageTop('/churrasco');
                 }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-base font-bold transition-all duration-200 ${
-                  isActive('/churrasco')
-                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25'
-                    : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'
-                }`}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-base font-bold transition-all duration-200 ${isActive('/churrasco')
+                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25'
+                  : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'
+                  }`}
               >
                 <div className="flex items-center gap-2">
                   <Flame

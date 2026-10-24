@@ -16,6 +16,9 @@ import {
   RefreshCw,
   QrCode,
   Check,
+  Key,
+  ExternalLink,
+  UtensilsCrossed,
 } from 'lucide-react';
 import {
   ChurrascoOrder,
@@ -25,6 +28,8 @@ import {
   toggleAdminChurrascoCheckIn,
   createAdminManualChurrasco,
   deleteAdminChurrascoOrder,
+  updateAdminChurrascoBarPassword,
+  serveChurrascoOrderItem,
 } from '../../services/churrascoService';
 
 interface AdminChurrascoTabProps {
@@ -38,6 +43,13 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
   const [loading, setLoading] = useState(true);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Bar Password State (churrasco-admin)
+  const [barPassword, setBarPassword] = useState('churrasco2026');
+  const [isEditingBarPassword, setIsEditingBarPassword] = useState(false);
+  const [newBarPassword, setNewBarPassword] = useState('');
+  const [savingBarPassword, setSavingBarPassword] = useState(false);
+  const [showBarPassword, setShowBarPassword] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +77,10 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       setStats(data.stats);
       setOrders(data.orders);
       setVisibility(data.visibility);
+      if (data.barPassword) {
+        setBarPassword(data.barPassword);
+        setNewBarPassword(data.barPassword);
+      }
     } catch (err: any) {
       setFeedbackMsg({
         type: 'error',
@@ -181,6 +197,51 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
     }
   };
 
+  const handleSaveBarPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBarPassword.trim() || newBarPassword.trim().length < 4) {
+      alert('A password do balcão deve ter pelo menos 4 caracteres.');
+      return;
+    }
+    setSavingBarPassword(true);
+    try {
+      const res = await updateAdminChurrascoBarPassword(adminToken, newBarPassword.trim());
+      setBarPassword(res);
+      setIsEditingBarPassword(false);
+      setFeedbackMsg({
+        type: 'success',
+        text: 'Password do balcão (churrasco-admin) atualizada com sucesso!',
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao atualizar password do balcão.');
+    } finally {
+      setSavingBarPassword(false);
+    }
+  };
+
+  const handleServeItem = async (orderId: string, itemType: 'bifana' | 'drink', delta: number) => {
+    try {
+      const updated = await serveChurrascoOrderItem(orderId, itemType, delta, barPassword);
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
+      if (stats) {
+        if (itemType === 'bifana') {
+          setStats({
+            ...stats,
+            totalBifanasServed: Math.max(0, (stats.totalBifanasServed || 0) + delta),
+          });
+        } else {
+          setStats({
+            ...stats,
+            totalDrinksServed: Math.max(0, (stats.totalDrinksServed || 0) + delta),
+          });
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || 'Falha ao registar serviço do item.');
+    }
+  };
+
   // Exportação para ficheiro CSV
   const handleExportCsv = () => {
     if (orders.length === 0) return;
@@ -193,6 +254,8 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       'Bebida',
       'Quantidade',
       'Total Pago (€)',
+      'Bifanas Servidas',
+      'Bebidas Servidas',
       'Estado Pagamento',
       'Check-in (Levantado)',
       'Data de Compra',
@@ -208,6 +271,8 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       `"${o.drink_preference || o.drinkPreference || 'Cerveja'}"`,
       o.quantity,
       Number(o.total_amount || o.totalAmount || 0).toFixed(2),
+      `"${o.bifanas_served || 0}/${o.bifanas_total || o.quantity || 1}"`,
+      `"${o.drinks_served || 0}/${o.drinks_total || (o.quantity || 1) * 2}"`,
       `"${o.payment_status || o.paymentStatus || 'pending'}"`,
       Boolean(o.check_in || o.checkIn) ? 'SIM' : 'NÃO',
       `"${o.created_at || o.createdAt || ''}"`,
@@ -424,6 +489,142 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
         )}
       </div>
 
+      {/* CARD DO BALCÃO / LEITOR QR & GESTÃO DA PASSWORD */}
+      <div className="bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border border-orange-200 dark:border-orange-900/50 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-orange-600 text-white shadow-xs">
+                <QrCode size={20} />
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-text-100 dark:text-white">
+                Posto de Atendimento no Balcão (Churrasco-Admin)
+              </h3>
+            </div>
+            <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400 max-w-2xl">
+              Página móvel otimizada para os voluntários do bar lerem os bilhetes por QR Code (câmara do telemóvel), consultarem os consumos em tempo real e descontarem cada bifana e bebida servida.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <a
+                href="/churrasco-admin"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold shadow-sm transition"
+              >
+                <ExternalLink size={14} />
+                <span>Abrir /churrasco-admin</span>
+              </a>
+              <span className="text-[11px] text-gray-500 dark:text-slate-400">
+                (Também acessível por <code>/churrasco-qr</code>)
+              </span>
+            </div>
+          </div>
+
+          {/* CAIXA DE DEFINIÇÃO DA PASSWORD DO BALCÃO */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-900/40 shadow-xs shrink-0 w-full md:w-80 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-400">
+                <Key size={14} />
+                <span>Password do Balcão</span>
+              </div>
+              {!isEditingBarPassword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewBarPassword(barPassword);
+                    setIsEditingBarPassword(true);
+                  }}
+                  className="text-xs font-bold text-orange-600 hover:text-orange-500 underline cursor-pointer"
+                >
+                  Alterar
+                </button>
+              )}
+            </div>
+
+            {isEditingBarPassword ? (
+              <form onSubmit={handleSaveBarPassword} className="space-y-2">
+                <input
+                  type="text"
+                  value={newBarPassword}
+                  onChange={(e) => setNewBarPassword(e.target.value)}
+                  placeholder="Nova senha do balcão..."
+                  className="w-full px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-900 border border-orange-300 dark:border-orange-800 text-xs text-text-100 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingBarPassword(false)}
+                    className="px-2.5 py-1 text-xs text-gray-500 hover:text-text-100 cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingBarPassword}
+                    className="px-3 py-1 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold disabled:opacity-50 cursor-pointer"
+                  >
+                    {savingBarPassword ? 'A gravar...' : 'Gravar'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800">
+                <span className="font-mono text-sm font-bold tracking-wider text-text-100 dark:text-white">
+                  {showBarPassword ? barPassword : '••••••••••••'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowBarPassword(!showBarPassword)}
+                  className="text-gray-400 hover:text-text-100 p-1 cursor-pointer"
+                  title={showBarPassword ? 'Ocultar' : 'Mostrar'}
+                >
+                  {showBarPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            )}
+            <p className="text-[11px] text-gray-500 dark:text-slate-400">
+              Esta é a senha que os voluntários usam no telemóvel para aceder a <code>/churrasco-admin</code>.
+            </p>
+          </div>
+        </div>
+
+        {/* CONTADORES DE BIFANAS E BEBIDAS */}
+        {stats && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-orange-200/50 dark:border-orange-900/30">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-[#0c1724]/70 border border-orange-100 dark:border-orange-950/40">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed size={16} className="text-orange-500" />
+                <span className="text-xs font-bold text-text-100 dark:text-white">Bifanas Entregues</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-black text-orange-600 dark:text-orange-400">
+                  {stats.totalBifanasServed || 0} / {stats.totalBifanas || 0}
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
+                  ({stats.totalBifanas > 0 ? Math.round(((stats.totalBifanasServed || 0) / stats.totalBifanas) * 100) : 0}%)
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-[#0c1724]/70 border border-orange-100 dark:border-orange-950/40">
+              <div className="flex items-center gap-2">
+                <Beer size={16} className="text-amber-500" />
+                <span className="text-xs font-bold text-text-100 dark:text-white">Bebidas Entregues</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                  {stats.totalDrinksServed || 0} / {stats.totalDrinks || 0}
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
+                  ({stats.totalDrinks > 0 ? Math.round(((stats.totalDrinksServed || 0) / stats.totalDrinks) * 100) : 0}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* FILTROS E PESQUISA DE PARTICIPANTES */}
       <div className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -491,8 +692,9 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                   <th className="py-3 px-3">Aluno</th>
                   <th className="py-3 px-3">Bebida</th>
                   <th className="py-3 px-3">Qtd / Valor</th>
+                  <th className="py-3 px-3">Consumo (Bar)</th>
                   <th className="py-3 px-3">Data</th>
-                  <th className="py-3 px-3 text-center">Check-in (Bar)</th>
+                  <th className="py-3 px-3 text-center">Check-in Geral</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
               </thead>
@@ -501,6 +703,11 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                   const isChecked = Boolean(order.check_in || order.checkIn);
                   const isPaid = (order.payment_status || order.paymentStatus) === 'paid';
                   const code = order.ticket_code || order.ticketCode || order.id;
+
+                  const bifanasServed = order.bifanas_served || 0;
+                  const bifanasTotal = order.bifanas_total || order.quantity || 1;
+                  const drinksServed = order.drinks_served || 0;
+                  const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
 
                   return (
                     <tr
@@ -552,6 +759,77 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                         </div>
                         <div className="text-xs text-orange-600 dark:text-orange-400 font-semibold">
                           {Number(order.total_amount || order.totalAmount || 0).toFixed(2)}€
+                        </div>
+                      </td>
+
+                      {/* Consumo no Bar (Bifanas / Bebidas) */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1.5">
+                          {/* Bifanas */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bifana:</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                bifanasServed >= bifanasTotal
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
+                              }`}
+                            >
+                              {bifanasServed}/{bifanasTotal}
+                            </span>
+                            <button
+                              type="button"
+                              title="Servir +1 bifana"
+                              onClick={() => handleServeItem(order.id, 'bifana', 1)}
+                              disabled={bifanasServed >= bifanasTotal}
+                              className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-slate-800 text-orange-700 dark:text-orange-300 hover:bg-orange-200 disabled:opacity-25 text-[10px] font-bold cursor-pointer"
+                            >
+                              +1
+                            </button>
+                            {bifanasServed > 0 && (
+                              <button
+                                type="button"
+                                title="Desfazer 1 bifana"
+                                onClick={() => handleServeItem(order.id, 'bifana', -1)}
+                                className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-red-500 text-[10px] font-bold cursor-pointer"
+                              >
+                                -1
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Bebidas */}
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bebida:</span>
+                            <span
+                              className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                                drinksServed >= drinksTotal
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
+                                  : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400'
+                              }`}
+                            >
+                              {drinksServed}/{drinksTotal}
+                            </span>
+                            <button
+                              type="button"
+                              title="Servir +1 bebida"
+                              onClick={() => handleServeItem(order.id, 'drink', 1)}
+                              disabled={drinksServed >= drinksTotal}
+                              className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-200 disabled:opacity-25 text-[10px] font-bold cursor-pointer"
+                            >
+                              +1
+                            </button>
+                            {drinksServed > 0 && (
+                              <button
+                                type="button"
+                                title="Desfazer 1 bebida"
+                                onClick={() => handleServeItem(order.id, 'drink', -1)}
+                                className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-red-500 text-[10px] font-bold cursor-pointer"
+                              >
+                                -1
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
 

@@ -23,6 +23,7 @@
     "@stripe/react-stripe-js": "^6.10.0",
     "@stripe/stripe-js": "^9.16.0",
     "canvas-confetti": "^1.9.4",
+    "html5-qrcode": "^2.3.8",
     "jszip": "^3.10.2",
     "lucide-react": "^0.554.0",
     "nodemailer": "^10.0.10",

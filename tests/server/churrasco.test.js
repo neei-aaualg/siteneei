@@ -333,5 +333,150 @@ describe('Churrasco NEEI - Backend & API', () => {
       expect(checkStatus).toBe(200);
       expect(checkBody.order.check_in).toBe(1);
     });
+
+    describe('Posto do Balcão & Leitor QR (/api/churrasco-admin & /api/churrasco-qr)', () => {
+      it('rejeita login com password incorreta e aceita password correta', async () => {
+        // Tentativa inválida
+        const { status: failStatus } = await postJson('/api/churrasco-admin/login', {
+          password: 'senha_errada_123',
+        });
+        expect(failStatus).toBe(401);
+
+        // Tentativa válida com password padrão do bar (churrasco2026)
+        const { status: okStatus, body: okBody } = await postJson('/api/churrasco-admin/login', {
+          password: 'churrasco2026',
+        });
+        expect(okStatus).toBe(200);
+        expect(okBody.success).toBe(true);
+        expect(okBody.token).toBeDefined();
+
+        // Tentativa válida com a master ADMIN_PASSWORD
+        const { status: masterStatus } = await postJson('/api/churrasco-admin/login', {
+          password: 'senha-secreta-teste',
+        });
+        expect(masterStatus).toBe(200);
+      });
+
+      it('permite verificar bilhete válido por código QR ou ID', async () => {
+        const order = db.preparePendingChurrascoOrder({
+          student_name: 'Inês Faria',
+          student_email: 'ines@ualg.pt',
+          phone_number: '915555555',
+          quantity: 2,
+        });
+        db.confirmChurrascoOrderPayment(order.id, 'pi_stripe_qr');
+
+        // Login no balcão
+        const { body: loginBody } = await postJson('/api/churrasco-admin/login', {
+          password: 'churrasco2026',
+        });
+        const barHeader = { Authorization: `Bearer ${loginBody.token}` };
+
+        // Teste de consulta via /api/churrasco-admin/verify-code
+        const { status: adminCheckStatus, body: adminCheckBody } = await getJson(
+          `/api/churrasco-admin/verify-code?code=${order.ticket_code}`,
+          barHeader
+        );
+        expect(adminCheckStatus).toBe(200);
+        expect(adminCheckBody.success).toBe(true);
+        expect(adminCheckBody.order.studentName).toBe('Inês Faria');
+        expect(adminCheckBody.order.bifanasTotal).toBe(2);
+        expect(adminCheckBody.order.bifanasServed).toBe(0);
+        expect(adminCheckBody.order.drinksTotal).toBe(4);
+        expect(adminCheckBody.order.drinksServed).toBe(0);
+
+        // Teste de consulta via alias /api/churrasco-qr
+        const { status: qrStatus, body: qrBody } = await getJson(
+          `/api/churrasco-qr?code=${order.ticket_code}`,
+          barHeader
+        );
+        expect(qrStatus).toBe(200);
+        expect(qrBody.order.ticketCode).toBe(order.ticket_code);
+      });
+
+      it('permite descontar bifana e bebida servida no balcão e respeita limites', async () => {
+        const order = db.preparePendingChurrascoOrder({
+          student_name: 'Gonçalo Neves',
+          student_email: 'goncalo@ualg.pt',
+          phone_number: '916666666',
+          quantity: 1, // 1 bifana, 2 bebidas
+        });
+        db.confirmChurrascoOrderPayment(order.id, 'pi_stripe_serve');
+
+        const { body: loginBody } = await postJson('/api/churrasco-admin/login', {
+          password: 'churrasco2026',
+        });
+        const barHeader = { Authorization: `Bearer ${loginBody.token}` };
+
+        // 1. Serve 1 bifana
+        const { status: bifanaStatus, body: bifanaBody } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: order.id, itemType: 'bifana', delta: 1 },
+          barHeader
+        );
+        expect(bifanaStatus).toBe(200);
+        expect(bifanaBody.order.bifanas_served).toBe(1);
+
+        // Tentativa de servir a 2ª bifana quando o passe só dá direito a 1
+        const { status: exceedBifanaStatus, body: exceedBifanaBody } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: order.id, itemType: 'bifana', delta: 1 },
+          barHeader
+        );
+        expect(exceedBifanaStatus).toBe(400);
+        expect(exceedBifanaBody.error).toMatch(/bifanas/i);
+
+        // 2. Serve 2 bebidas
+        await postJson('/api/churrasco-admin/serve', { orderId: order.id, itemType: 'drink', delta: 1 }, barHeader);
+        const { body: drink2Body } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: order.id, itemType: 'drink', delta: 1 },
+          barHeader
+        );
+        expect(drink2Body.order.drinks_served).toBe(2);
+
+        // Tentativa de servir a 3ª bebida quando o passe só tem 2
+        const { status: exceedDrinkStatus } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: order.id, itemType: 'drink', delta: 1 },
+          barHeader
+        );
+        expect(exceedDrinkStatus).toBe(400);
+
+        // 3. Desfazer bebida (-1)
+        const { body: undoDrinkBody } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: order.id, itemType: 'drink', delta: -1 },
+          barHeader
+        );
+        expect(undoDrinkBody.order.drinks_served).toBe(1);
+      });
+
+      it('permite alterar a password do balcão a partir do painel de administração', async () => {
+        const authHeader = { Authorization: `Bearer ${adminToken}` };
+
+        const { status, body } = await postJson(
+          '/api/admin/churrasco/password',
+          { password: 'nova-super-senha-bar' },
+          authHeader
+        );
+        expect(status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.barPassword).toBe('nova-super-senha-bar');
+
+        // Senha antiga deixa de funcionar
+        const { status: oldLoginStatus } = await postJson('/api/churrasco-admin/login', {
+          password: 'churrasco2026',
+        });
+        expect(oldLoginStatus).toBe(401);
+
+        // Nova senha passa a funcionar
+        const { status: newLoginStatus } = await postJson('/api/churrasco-admin/login', {
+          password: 'nova-super-senha-bar',
+        });
+        expect(newLoginStatus).toBe(200);
+      });
+    });
   });
 });
+
