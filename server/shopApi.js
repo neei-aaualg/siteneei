@@ -474,8 +474,12 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         if (orderId) {
           if (orderId.startsWith('churr_') || paymentIntent.metadata?.type === 'churrasco') {
             const { confirmChurrascoOrderPayment } = await import('./db.js');
+            const { sendChurrascoTicketEmail } = await import('./churrascoApi.js');
             try {
-              confirmChurrascoOrderPayment(orderId, paymentIntent.id);
+              const confirmed = confirmChurrascoOrderPayment(orderId, paymentIntent.id);
+              if (confirmed && !confirmed.email_sent) {
+                sendChurrascoTicketEmail(confirmed).catch(() => { });
+              }
               console.log(`[STRIPE WEBHOOK] Passe Churrasco ${orderId} pago com sucesso via PaymentIntent`);
               return sendJson(res, 200, { received: true, churrasco: true });
             } catch (err) {
@@ -611,8 +615,12 @@ export async function handleShopApi(req, res, pathname, searchParams) {
         if (orderId) {
           if (orderId.startsWith('churr_') || session.metadata?.type === 'churrasco') {
             const { confirmChurrascoOrderPayment } = await import('./db.js');
+            const { sendChurrascoTicketEmail } = await import('./churrascoApi.js');
             try {
-              confirmChurrascoOrderPayment(orderId, paymentRef);
+              const confirmed = confirmChurrascoOrderPayment(orderId, paymentRef);
+              if (confirmed && !confirmed.email_sent) {
+                sendChurrascoTicketEmail(confirmed).catch(() => { });
+              }
               console.log(`[STRIPE WEBHOOK] Passe Churrasco ${orderId} pago com sucesso via Checkout`);
               return sendJson(res, 200, { received: true, churrasco: true });
             } catch (err) {

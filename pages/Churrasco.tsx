@@ -52,6 +52,7 @@ const Churrasco: React.FC = () => {
   // Success / Order State
   const [confirmedOrder, setConfirmedOrder] = useState<ChurrascoOrder | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
+  const confirmingOrderIdRef = useRef<string | null>(null);
 
   // Carrega status da API
   useEffect(() => {
@@ -63,6 +64,11 @@ const Churrasco: React.FC = () => {
   // Trata redirecionamento de sucesso após Stripe Checkout
   useEffect(() => {
     if (isSuccessUrl && orderIdParam) {
+      if (confirmingOrderIdRef.current === orderIdParam) {
+        return;
+      }
+      confirmingOrderIdRef.current = orderIdParam;
+
       confirmChurrascoPayment(orderIdParam, sessionIdParam || undefined)
         .then((res) => {
           if (res.order) {

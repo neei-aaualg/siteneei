@@ -232,6 +232,8 @@ db.exec(`
     check_in_at TEXT,
     bifanas_served INTEGER NOT NULL DEFAULT 0,
     drinks_served INTEGER NOT NULL DEFAULT 0,
+    email_sent INTEGER NOT NULL DEFAULT 0,
+    email_sent_at TEXT,
     is_admin_created INTEGER NOT NULL DEFAULT 0,
     admin_notes TEXT,
     created_at TEXT NOT NULL,
@@ -268,6 +270,12 @@ try {
   }
   if (!churrascoCols.includes('drinks_served')) {
     db.exec('ALTER TABLE churrasco_orders ADD COLUMN drinks_served INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('email_sent')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN email_sent INTEGER NOT NULL DEFAULT 0;');
+  }
+  if (!churrascoCols.includes('email_sent_at')) {
+    db.exec('ALTER TABLE churrasco_orders ADD COLUMN email_sent_at TEXT;');
   }
 } catch (e) {
   // Ignora se não existir
@@ -3512,6 +3520,10 @@ export function formatChurrascoOrderWithDetails(order) {
     drinksRemaining,
     is_fully_served: isFullyServed,
     isFullyServed,
+    email_sent: Boolean(order.email_sent),
+    emailSent: Boolean(order.email_sent),
+    email_sent_at: order.email_sent_at || null,
+    emailSentAt: order.email_sent_at || null,
   };
 }
 
@@ -3807,6 +3819,48 @@ export function createAdminManualChurrascoOrder(data) {
 export function deleteChurrascoOrder(id) {
   const result = db.prepare('DELETE FROM churrasco_orders WHERE id = ?').run(id);
   return result.changes > 0;
+}
+
+/**
+ * Tenta reservar atomicamente o envio de email para o pedido de churrasco.
+ * Retorna true apenas para o primeiro chamador concorrente (changes > 0),
+ * garantindo idempotência absoluta mesmo com concorrência ou reloads rápidos.
+ */
+export function claimChurrascoOrderEmail(orderId) {
+  if (!orderId) return false;
+  const now = new Date().toISOString();
+  const res = db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 1, email_sent_at = ?
+    WHERE id = ? AND (email_sent = 0 OR email_sent IS NULL)
+  `).run(now, orderId);
+  return res.changes > 0;
+}
+
+/**
+ * Liberta o bloqueio de envio de email caso o envio SMTP falhe,
+ * permitindo que tentativas subsequentes ou reenviar manual funcionem.
+ */
+export function releaseChurrascoOrderEmail(orderId) {
+  if (!orderId) return;
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 0, email_sent_at = NULL
+    WHERE id = ? AND email_sent = 1
+  `).run(orderId);
+}
+
+/**
+ * Força a marcação de email como enviado
+ */
+export function markChurrascoOrderEmailSent(orderId) {
+  if (!orderId) return;
+  const now = new Date().toISOString();
+  db.prepare(`
+    UPDATE churrasco_orders
+    SET email_sent = 1, email_sent_at = ?
+    WHERE id = ?
+  `).run(now, orderId);
 }
 
 

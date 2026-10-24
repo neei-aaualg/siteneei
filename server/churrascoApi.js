@@ -9,6 +9,9 @@ import {
   getChurrascoOrderById,
   getChurrascoOrderByTicketCode,
   confirmChurrascoOrderPayment,
+  claimChurrascoOrderEmail,
+  releaseChurrascoOrderEmail,
+  markChurrascoOrderEmailSent,
   getAllChurrascoOrders,
   getChurrascoStats,
   toggleChurrascoCheckIn,
@@ -27,6 +30,9 @@ import {
   getStripeClient,
 } from './services/stripeService.js';
 import { getTransporter } from './services/emailService.js';
+
+// Mutex em memória para evitar concorrência de múltiplos envios instantâneos no mesmo processo
+const inFlightEmailSends = new Set();
 
 /**
  * Valida autorização de staff do balcão (churrasco-admin)
@@ -76,7 +82,9 @@ async function syncPendingChurrascoOrdersWithStripe() {
           const s = await stripe.checkout.sessions.retrieve(pending.payment_ref);
           if (s && s.payment_status === 'paid') {
             const confirmed = confirmChurrascoOrderPayment(pending.id, s.payment_intent || s.id);
-            sendChurrascoTicketEmail(confirmed).catch(() => {});
+            if (!confirmed.email_sent) {
+              sendChurrascoTicketEmail(confirmed).catch(() => { });
+            }
             console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${s.id})`);
             continue;
           }
@@ -106,7 +114,9 @@ async function syncPendingChurrascoOrdersWithStripe() {
 
       if (match && match.payment_status === 'paid') {
         const confirmed = confirmChurrascoOrderPayment(pending.id, match.payment_intent || match.id);
-        sendChurrascoTicketEmail(confirmed).catch(() => {});
+        if (!confirmed.email_sent) {
+          sendChurrascoTicketEmail(confirmed).catch(() => { });
+        }
         console.log(`[CHURRASCO SYNC] Pedido ${pending.id} confirmado como PAGO via Stripe Checkout (${match.id})`);
       }
     }
@@ -116,13 +126,42 @@ async function syncPendingChurrascoOrdersWithStripe() {
 }
 
 /**
- * Envia email com o bilhete digital e código QR ao estudante
+ * Envia email com o bilhete digital e código QR ao estudante.
+ * Inclui verificação idempotente (mutex em memória + claim atómico no SQLite)
+ * garantindo que nenhum pedido recebe múltiplos emails mesmo com concorrência ou reloads rápidos.
  */
-export async function sendChurrascoTicketEmail(order) {
+export async function sendChurrascoTicketEmail(order, options = {}) {
+  const force = Boolean(options.force);
+  if (!order || !order.id) {
+    return { success: false, error: 'Pedido inválido' };
+  }
+
+  const orderId = order.id;
+
+  // 1. Mutex em memória para interceptar chamadas concorrentes instantâneas no mesmo processo
+  if (!force && inFlightEmailSends.has(orderId)) {
+    console.log(`[CHURRASCO EMAIL] Envio já em curso para o pedido ${orderId}, ignorando chamada concorrente.`);
+    return { success: true, skipped: true, reason: 'in-flight' };
+  }
+
+  // 2. Reserva atómica no SQLite (idempotência transversal a processos/reloads)
+  if (!force) {
+    const claimed = claimChurrascoOrderEmail(orderId);
+    if (!claimed) {
+      console.log(`[CHURRASCO EMAIL] Email de confirmação já enviado anteriormente para o pedido ${orderId}, ignorando envio duplicado.`);
+      return { success: true, skipped: true, reason: 'already_sent' };
+    }
+  }
+
+  inFlightEmailSends.add(orderId);
+
   try {
     const transporter = getTransporter();
     const studentEmail = order.student_email;
-    if (!studentEmail) return;
+    if (!studentEmail) {
+      if (!force) releaseChurrascoOrderEmail(orderId);
+      return { success: false, error: 'Email do estudante em falta' };
+    }
 
     const fromAddress = process.env.SMTP_FROM || 'NEEI - Núcleo de Estudantes de Engenharia Informática <neei@aaualg.pt>';
     const subject = `🍖 O teu Passe para o Churrasco NEEI está Confirmado! (Código: ${order.ticket_code})`;
@@ -157,7 +196,7 @@ export async function sendChurrascoTicketEmail(order) {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
         <div style="background: linear-gradient(135deg, #ea580c, #c2410c); padding: 24px; text-align: center; color: #ffffff;">
-          <h1 style="margin: 0; font-size: 24px; font-weight: bold;">🍖 Grande Churrasco NEEI</h1>
+          <h1 style="margin: 0; font-size: 24px; font-weight: bold;">🍖 Churrasco NEEI</h1>
           <p style="margin: 8px 0 0 0; font-size: 14px; opacity: 0.95;">Núcleo de Estudantes de Engenharia Informática - AAUAlg</p>
         </div>
         <div style="padding: 24px;">
@@ -206,7 +245,14 @@ export async function sendChurrascoTicketEmail(order) {
     return { success: true, qrGenerated: Boolean(qrBuffer) };
   } catch (err) {
     console.warn(`[CHURRASCO EMAIL WARN] Falha ao enviar email do bilhete para ${order.student_email}:`, err.message);
+    if (!force) {
+      try {
+        releaseChurrascoOrderEmail(orderId);
+      } catch (_) { }
+    }
     return { success: false, error: err.message };
+  } finally {
+    inFlightEmailSends.delete(orderId);
   }
 }
 
@@ -249,7 +295,9 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       // Em ambiente Sandbox / sem chaves Stripe: confirmação direta instantânea
       if (isStripeSandbox()) {
         const confirmed = confirmChurrascoOrderPayment(order.id, `sandbox_${Date.now()}`);
-        sendChurrascoTicketEmail(confirmed).catch(() => {});
+        if (!confirmed.email_sent) {
+          sendChurrascoTicketEmail(confirmed).catch(() => { });
+        }
         return sendJson(res, 201, {
           success: true,
           isSandbox: true,
@@ -288,7 +336,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
             sessionResult.sessionId,
             order.id
           );
-        } catch {}
+        } catch { }
       }
 
       return sendJson(res, 201, {
@@ -354,13 +402,18 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       }
 
       if (order.payment_status === 'paid') {
+        if (!order.email_sent) {
+          sendChurrascoTicketEmail(order).catch(() => { });
+        }
         return sendJson(res, 200, { success: true, order });
       }
 
       // Validação em Sandbox ou verificação de sessão Stripe
       if (isStripeSandbox()) {
         order = confirmChurrascoOrderPayment(orderId, sessionId || `sandbox_confirm_${Date.now()}`);
-        sendChurrascoTicketEmail(order).catch(() => {});
+        if (!order.email_sent) {
+          sendChurrascoTicketEmail(order).catch(() => { });
+        }
         return sendJson(res, 200, { success: true, order });
       }
 
@@ -385,7 +438,9 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
           }
           if (session && session.payment_status === 'paid') {
             order = confirmChurrascoOrderPayment(orderId, session.payment_intent || session.id);
-            sendChurrascoTicketEmail(order).catch(() => {});
+            if (!order.email_sent) {
+              sendChurrascoTicketEmail(order).catch(() => { });
+            }
             return sendJson(res, 200, { success: true, order });
           }
         }
@@ -590,7 +645,7 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       const body = await readJsonBody(req);
       const order = createAdminManualChurrascoOrder(body);
       if (order.student_email && order.student_email !== 'presencial@neei.pt') {
-        sendChurrascoTicketEmail(order).catch(() => {});
+        sendChurrascoTicketEmail(order).catch(() => { });
       }
 
       return sendJson(res, 201, {
@@ -614,6 +669,29 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       return sendJson(res, 200, {
         success: true,
         message: 'Bilhete eliminado com sucesso.',
+      });
+    }
+
+    // 14. POST /api/admin/churrasco/order/:id/resend-email - Reenviar email do bilhete manualmente
+    if (pathname.startsWith('/api/admin/churrasco/order/') && pathname.endsWith('/resend-email') && req.method === 'POST') {
+      if (!verifyAdminToken(req)) {
+        return sendJson(res, 401, { error: 'Sessão de administração inválida ou expirada.' });
+      }
+
+      const orderId = decodeURIComponent(pathname.replace('/api/admin/churrasco/order/', '').replace('/resend-email', '')).trim();
+      const order = getChurrascoOrderById(orderId);
+      if (!order) {
+        return sendJson(res, 404, { error: 'Bilhete não encontrado para reenvio de email.' });
+      }
+
+      const emailResult = await sendChurrascoTicketEmail(order, { force: true });
+      if (!emailResult.success) {
+        return sendJson(res, 500, { error: emailResult.error || 'Falha ao reenviar email do bilhete.' });
+      }
+
+      return sendJson(res, 200, {
+        success: true,
+        message: `Email reenviado com sucesso para ${order.student_email}`,
       });
     }
 

@@ -39,6 +39,10 @@ export interface ChurrascoOrder {
   isFullyServed?: boolean;
   is_admin_created?: number | boolean;
   admin_notes?: string | null;
+  email_sent?: boolean;
+  emailSent?: boolean;
+  email_sent_at?: string | null;
+  emailSentAt?: string | null;
   created_at?: string;
   createdAt?: string;
   paid_at?: string | null;
@@ -379,3 +383,18 @@ export async function deleteAdminChurrascoOrder(token: string, orderId: string):
 
   return true;
 }
+
+export async function resendAdminChurrascoEmail(token: string, orderId: string): Promise<boolean> {
+  const res = await fetch(`/api/admin/churrasco/order/${encodeURIComponent(orderId)}/resend-email`, {
+    method: 'POST',
+    headers: getAuthHeader(token),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Falha ao reenviar email do bilhete.');
+  }
+
+  return true;
+}
+

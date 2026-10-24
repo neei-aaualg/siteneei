@@ -508,8 +508,63 @@ describe('Churrasco NEEI - Backend & API', () => {
         const result = await churrascoApi.sendChurrascoTicketEmail(confirmed);
         expect(result.success).toBe(true);
         expect(result.qrGenerated).toBe(true);
+
+        // Verifica que ficou marcado na BD
+        const updated = db.getChurrascoOrderById(order.id);
+        expect(updated.email_sent).toBe(true);
+        expect(updated.email_sent_at).toBeTruthy();
+      });
+
+      it('apenas envia email uma única vez prevenindo duplicados em chamadas simultâneas (idempotência)', async () => {
+        const order = db.preparePendingChurrascoOrder({
+          student_name: 'João Duplicado',
+          student_email: 'joao.duplicado@ualg.pt',
+          phone_number: '918888888',
+          quantity: 2,
+        });
+        const confirmed = db.confirmChurrascoOrderPayment(order.id, 'pi_test_email_dedup');
+
+        // Duas chamadas quase em simultâneo (ex.: StrictMode / webhook simultâneo)
+        const [res1, res2] = await Promise.all([
+          churrascoApi.sendChurrascoTicketEmail(confirmed),
+          churrascoApi.sendChurrascoTicketEmail(confirmed),
+        ]);
+
+        expect(res1.success).toBe(true);
+        expect(res2.success).toBe(true);
+
+        // Um dos resultados foi o envio real e o outro foi ignorado (skipped)
+        const skippedCount = [res1.skipped, res2.skipped].filter(Boolean).length;
+        expect(skippedCount).toBe(1);
+
+        // Terceira tentativa após envio terminado também é ignorada
+        const res3 = await churrascoApi.sendChurrascoTicketEmail(confirmed);
+        expect(res3.success).toBe(true);
+        expect(res3.skipped).toBe(true);
+        expect(res3.reason).toBe('already_sent');
+      });
+
+      it('permite reenvio de email através do endpoint de administração', async () => {
+        const order = db.preparePendingChurrascoOrder({
+          student_name: 'Maria Reenvio',
+          student_email: 'maria.reenvio@ualg.pt',
+          phone_number: '919999999',
+          quantity: 1,
+        });
+        db.confirmChurrascoOrderPayment(order.id, 'pi_test_email_resend');
+        db.markChurrascoOrderEmailSent(order.id);
+
+        const { status, body } = await postJson(
+          `/api/admin/churrasco/order/${order.id}/resend-email`,
+          {},
+          { Authorization: `Bearer ${adminToken}` }
+        );
+
+        expect(status).toBe(200);
+        expect(body.success).toBe(true);
       });
     });
   });
 });
+
 

@@ -20,6 +20,7 @@ import {
   UtensilsCrossed,
   History,
   ChevronDown,
+  Mail,
 } from 'lucide-react';
 import {
   ChurrascoOrder,
@@ -29,6 +30,7 @@ import {
   toggleAdminChurrascoVisibility,
   createAdminManualChurrasco,
   deleteAdminChurrascoOrder,
+  resendAdminChurrascoEmail,
   updateAdminChurrascoBarPassword,
 } from '../../services/churrascoService';
 
@@ -71,6 +73,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
   // Deletion Modal
   const [orderToDelete, setOrderToDelete] = useState<ChurrascoOrder | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -179,6 +182,26 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       alert(err.message || 'Erro ao eliminar bilhete.');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleResendEmail = async (order: ChurrascoOrder) => {
+    if (!order.id) return;
+    try {
+      setResendingEmailId(order.id);
+      await resendAdminChurrascoEmail(adminToken, order.id);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, email_sent: true, emailSent: true } : o))
+      );
+      setFeedbackMsg({
+        type: 'success',
+        text: `Email do bilhete reenviado com sucesso para ${order.student_email || order.studentEmail}!`,
+      });
+      setTimeout(() => setFeedbackMsg(null), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Erro ao reenviar email do bilhete.');
+    } finally {
+      setResendingEmailId(null);
     }
   };
 
@@ -802,6 +825,19 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                             </>
                           ) : null}
                         </div>
+                        <div className="flex items-center gap-1.5 mt-1 text-[11px]">
+                          {order.email_sent || order.emailSent ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium">
+                              <Check size={12} />
+                              <span>Email enviado</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+                              <Clock size={12} />
+                              <span>Email pendente</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Quantidade e Valor */}
@@ -871,14 +907,25 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
                       {/* Ações */}
                       <td className="py-3 px-3 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setOrderToDelete(order)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
-                          title="Eliminar bilhete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleResendEmail(order)}
+                            disabled={resendingEmailId === order.id}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition cursor-pointer disabled:opacity-50"
+                            title="Reenviar email com bilhete e código QR"
+                          >
+                            <Mail size={16} className={resendingEmailId === order.id ? 'animate-spin' : ''} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOrderToDelete(order)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition cursor-pointer"
+                            title="Eliminar bilhete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
