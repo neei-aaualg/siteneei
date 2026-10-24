@@ -563,8 +563,71 @@ describe('Churrasco NEEI - Backend & API', () => {
         expect(status).toBe(200);
         expect(body.success).toBe(true);
       });
+
+      it('nunca inclui compras pendentes/não finalizadas na listagem do menu de administração', async () => {
+        // 1. Inicia compra que não foi concluída/paga
+        const pending = db.preparePendingChurrascoOrder({
+          student_name: 'Aluno Desistente',
+          student_email: 'desistente@ualg.pt',
+          phone_number: '912222222',
+          quantity: 2,
+        });
+
+        // 2. Não deve aparecer na listagem de ordens do db por omissão
+        const dbOrders = db.getAllChurrascoOrders();
+        expect(dbOrders.find((o) => o.id === pending.id)).toBeUndefined();
+
+        // 3. Não deve aparecer na resposta do endpoint de administração /api/admin/churrasco
+        const { status, body } = await getJson('/api/admin/churrasco', {
+          Authorization: `Bearer ${adminToken}`,
+        });
+        expect(status).toBe(200);
+        expect(body.orders.find((o) => o.id === pending.id)).toBeUndefined();
+
+        // 4. Se o pagamento for posteriormente confirmado, passa a constar
+        db.confirmChurrascoOrderPayment(pending.id, 'pi_stripe_confirmed_later');
+        const updatedDbOrders = db.getAllChurrascoOrders();
+        expect(updatedDbOrders.find((o) => o.id === pending.id)).toBeDefined();
+      });
+
+      it('rejeita validação de QR code e consumo no balcão se a compra não tiver sido paga', async () => {
+        const unpaid = db.preparePendingChurrascoOrder({
+          student_name: 'Não Pagou',
+          student_email: 'naopagou@ualg.pt',
+          phone_number: '913333333',
+          quantity: 1,
+        });
+
+        const { body: loginBody } = await postJson('/api/churrasco-admin/login', {
+          password: 'churrasco2026',
+          username: 'Voluntário Bar',
+        });
+        const barHeader = { Authorization: `Bearer ${loginBody.token}` };
+
+        // 1. Leitor QR rejeita bilhete não pago com 400
+        const { status: qrStatus, body: qrBody } = await getJson(
+          `/api/churrasco-qr?code=${unpaid.ticket_code}`,
+          barHeader
+        );
+        expect(qrStatus).toBe(400);
+        expect(qrBody.valid).toBe(false);
+        expect(qrBody.error).toMatch(/não foi concluída\/paga/i);
+
+        // 2. Tentativa de servir bifana num bilhete não pago falha
+        const { status: serveStatus, body: serveBody } = await postJson(
+          '/api/churrasco-admin/serve',
+          { orderId: unpaid.id, itemType: 'bifana' },
+          barHeader
+        );
+        expect(serveStatus).toBe(400);
+        expect(serveBody.error).toMatch(/não foi concluída\/paga/i);
+
+        // 3. Tentativa de check-in num bilhete não pago falha
+        expect(() => db.toggleChurrascoCheckIn(unpaid.id, true)).toThrow(/não pago/i);
+      });
     });
   });
 });
+
 
 

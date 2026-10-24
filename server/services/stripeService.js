@@ -487,6 +487,10 @@ export async function createStripeCheckoutSession({ order, successUrl, cancelUrl
       mode: 'payment',
       client_reference_id: order.id,
       payment_intent_data: {
+        description:
+          order.type === 'churrasco' || order.id.startsWith('churr_')
+            ? `Passe Churrasco NEEI (${order.quantity || 1}x) - ${order.ticket_code || order.id}`
+            : productName,
         metadata: orderMeta,
       },
       metadata: orderMeta,
