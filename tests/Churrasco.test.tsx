@@ -47,6 +47,7 @@ describe('Churrasco Page', () => {
     });
 
     expect(screen.getByText(/Entrada 100% Gratuita/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/NEISE/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/1 Bifana no Pão/i)[0]).toBeInTheDocument();
     expect(screen.getAllByText(/2 Copos de Bebida/i)[0]).toBeInTheDocument();
     expect(screen.getByText(/4,50€ Tudo Incluído/i)).toBeInTheDocument();

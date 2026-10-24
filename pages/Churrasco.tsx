@@ -13,8 +13,8 @@ import {
   CreditCard,
   Printer,
   ChevronRight,
-  Sparkles,
   Info,
+  Users,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import QRCodeStyling from 'qr-code-styling';
@@ -198,10 +198,10 @@ const Churrasco: React.FC = () => {
                 <CheckCircle size={36} />
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-text-100 dark:text-white">
-                O teu Passe está Confirmado! 🎉
+                O teu Passe está Confirmado!
               </h1>
               <p className="text-sm sm:text-base text-text-200 dark:text-slate-300 max-w-lg mx-auto">
-                Parabéns, <span className="font-bold text-orange-600 dark:text-orange-400">{confirmedOrder.student_name || confirmedOrder.studentName}</span>! Enviámos os detalhes para o teu email. Apresenta o código ou QR Code no dia do churrasco.
+                Obrigado, <span className="font-bold text-orange-600 dark:text-orange-400">{confirmedOrder.student_name || confirmedOrder.studentName}</span>. O comprovativo foi enviado para o teu email. Apresenta o código ou o QR code no balcão no dia do convívio.
               </p>
             </div>
 
@@ -285,46 +285,46 @@ const Churrasco: React.FC = () => {
           <>
             {/* HERO PRINCIPAL DO CHURRASCO */}
             <header className="text-center space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30 text-xs font-bold tracking-wide uppercase">
-                <Flame size={14} className="text-orange-500 animate-pulse" />
-                <span>Evento Oficial NEEI &bull; Entrada Gratuita</span>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30 text-xs font-semibold tracking-wide">
+                <Flame size={14} className="text-orange-500" />
+                <span>NEEI &times; NEISE &bull; Entrada Gratuita</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-text-100 dark:text-white tracking-tight">
                 Churrasco de <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 bg-clip-text text-transparent">
-                  Engenharia Informática 🍖
+                  Engenharia Informática &amp; ISE
                 </span>
               </h1>
 
               <p className="text-base sm:text-lg text-text-200 dark:text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                Junta-te aos teus colegas do curso, bem como de outros, para uma tarde descontraída com boa comida, bebidas frescas e música!
+                Organizado pelo <strong>NEEI</strong> em colaboração com o <strong>NEISE</strong> (Núcleo de Estudantes do Instituto Superior de Engenharia). Entrada livre e aberta a todos os estudantes da Universidade do Algarve!
               </p>
             </header>
 
             {/* BANNER EM DESTAQUE: ENTRADA GRATUITA VS PASSE OPCIONAL */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/20 dark:from-emerald-500/20 dark:via-teal-500/20 dark:to-emerald-500/25 border-2 border-emerald-400 dark:border-emerald-500/50 shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="p-5 sm:p-6 rounded-3xl bg-emerald-500/10 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-500/40 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4 text-center md:text-left">
-                <div className="p-3.5 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 shrink-0 hidden sm:flex">
-                  <Sparkles size={24} />
+                <div className="p-3 rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 shrink-0 hidden sm:flex">
+                  <Info size={22} />
                 </div>
                 <div>
                   <div className="flex items-center justify-center md:justify-start gap-2 flex-wrap">
-                    <span className="text-base sm:text-lg font-black text-emerald-950 dark:text-emerald-100">
-                      Entrada 100% Gratuita para Todos!
+                    <span className="text-base sm:text-lg font-bold text-emerald-950 dark:text-emerald-100">
+                      Entrada 100% Gratuita para Todos
                     </span>
-                    <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-600 text-white tracking-wider shadow-xs">
-                      Entrada Livre
+                    <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-600 text-white tracking-wider">
+                      Acesso Livre
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-emerald-900/90 dark:text-emerald-200 mt-1">
-                    Não precisas de pagar nada para entrar e conviver com a malta. Se quiseres comer e beber no churrasco, podes comprar aqui o teu passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>!
+                    A entrada no espaço do convívio é livre e não requer qualquer pagamento. Para quem pretender comer e beber no churrasco, está disponível o passe com <strong>1 bifana + 2 bebidas</strong> por apenas <strong>4,50€</strong>.
                   </p>
                 </div>
               </div>
 
-              <div className="shrink-0 text-center md:text-right bg-white/70 dark:bg-[#0c1827]/80 p-3 px-4 rounded-2xl border border-emerald-300 dark:border-emerald-500/40">
-                <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 block uppercase tracking-wide">
+              <div className="shrink-0 text-center md:text-right bg-white dark:bg-[#0c1827] p-3 px-4 rounded-2xl border border-emerald-300/80 dark:border-emerald-500/40 shadow-xs">
+                <span className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 block uppercase tracking-wide">
                   Passe Refeição (Opcional)
                 </span>
                 <span className="text-xl sm:text-2xl font-black text-orange-600 dark:text-orange-400">
@@ -335,7 +335,7 @@ const Churrasco: React.FC = () => {
 
             {/* DESTAQUES DO QUE ESTÁ INCLUÍDO NO PASSE (4,50€) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-sm flex items-start gap-3.5">
+              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950/80 text-orange-600 dark:text-orange-400 shrink-0">
                   <UtensilsCrossed size={22} />
                 </div>
@@ -344,12 +344,12 @@ const Churrasco: React.FC = () => {
                     1 Bifana no Pão
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Feita na brasa na hora. Opção vegetariana disponível sob aviso no bar.
+                    Grelhada na hora. Opção vegetariana disponível mediante pedido no balcão.
                   </p>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-sm flex items-start gap-3.5">
+              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 shrink-0">
                   <Beer size={22} />
                 </div>
@@ -358,12 +358,12 @@ const Churrasco: React.FC = () => {
                     2 Copos de Bebida
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Cerveja bem fresca ou refrigerante/água à escolha no balcão.
+                    Cerveja fresca ou refrigerante/água à escolha no momento do levantamento.
                   </p>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-sm flex items-start gap-3.5">
+              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1724] border border-orange-200/80 dark:border-orange-950/60 shadow-xs flex items-start gap-3.5">
                 <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 shrink-0">
                   <ShieldCheck size={22} />
                 </div>
@@ -372,7 +372,7 @@ const Churrasco: React.FC = () => {
                     4,50€ Tudo Incluído
                   </h3>
                   <p className="text-xs text-text-200 dark:text-slate-400 mt-0.5">
-                    Passe opcional de comida e bebida com taxas Stripe já incluídas.
+                    Preço fixo por passe, com taxas de processamento Stripe já incluídas.
                   </p>
                 </div>
               </div>
@@ -415,13 +415,12 @@ const Churrasco: React.FC = () => {
                   <div>
                     <h2 className="text-xl sm:text-2xl font-black text-text-100 dark:text-white flex items-center gap-2 flex-wrap">
                       <span>Comprar Passe de Refeição</span>
-                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
                         Entrada Grátis
                       </span>
-                      <Sparkles size={18} className="text-amber-500" />
                     </h2>
                     <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400 mt-1">
-                      A entrada no convívio é livre e aberta a todos! Adquire aqui o teu passe se quiseres garantir 1 bifana no pão e 2 copos de bebida fresca.
+                      A entrada no convívio é livre e aberta a todos. Adquire aqui o teu passe para garantires 1 bifana no pão e 2 copos de bebida.
                     </p>
                   </div>
                   <div className="text-left sm:text-right">
@@ -530,10 +529,10 @@ const Churrasco: React.FC = () => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-900/40 gap-4">
                     <div>
                       <span className="font-bold text-sm text-text-100 dark:text-white block">
-                        Número de Passes
+                        Quantidade de Passes
                       </span>
                       <span className="text-xs text-text-200 dark:text-slate-400">
-                        Podes comprar para ti ou levar amigos!
+                        Podes adquirir passes para ti e colegas na mesma compra.
                       </span>
                     </div>
 
@@ -574,18 +573,18 @@ const Churrasco: React.FC = () => {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 hover:from-orange-600 hover:via-amber-600 hover:to-red-600 text-white font-extrabold text-base sm:text-lg shadow-lg shadow-orange-500/25 transition-all duration-200 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-3 group"
+                      className="w-full py-4 px-6 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-base sm:text-lg shadow-md hover:shadow-lg transition-all duration-150 cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2.5"
                     >
                       {submitting ? (
                         <>
                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>A preparar pagamento seguro...</span>
+                          <span>A redirecionar para pagamento...</span>
                         </>
                       ) : (
                         <>
-                          <Flame size={20} className="group-hover:rotate-12 transition-transform" />
-                          <span>Pagar Passe &bull; {totalPrice.toFixed(2)}€</span>
-                          <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                          <Ticket size={20} />
+                          <span>Comprar Passe &bull; {totalPrice.toFixed(2)}€</span>
+                          <ChevronRight size={18} />
                         </>
                       )}
                     </button>
@@ -605,15 +604,19 @@ const Churrasco: React.FC = () => {
               </div>
             )}
 
-            {/* Informações de Localização e Horário */}
+            {/* Informações de Localização, Horário e Organização */}
             <div className="p-6 rounded-3xl bg-gray-50 dark:bg-[#0c1724]/60 border border-gray-200/80 dark:border-slate-800/80 text-xs sm:text-sm text-text-200 dark:text-slate-400 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <MapPin size={18} className="text-orange-500 shrink-0" />
-                <span>Campus de Gambelas, Gabinete NEEI (Edifício 1)</span>
+                <span>Campus de Gambelas, junto ao Edifício 1 (ISE)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar size={18} className="text-orange-500 shrink-0" />
-                <span>Horário: A partir das 17h00</span>
+                <span>A partir das 17h00</span>
+              </div>
+              <div className="flex items-center gap-2 font-medium text-text-100 dark:text-slate-200">
+                <Users size={18} className="text-orange-500 shrink-0" />
+                <span>Organização conjunta NEEI &times; NEISE</span>
               </div>
             </div>
           </>
