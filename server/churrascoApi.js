@@ -14,6 +14,7 @@ import {
   createAdminManualChurrascoOrder,
   deleteChurrascoOrder,
   serveChurrascoItem,
+  getChurrascoLogs,
   getChurrascoAdminPassword,
   setChurrascoAdminPassword,
   verifyChurrascoAdminPassword,
@@ -364,17 +365,22 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
        ROTAS DO BALCÃO / LEITURA DE QR CODE (CHURRASCO-ADMIN & CHURRASCO-QR)
        ========================================================================= */
 
-    // 5. POST /api/churrasco-admin/login - Login do staff do bar com a senha do churrasco
+    // 5. POST /api/churrasco-admin/login - Login do staff do bar com a senha do churrasco e username
     if (pathname === '/api/churrasco-admin/login' && req.method === 'POST') {
       const body = await readJsonBody(req);
       const { password } = body;
+      const username = String(body.username || body.staffName || '').trim();
+
       if (!verifyChurrascoAdminPassword(password)) {
         return sendJson(res, 401, { error: 'Senha de acesso ao balcão incorreta.' });
       }
+
+      const validUsername = username && username.length >= 2 ? username : 'Staff';
       const token = `churr_bar_${Buffer.from(String(password).trim()).toString('base64')}`;
       return sendJson(res, 200, {
         success: true,
         token,
+        username: validUsername,
         message: 'Acesso ao balcão autorizado.',
       });
     }
@@ -439,19 +445,21 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       const { orderId } = body;
       const item = body.item || body.itemType;
       const action = body.action || (body.delta && body.delta < 0 ? 'undo' : 'serve');
+      const staffName = String(body.staffName || body.username || 'Staff').trim() || 'Staff';
 
       if (!orderId || !item) {
         return sendJson(res, 400, { error: 'orderId e item (bifana ou drink) são obrigatórios.' });
       }
 
-      const updated = serveChurrascoItem(orderId, item, action);
+      const updated = serveChurrascoItem(orderId, item, action, staffName);
       return sendJson(res, 200, {
         success: true,
         order: updated,
+        staffName,
         message:
           action === 'undo'
-            ? `1 ${item === 'bifana' ? 'bifana' : 'bebida'} reposta com sucesso.`
-            : `1 ${item === 'bifana' ? 'bifana' : 'bebida'} servida com sucesso!`,
+            ? `1 ${item === 'bifana' ? 'bifana' : 'bebida'} reposta com sucesso por ${staffName}.`
+            : `1 ${item === 'bifana' ? 'bifana' : 'bebida'} servida com sucesso por ${staffName}!`,
       });
     }
 
@@ -471,11 +479,13 @@ export async function handleChurrascoApi(req, res, pathname, searchParams) {
       const stats = getChurrascoStats();
       const orders = getAllChurrascoOrders();
       const barPassword = getChurrascoAdminPassword();
+      const logs = getChurrascoLogs(200);
 
       return sendJson(res, 200, {
         success: true,
         stats,
         orders,
+        logs,
         barPassword,
         visibility: isChurrascoVisible(),
       });

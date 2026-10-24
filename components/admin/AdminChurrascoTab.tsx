@@ -19,17 +19,18 @@ import {
   Key,
   ExternalLink,
   UtensilsCrossed,
+  History,
+  ChevronDown,
 } from 'lucide-react';
 import {
   ChurrascoOrder,
   ChurrascoStats,
+  ChurrascoLog,
   fetchAdminChurrasco,
   toggleAdminChurrascoVisibility,
-  toggleAdminChurrascoCheckIn,
   createAdminManualChurrasco,
   deleteAdminChurrascoOrder,
   updateAdminChurrascoBarPassword,
-  serveChurrascoOrderItem,
 } from '../../services/churrascoService';
 
 interface AdminChurrascoTabProps {
@@ -39,6 +40,9 @@ interface AdminChurrascoTabProps {
 export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken }) => {
   const [stats, setStats] = useState<ChurrascoStats | null>(null);
   const [orders, setOrders] = useState<ChurrascoOrder[]>([]);
+  const [logs, setLogs] = useState<ChurrascoLog[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logSearchQuery, setLogSearchQuery] = useState('');
   const [visibility, setVisibility] = useState(true);
   const [loading, setLoading] = useState(true);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
@@ -53,7 +57,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending_checkin' | 'checked_in'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
   // Manual Sale Modal
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
@@ -77,6 +81,9 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       setStats(data.stats);
       setOrders(data.orders);
       setVisibility(data.visibility);
+      if (data.logs) {
+        setLogs(data.logs);
+      }
       if (data.barPassword) {
         setBarPassword(data.barPassword);
         setNewBarPassword(data.barPassword);
@@ -115,26 +122,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       });
     } finally {
       setTogglingVisibility(false);
-    }
-  };
-
-  const handleCheckIn = async (order: ChurrascoOrder) => {
-    const isChecked = Boolean(order.check_in || order.checkIn);
-    const nextChecked = !isChecked;
-    try {
-      const updated = await toggleAdminChurrascoCheckIn(adminToken, order.id, nextChecked);
-      setOrders((prev) => prev.map((o) => (o.id === order.id ? updated : o)));
-      // Atualiza contadores locais
-      if (stats) {
-        const qty = order.quantity || 1;
-        setStats({
-          ...stats,
-          totalCheckedIn: nextChecked ? stats.totalCheckedIn + qty : Math.max(0, stats.totalCheckedIn - qty),
-          pendingCheckIn: nextChecked ? Math.max(0, stats.pendingCheckIn - qty) : stats.pendingCheckIn + qty,
-        });
-      }
-    } catch (err: any) {
-      alert(err.message || 'Falha ao atualizar check-in.');
     }
   };
 
@@ -220,28 +207,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
     }
   };
 
-  const handleServeItem = async (orderId: string, itemType: 'bifana' | 'drink', delta: number) => {
-    try {
-      const updated = await serveChurrascoOrderItem(orderId, itemType, delta, barPassword);
-      setOrders((prev) => prev.map((o) => (o.id === orderId ? updated : o)));
-      if (stats) {
-        if (itemType === 'bifana') {
-          setStats({
-            ...stats,
-            totalBifanasServed: Math.max(0, (stats.totalBifanasServed || 0) + delta),
-          });
-        } else {
-          setStats({
-            ...stats,
-            totalDrinksServed: Math.max(0, (stats.totalDrinksServed || 0) + delta),
-          });
-        }
-      }
-    } catch (err: any) {
-      alert(err.message || 'Falha ao registar serviço do item.');
-    }
-  };
-
   // Exportação para ficheiro CSV
   const handleExportCsv = () => {
     if (orders.length === 0) return;
@@ -257,7 +222,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       'Bifanas Servidas',
       'Bebidas Servidas',
       'Estado Pagamento',
-      'Check-in (Levantado)',
+      'Totalmente Servido',
       'Data de Compra',
       'Notas',
     ];
@@ -274,7 +239,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       `"${o.bifanas_served || 0}/${o.bifanas_total || o.quantity || 1}"`,
       `"${o.drinks_served || 0}/${o.drinks_total || (o.quantity || 1) * 2}"`,
       `"${o.payment_status || o.paymentStatus || 'pending'}"`,
-      Boolean(o.check_in || o.checkIn) ? 'SIM' : 'NÃO',
+      (o.is_fully_served || o.isFullyServed) ? 'SIM' : 'NÃO',
       `"${o.created_at || o.createdAt || ''}"`,
       `"${(o.admin_notes || '').replace(/"/g, '""')}"`,
     ]);
@@ -312,10 +277,28 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       code.includes(query) ||
       studentNum.includes(query);
 
-    const isCheckedIn = Boolean(order.check_in || order.checkIn);
-    if (statusFilter === 'checked_in') return matchesQuery && isCheckedIn;
-    if (statusFilter === 'pending_checkin') return matchesQuery && !isCheckedIn;
+    const bifanasServed = order.bifanas_served || 0;
+    const bifanasTotal = order.bifanas_total || order.quantity || 1;
+    const drinksServed = order.drinks_served || 0;
+    const drinksTotal = order.drinks_total || (order.quantity || 1) * 2;
+    const isFullyServed = bifanasServed >= bifanasTotal && drinksServed >= drinksTotal;
+
+    if (statusFilter === 'completed') return matchesQuery && isFullyServed;
+    if (statusFilter === 'pending') return matchesQuery && !isFullyServed;
     return matchesQuery;
+  });
+
+  // Filtragem de logs de consumo no balcão
+  const filteredLogs = logs.filter((log) => {
+    const q = logSearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      (log.staff_name || '').toLowerCase().includes(q) ||
+      (log.student_name || '').toLowerCase().includes(q) ||
+      (log.ticket_code || '').toLowerCase().includes(q) ||
+      (log.order_id || '').toLowerCase().includes(q) ||
+      (log.item_type || '').toLowerCase().includes(q)
+    );
   });
 
   return (
@@ -323,11 +306,10 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
       {/* FEEDBACK BANNER */}
       {feedbackMsg && (
         <div
-          className={`p-4 rounded-2xl flex items-center justify-between text-sm shadow-xs transition-all ${
-            feedbackMsg.type === 'success'
+          className={`p-4 rounded-2xl flex items-center justify-between text-sm shadow-xs transition-all ${feedbackMsg.type === 'success'
               ? 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
               : 'bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2.5">
             {feedbackMsg.type === 'success' ? (
@@ -387,15 +369,13 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                 type="button"
                 onClick={handleToggleVisibility}
                 disabled={togglingVisibility}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                  visibility ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-700'
-                }`}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${visibility ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-700'
+                  }`}
                 title={visibility ? 'Clique para ocultar a aba' : 'Clique para mostrar a aba'}
               >
                 <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    visibility ? 'translate-x-5' : 'translate-x-0'
-                  }`}
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${visibility ? 'translate-x-5' : 'translate-x-0'
+                    }`}
                 />
               </button>
             </div>
@@ -462,27 +442,29 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
 
             <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/30">
               <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block">
-                Já Levantados (Check-in)
+                Bifanas Entregues
               </span>
               <div className="text-2xl sm:text-3xl font-black text-emerald-700 dark:text-emerald-400 mt-1">
-                {stats.totalCheckedIn}
+                {stats.totalBifanasServed || 0} / {stats.totalBifanas || 0}
               </div>
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                {stats.totalTickets > 0
-                  ? `${Math.round((stats.totalCheckedIn / stats.totalTickets) * 100)}% atendidos`
+                {stats.totalBifanas > 0
+                  ? `${Math.round(((stats.totalBifanasServed || 0) / stats.totalBifanas) * 100)}% entregues`
                   : '0%'}
               </span>
             </div>
 
             <div className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/30">
               <span className="text-xs font-bold text-blue-800 dark:text-blue-300 block">
-                Por Levantar
+                Bebidas Entregues
               </span>
               <div className="text-2xl sm:text-3xl font-black text-blue-700 dark:text-blue-400 mt-1">
-                {stats.pendingCheckIn}
+                {stats.totalDrinksServed || 0} / {stats.totalDrinks || 0}
               </div>
-              <span className="text-[11px] text-gray-500 dark:text-slate-400">
-                Passes pendentes no bar
+              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
+                {stats.totalDrinks > 0
+                  ? `${Math.round(((stats.totalDrinksServed || 0) / stats.totalDrinks) * 100)}% entregues`
+                  : '0%'}
               </span>
             </div>
           </div>
@@ -584,42 +566,128 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
               </div>
             )}
             <p className="text-[11px] text-gray-500 dark:text-slate-400">
-              Esta é a senha que os voluntários usam no telemóvel para aceder a <code>/churrasco-admin</code>.
+              Esta é a senha partilhada que os voluntários usam para entrar no <code>/churrasco-admin</code>.
             </p>
           </div>
         </div>
+      </div>
 
-        {/* CONTADORES DE BIFANAS E BEBIDAS */}
-        {stats && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-orange-200/50 dark:border-orange-900/30">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-[#0c1724]/70 border border-orange-100 dark:border-orange-950/40">
+      {/* REGISTO DE ATIVIDADE & LOGS DO BALCÃO (COLAPSADO POR DEFEITO) */}
+      <div className="bg-white dark:bg-[#0c1724] border border-gray-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div
+          className="flex items-center justify-between cursor-pointer select-none"
+          onClick={() => setShowLogs(!showLogs)}
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400">
+              <History size={20} />
+            </div>
+            <div>
               <div className="flex items-center gap-2">
-                <UtensilsCrossed size={16} className="text-orange-500" />
-                <span className="text-xs font-bold text-text-100 dark:text-white">Bifanas Entregues</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-black text-orange-600 dark:text-orange-400">
-                  {stats.totalBifanasServed || 0} / {stats.totalBifanas || 0}
-                </span>
-                <span className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
-                  ({stats.totalBifanas > 0 ? Math.round(((stats.totalBifanasServed || 0) / stats.totalBifanas) * 100) : 0}%)
+                <h3 className="font-bold text-sm sm:text-base text-text-100 dark:text-white">
+                  Histórico de Entregas no Balcão (Logs)
+                </h3>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300">
+                  {logs.length} registos
                 </span>
               </div>
+              <p className="text-xs text-text-200 dark:text-slate-400">
+                Registo de cada bifana e bebida servida com o identificador do voluntário que a entregou.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>{showLogs ? 'Ocultar Logs' : 'Ver Logs'}</span>
+            <ChevronDown
+              size={16}
+              className={`transition-transform duration-200 ${showLogs ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </div>
+
+        {showLogs && (
+          <div className="pt-4 border-t border-gray-100 dark:border-slate-800/80 space-y-3 animate-fadeIn">
+            {/* Pesquisa interna de logs */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[200px] max-w-sm">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={logSearchQuery}
+                  onChange={(e) => setLogSearchQuery(e.target.value)}
+                  placeholder="Filtrar por voluntário, aluno ou código..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-xs text-text-100 dark:text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
+                />
+              </div>
+              <span className="text-[11px] text-gray-400">
+                A mostrar {filteredLogs.length} de {logs.length} registos
+              </span>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/70 dark:bg-[#0c1724]/70 border border-orange-100 dark:border-orange-950/40">
-              <div className="flex items-center gap-2">
-                <Beer size={16} className="text-amber-500" />
-                <span className="text-xs font-bold text-text-100 dark:text-white">Bebidas Entregues</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-black text-amber-600 dark:text-amber-400">
-                  {stats.totalDrinksServed || 0} / {stats.totalDrinks || 0}
-                </span>
-                <span className="text-[10px] text-gray-500 dark:text-slate-400 font-semibold">
-                  ({stats.totalDrinks > 0 ? Math.round(((stats.totalDrinksServed || 0) / stats.totalDrinks) * 100) : 0}%)
-                </span>
-              </div>
+            {/* Tabela de logs */}
+            <div className="overflow-x-auto max-h-96 overflow-y-auto border border-gray-100 dark:border-slate-800/80 rounded-2xl">
+              {filteredLogs.length === 0 ? (
+                <div className="py-8 text-center text-xs text-text-200 dark:text-slate-400">
+                  {logs.length === 0
+                    ? 'Ainda não existem registos de consumo no balcão.'
+                    : 'Nenhum registo encontrado com o filtro atual.'}
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="sticky top-0 bg-gray-50 dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 text-[10px] uppercase font-bold text-gray-400">
+                    <tr>
+                      <th className="py-2.5 px-3">Data / Hora</th>
+                      <th className="py-2.5 px-3">Voluntário (Staff)</th>
+                      <th className="py-2.5 px-3">Ação</th>
+                      <th className="py-2.5 px-3">Aluno</th>
+                      <th className="py-2.5 px-3">Código Bilhete</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60 font-mono">
+                    {filteredLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-gray-50/60 dark:hover:bg-slate-800/30">
+                        <td className="py-2 px-3 text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('pt-PT', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                          })}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap font-sans">
+                          <span className="font-bold text-orange-700 dark:text-orange-300 bg-orange-100/80 dark:bg-orange-950/70 px-2 py-0.5 rounded-md border border-orange-200 dark:border-orange-900/60">
+                            {log.staff_name}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap font-sans">
+                          {log.action === 'serve' ? (
+                            <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+                              <span>+1</span>
+                              <span>{log.item_type === 'bifana' ? 'Bifana no pão' : 'Bebida'}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 font-bold text-gray-500 dark:text-slate-400">
+                              <span>-1</span>
+                              <span>{log.item_type === 'bifana' ? 'Bifana (desfeita)' : 'Bebida (desfeita)'}</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap font-sans font-semibold text-text-100 dark:text-white">
+                          {log.student_name || '-'}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap font-bold text-text-200 dark:text-slate-300">
+                          {log.ticket_code || log.order_id}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
@@ -655,25 +723,25 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('pending_checkin')}
+              onClick={() => setStatusFilter('pending')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                statusFilter === 'pending_checkin'
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                statusFilter === 'pending'
+                  ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
                   : 'text-gray-500 dark:text-slate-400 hover:text-text-100'
               }`}
             >
-              Por Levantar
+              Consumo Pendente
             </button>
             <button
               type="button"
-              onClick={() => setStatusFilter('checked_in')}
+              onClick={() => setStatusFilter('completed')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                statusFilter === 'checked_in'
+                statusFilter === 'completed'
                   ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
                   : 'text-gray-500 dark:text-slate-400 hover:text-text-100'
               }`}
             >
-              Já Levantados
+              Totalmente Servidos
             </button>
           </div>
         </div>
@@ -692,16 +760,13 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                   <th className="py-3 px-3">Aluno</th>
                   <th className="py-3 px-3">Bebida</th>
                   <th className="py-3 px-3">Qtd / Valor</th>
-                  <th className="py-3 px-3">Consumo (Bar)</th>
+                  <th className="py-3 px-3">Consumo no Bar</th>
                   <th className="py-3 px-3">Data</th>
-                  <th className="py-3 px-3 text-center">Check-in Geral</th>
                   <th className="py-3 px-3 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800/60">
                 {filteredOrders.map((order) => {
-                  const isChecked = Boolean(order.check_in || order.checkIn);
-                  const isPaid = (order.payment_status || order.paymentStatus) === 'paid';
                   const code = order.ticket_code || order.ticketCode || order.id;
 
                   const bifanasServed = order.bifanas_served || 0;
@@ -769,7 +834,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bifana:</span>
                             <span
-                              className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
                                 bifanasServed >= bifanasTotal
                                   ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                                   : 'bg-orange-100 dark:bg-orange-950/80 text-orange-700 dark:text-orange-400'
@@ -777,24 +842,10 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                             >
                               {bifanasServed}/{bifanasTotal}
                             </span>
-                            <button
-                              type="button"
-                              title="Servir +1 bifana"
-                              onClick={() => handleServeItem(order.id, 'bifana', 1)}
-                              disabled={bifanasServed >= bifanasTotal}
-                              className="px-1.5 py-0.5 rounded bg-orange-100 dark:bg-slate-800 text-orange-700 dark:text-orange-300 hover:bg-orange-200 disabled:opacity-25 text-[10px] font-bold cursor-pointer"
-                            >
-                              +1
-                            </button>
-                            {bifanasServed > 0 && (
-                              <button
-                                type="button"
-                                title="Desfazer 1 bifana"
-                                onClick={() => handleServeItem(order.id, 'bifana', -1)}
-                                className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-red-500 text-[10px] font-bold cursor-pointer"
-                              >
-                                -1
-                              </button>
+                            {bifanasServed >= bifanasTotal ? (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
+                            ) : (
+                              <span className="text-[10px] text-orange-600 dark:text-orange-400">Pendente</span>
                             )}
                           </div>
 
@@ -802,7 +853,7 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className="text-[11px] font-semibold text-text-200 dark:text-slate-400 w-12">Bebida:</span>
                             <span
-                              className={`px-1.5 py-0.5 rounded font-mono font-bold text-[10px] ${
+                              className={`px-2 py-0.5 rounded-md font-mono font-bold text-[10px] ${
                                 drinksServed >= drinksTotal
                                   ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300'
                                   : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-400'
@@ -810,24 +861,10 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                             >
                               {drinksServed}/{drinksTotal}
                             </span>
-                            <button
-                              type="button"
-                              title="Servir +1 bebida"
-                              onClick={() => handleServeItem(order.id, 'drink', 1)}
-                              disabled={drinksServed >= drinksTotal}
-                              className="px-1.5 py-0.5 rounded bg-amber-100 dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-200 disabled:opacity-25 text-[10px] font-bold cursor-pointer"
-                            >
-                              +1
-                            </button>
-                            {drinksServed > 0 && (
-                              <button
-                                type="button"
-                                title="Desfazer 1 bebida"
-                                onClick={() => handleServeItem(order.id, 'drink', -1)}
-                                className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-slate-800 text-gray-500 hover:text-red-500 text-[10px] font-bold cursor-pointer"
-                              >
-                                -1
-                              </button>
+                            {drinksServed >= drinksTotal ? (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Entregue</span>
+                            ) : (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400">Pendente</span>
                             )}
                           </div>
                         </div>
@@ -843,31 +880,6 @@ export const AdminChurrascoTab: React.FC<AdminChurrascoTabProps> = ({ adminToken
                               minute: '2-digit',
                             })
                           : '-'}
-                      </td>
-
-                      {/* Botão de Check-in no Bar */}
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleCheckIn(order)}
-                          className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer inline-flex items-center gap-1.5 ${
-                            isChecked
-                              ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
-                              : 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/70 dark:hover:bg-orange-900 text-orange-700 dark:text-orange-300'
-                          }`}
-                        >
-                          {isChecked ? (
-                            <>
-                              <Check size={14} />
-                              <span>Levantado</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock size={14} />
-                              <span>Marcar Levantado</span>
-                            </>
-                          )}
-                        </button>
                       </td>
 
                       {/* Ações */}

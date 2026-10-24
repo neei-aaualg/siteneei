@@ -29,6 +29,7 @@ import {
 } from '../services/churrascoService';
 
 const BAR_TOKEN_KEY = 'neei_churrasco_bar_token';
+const BAR_STAFF_NAME_KEY = 'neei_churrasco_bar_staff_name';
 
 const ChurrascoAdmin: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -38,6 +39,10 @@ const ChurrascoAdmin: React.FC = () => {
   const [barToken, setBarToken] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem(BAR_TOKEN_KEY) : null;
   });
+  const [staffUsername, setStaffUsername] = useState<string>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem(BAR_STAFF_NAME_KEY) || '' : '';
+  });
+  const [staffNameInput, setStaffNameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -75,6 +80,13 @@ const ChurrascoAdmin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
+
+    const trimmedName = staffNameInput.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setAuthError('Por favor introduz o teu nome (mínimo 2 letras).');
+      return;
+    }
+
     if (!passwordInput.trim()) {
       setAuthError('Por favor introduz a senha do churrasco.');
       return;
@@ -82,10 +94,14 @@ const ChurrascoAdmin: React.FC = () => {
 
     setLoggingIn(true);
     try {
-      const res = await loginChurrascoAdmin(passwordInput.trim());
+      const res = await loginChurrascoAdmin(passwordInput.trim(), trimmedName);
+      const name = res.username || trimmedName;
       setBarToken(res.token);
+      setStaffUsername(name);
       localStorage.setItem(BAR_TOKEN_KEY, res.token);
+      localStorage.setItem(BAR_STAFF_NAME_KEY, name);
       setPasswordInput('');
+      setStaffNameInput('');
 
       // Se havia código na query, pesquisa de imediato
       if (codeParam) {
@@ -101,7 +117,9 @@ const ChurrascoAdmin: React.FC = () => {
   const handleLogout = () => {
     stopCamera();
     setBarToken(null);
+    setStaffUsername('');
     localStorage.removeItem(BAR_TOKEN_KEY);
+    localStorage.removeItem(BAR_STAFF_NAME_KEY);
     setActiveOrder(null);
     setTicketError(null);
   };
@@ -200,7 +218,13 @@ const ChurrascoAdmin: React.FC = () => {
     setActionFeedback(null);
 
     try {
-      const res = await serveChurrascoOrderItem(barToken, activeOrder.id, item, action);
+      const res = await serveChurrascoOrderItem(
+        barToken,
+        activeOrder.id,
+        item,
+        action,
+        staffUsername || 'Staff'
+      );
       setActiveOrder(res.order);
       setActionFeedback(res.message);
       setTimeout(() => setActionFeedback(null), 3500);
@@ -225,7 +249,7 @@ const ChurrascoAdmin: React.FC = () => {
     setSearchParams({});
   };
 
-  // ECRÃ 1: LOGIN COM SENHA DO CHURRASCO
+  // ECRÃ 1: LOGIN COM NOME E SENHA DO CHURRASCO
   if (!barToken) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-orange-50/50 via-bg-100 to-bg-200 dark:from-[#0d1624] dark:via-[#09111b] dark:to-[#060b12] py-12 px-4 flex items-center justify-center">
@@ -238,7 +262,7 @@ const ChurrascoAdmin: React.FC = () => {
               Churrasco Bar Staff
             </h1>
             <p className="text-xs sm:text-sm text-text-200 dark:text-slate-400">
-              Acesso exclusivo para voluntários e equipa de bar para verificação e entrega de pedidos.
+              Acesso para voluntários e equipa de bar para validação de bilhetes e entrega de refeições.
             </p>
           </div>
 
@@ -252,13 +276,30 @@ const ChurrascoAdmin: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-2">
-                Senha do Balcão
+                O teu Nome (Voluntário / Staff) *
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={staffNameInput}
+                  onChange={(e) => setStaffNameInput(e.target.value)}
+                  placeholder="Ex: Diogo, João, Marta..."
+                  className="w-full px-4 py-3 pl-10 rounded-xl bg-gray-50 dark:bg-[#09121d] border border-gray-200 dark:border-slate-800 text-text-100 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-200 dark:text-slate-300 mb-2">
+                Senha do Balcão *
               </label>
               <div className="relative">
                 <input
                   type="password"
                   required
-                  autoFocus
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="Introduz a senha de staff..."
@@ -266,6 +307,9 @@ const ChurrascoAdmin: React.FC = () => {
                 />
                 <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
+              <p className="text-[11px] text-gray-500 dark:text-slate-400 mt-1">
+                A senha de acesso é partilhada por toda a equipa do bar.
+              </p>
             </div>
 
             <button
@@ -326,7 +370,12 @@ const ChurrascoAdmin: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-100 dark:bg-orange-950/70 text-orange-800 dark:text-orange-300 text-xs font-bold border border-orange-200 dark:border-orange-900/50">
+              <User size={13} className="text-orange-600 dark:text-orange-400" />
+              <span>{staffUsername || 'Voluntário'}</span>
+            </div>
+
             <button
               type="button"
               onClick={handleLogout}

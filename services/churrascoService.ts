@@ -163,6 +163,17 @@ export async function confirmChurrascoPayment(
   return { success: false };
 }
 
+export interface ChurrascoLog {
+  id: number;
+  order_id: string;
+  ticket_code?: string;
+  student_name?: string;
+  item_type: 'bifana' | 'drink';
+  action: 'serve' | 'undo';
+  staff_name: string;
+  created_at: string;
+}
+
 /* =========================================================================
    MÉTODOS DE ADMINISTRAÇÃO
    ========================================================================= */
@@ -177,6 +188,7 @@ function getAuthHeader(token: string) {
 export async function fetchAdminChurrasco(token: string): Promise<{
   stats: ChurrascoStats;
   orders: ChurrascoOrder[];
+  logs?: ChurrascoLog[];
   barPassword?: string;
   visibility: boolean;
 }> {
@@ -204,7 +216,7 @@ export async function updateAdminChurrascoBarPassword(
   if (!res.ok) {
     throw new Error(data.error || 'Falha ao atualizar a senha do churrasco-admin.');
   }
-  return data.password;
+  return data.password || data.barPassword;
 }
 
 /* =========================================================================
@@ -218,11 +230,14 @@ function getBarAuthHeader(token: string) {
   };
 }
 
-export async function loginChurrascoAdmin(password: string): Promise<{ token: string }> {
+export async function loginChurrascoAdmin(
+  password: string,
+  username?: string
+): Promise<{ token: string; username: string }> {
   const res = await fetch('/api/churrasco-admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ password, username }),
   });
 
   const data = await res.json();
@@ -258,16 +273,18 @@ export async function serveChurrascoOrderItem(
   token: string,
   orderId: string,
   item: 'bifana' | 'drink',
-  action: 'serve' | 'undo' = 'serve'
+  action: 'serve' | 'undo' = 'serve',
+  staffName?: string
 ): Promise<{
   success: boolean;
   order: ChurrascoOrder;
+  staffName?: string;
   message: string;
 }> {
   const res = await fetch('/api/churrasco-admin/serve', {
     method: 'POST',
     headers: getBarAuthHeader(token),
-    body: JSON.stringify({ orderId, item, action }),
+    body: JSON.stringify({ orderId, item, action, staffName }),
   });
 
   const data = await res.json();

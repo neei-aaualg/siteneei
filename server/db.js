@@ -241,6 +241,20 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_churrasco_status ON churrasco_orders(payment_status);
   CREATE INDEX IF NOT EXISTS idx_churrasco_created ON churrasco_orders(created_at);
   CREATE INDEX IF NOT EXISTS idx_churrasco_ticket ON churrasco_orders(ticket_code);
+
+  CREATE TABLE IF NOT EXISTS churrasco_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id TEXT NOT NULL,
+    ticket_code TEXT,
+    student_name TEXT,
+    item_type TEXT NOT NULL,
+    action TEXT NOT NULL,
+    staff_name TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_churrasco_logs_order ON churrasco_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_churrasco_logs_created ON churrasco_logs(created_at);
 `);
 
 // Migração: adiciona colunas bifanas_served e drinks_served à tabela churrasco_orders
@@ -3616,7 +3630,40 @@ export function toggleChurrascoCheckIn(id, status = true) {
   return getChurrascoOrderById(id);
 }
 
-export function serveChurrascoItem(orderId, item, action = 'serve') {
+export function addChurrascoLog({ orderId, ticketCode, studentName, itemType, action, staffName }) {
+  try {
+    const now = new Date().toISOString();
+    const cleanStaff = String(staffName || 'Staff').trim() || 'Staff';
+    db.prepare(`
+      INSERT INTO churrasco_logs (order_id, ticket_code, student_name, item_type, action, staff_name, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      orderId,
+      ticketCode || null,
+      studentName || null,
+      itemType,
+      action,
+      cleanStaff,
+      now
+    );
+  } catch (err) {
+    console.warn('[CHURRASCO LOG WARN]:', err.message);
+  }
+}
+
+export function getChurrascoLogs(limit = 200) {
+  try {
+    return db.prepare(`
+      SELECT * FROM churrasco_logs
+      ORDER BY id DESC
+      LIMIT ?
+    `).all(limit);
+  } catch {
+    return [];
+  }
+}
+
+export function serveChurrascoItem(orderId, item, action = 'serve', staffName = 'Staff') {
   const order = getChurrascoOrderById(orderId);
   if (!order) {
     const err = new Error('Pedido de churrasco não encontrado.');
@@ -3671,6 +3718,16 @@ export function serveChurrascoItem(orderId, item, action = 'serve') {
         check_in_at = ?
     WHERE id = ?
   `).run(bifanasServed, drinksServed, checkIn, checkInAt, orderId);
+
+  // Regista log com o nome do voluntário/staff que efetuou a operação
+  addChurrascoLog({
+    orderId,
+    ticketCode: order.ticket_code || order.ticketCode,
+    studentName: order.student_name || order.studentName,
+    itemType: item,
+    action,
+    staffName: staffName || 'Staff',
+  });
 
   return getChurrascoOrderById(orderId);
 }

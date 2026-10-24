@@ -335,24 +335,28 @@ describe('Churrasco NEEI - Backend & API', () => {
     });
 
     describe('Posto do Balcão & Leitor QR (/api/churrasco-admin & /api/churrasco-qr)', () => {
-      it('rejeita login com password incorreta e aceita password correta', async () => {
+      it('rejeita login com password incorreta e aceita password correta com username', async () => {
         // Tentativa inválida
         const { status: failStatus } = await postJson('/api/churrasco-admin/login', {
           password: 'senha_errada_123',
+          username: 'Diogo',
         });
         expect(failStatus).toBe(401);
 
-        // Tentativa válida com password padrão do bar (churrasco2026)
+        // Tentativa válida com password padrão do bar (churrasco2026) e username
         const { status: okStatus, body: okBody } = await postJson('/api/churrasco-admin/login', {
           password: 'churrasco2026',
+          username: 'Diogo',
         });
         expect(okStatus).toBe(200);
         expect(okBody.success).toBe(true);
         expect(okBody.token).toBeDefined();
+        expect(okBody.username).toBe('Diogo');
 
         // Tentativa válida com a master ADMIN_PASSWORD
         const { status: masterStatus } = await postJson('/api/churrasco-admin/login', {
           password: 'senha-secreta-teste',
+          username: 'Admin Master',
         });
         expect(masterStatus).toBe(200);
       });
@@ -369,6 +373,7 @@ describe('Churrasco NEEI - Backend & API', () => {
         // Login no balcão
         const { body: loginBody } = await postJson('/api/churrasco-admin/login', {
           password: 'churrasco2026',
+          username: 'Mariana',
         });
         const barHeader = { Authorization: `Bearer ${loginBody.token}` };
 
@@ -394,7 +399,7 @@ describe('Churrasco NEEI - Backend & API', () => {
         expect(qrBody.order.ticketCode).toBe(order.ticket_code);
       });
 
-      it('permite descontar bifana e bebida servida no balcão e respeita limites', async () => {
+      it('permite descontar bifana e bebida servida no balcão e regista logs com username de staff', async () => {
         const order = db.preparePendingChurrascoOrder({
           student_name: 'Gonçalo Neves',
           student_email: 'goncalo@ualg.pt',
@@ -405,13 +410,14 @@ describe('Churrasco NEEI - Backend & API', () => {
 
         const { body: loginBody } = await postJson('/api/churrasco-admin/login', {
           password: 'churrasco2026',
+          username: 'Voluntário Pedro',
         });
         const barHeader = { Authorization: `Bearer ${loginBody.token}` };
 
-        // 1. Serve 1 bifana
+        // 1. Serve 1 bifana com staffName
         const { status: bifanaStatus, body: bifanaBody } = await postJson(
           '/api/churrasco-admin/serve',
-          { orderId: order.id, itemType: 'bifana', delta: 1 },
+          { orderId: order.id, itemType: 'bifana', delta: 1, staffName: 'Voluntário Pedro' },
           barHeader
         );
         expect(bifanaStatus).toBe(200);
@@ -420,17 +426,17 @@ describe('Churrasco NEEI - Backend & API', () => {
         // Tentativa de servir a 2ª bifana quando o passe só dá direito a 1
         const { status: exceedBifanaStatus, body: exceedBifanaBody } = await postJson(
           '/api/churrasco-admin/serve',
-          { orderId: order.id, itemType: 'bifana', delta: 1 },
+          { orderId: order.id, itemType: 'bifana', delta: 1, staffName: 'Voluntário Pedro' },
           barHeader
         );
         expect(exceedBifanaStatus).toBe(400);
         expect(exceedBifanaBody.error).toMatch(/bifanas/i);
 
         // 2. Serve 2 bebidas
-        await postJson('/api/churrasco-admin/serve', { orderId: order.id, itemType: 'drink', delta: 1 }, barHeader);
+        await postJson('/api/churrasco-admin/serve', { orderId: order.id, itemType: 'drink', delta: 1, staffName: 'Voluntário Pedro' }, barHeader);
         const { body: drink2Body } = await postJson(
           '/api/churrasco-admin/serve',
-          { orderId: order.id, itemType: 'drink', delta: 1 },
+          { orderId: order.id, itemType: 'drink', delta: 1, staffName: 'Voluntário Pedro' },
           barHeader
         );
         expect(drink2Body.order.drinks_served).toBe(2);
@@ -438,7 +444,7 @@ describe('Churrasco NEEI - Backend & API', () => {
         // Tentativa de servir a 3ª bebida quando o passe só tem 2
         const { status: exceedDrinkStatus } = await postJson(
           '/api/churrasco-admin/serve',
-          { orderId: order.id, itemType: 'drink', delta: 1 },
+          { orderId: order.id, itemType: 'drink', delta: 1, staffName: 'Voluntário Pedro' },
           barHeader
         );
         expect(exceedDrinkStatus).toBe(400);
@@ -446,10 +452,23 @@ describe('Churrasco NEEI - Backend & API', () => {
         // 3. Desfazer bebida (-1)
         const { body: undoDrinkBody } = await postJson(
           '/api/churrasco-admin/serve',
-          { orderId: order.id, itemType: 'drink', delta: -1 },
+          { orderId: order.id, itemType: 'drink', delta: -1, staffName: 'Voluntário Pedro' },
           barHeader
         );
         expect(undoDrinkBody.order.drinks_served).toBe(1);
+
+        // 4. Verificar logs gravados na base de dados e devolvidos na API de admin
+        const logs = db.getChurrascoLogs();
+        expect(logs.length).toBeGreaterThanOrEqual(4);
+        expect(logs[0].staff_name).toBe('Voluntário Pedro');
+        expect(logs[0].order_id).toBe(order.id);
+
+        const adminHeader = { Authorization: `Bearer ${adminToken}` };
+        const { status: adminStatus, body: adminBody } = await getJson('/api/admin/churrasco', adminHeader);
+        expect(adminStatus).toBe(200);
+        expect(adminBody.logs).toBeDefined();
+        expect(Array.isArray(adminBody.logs)).toBe(true);
+        expect(adminBody.logs.some(l => l.staff_name === 'Voluntário Pedro')).toBe(true);
       });
 
       it('permite alterar a password do balcão a partir do painel de administração', async () => {
