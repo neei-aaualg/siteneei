@@ -354,25 +354,47 @@ const Header: React.FC = () => {
                 Atividades
               </Link>
 
-              {/* Aba Temporária Destacada - Churrasco NEEI */}
+              {/* Botão Churrasco NEEI com Efeito Brasa */}
               {showChurrasco && (
                 <Link
                   to="/churrasco"
                   onClick={() => jumpToPageTop('/churrasco')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-bold transition-all duration-200 cursor-pointer shadow-xs group ${isActive('/churrasco')
-                    ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-400/50'
-                    : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-300/80 dark:border-orange-500/40 hover:from-orange-500 hover:via-amber-500 hover:to-red-500 hover:text-white hover:shadow-md hover:shadow-orange-500/20'
+                  className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs lg:text-sm font-semibold transition-all duration-300 cursor-pointer overflow-visible group ${isActive('/churrasco')
+                    ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white shadow-md shadow-orange-500/30'
+                    : 'bg-orange-500/8 hover:bg-orange-500/15 dark:bg-orange-950/30 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-300/60 dark:border-orange-500/30 hover:border-orange-400 dark:hover:border-orange-400/50 hover:shadow-sm'
                     }`}
                   title="Passe de Churrasco: 1 Bifana + 2 Bebidas (4,50€)"
                 >
+                  {/* Brilho pulsante de brasa atrás do botão */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-orange-500/20 via-amber-500/25 to-red-500/20 pointer-events-none animate-ember-glow opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+                  />
+
+                  {/* Pequena faísca decorativa */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -top-1 right-2 w-1.5 h-1.5 rounded-full bg-amber-400 animate-spark pointer-events-none opacity-80"
+                  />
+
                   <Flame
-                    size={15}
-                    className={`transition-colors ${isActive('/churrasco')
-                      ? 'text-white'
-                      : 'text-orange-500 dark:text-orange-400 group-hover:text-white'
+                    size={14}
+                    className={`relative shrink-0 transition-transform duration-300 group-hover:scale-110 animate-ember-flicker ${isActive('/churrasco')
+                      ? 'text-amber-200'
+                      : 'text-orange-500 dark:text-orange-400'
                       }`}
                   />
-                  <span>Churrasco</span>
+                  <span className="relative tracking-tight">Churrasco</span>
+
+                  {/* Micro badge discreto de preço */}
+                  <span
+                    className={`relative text-[10px] font-bold px-1.5 py-0.2 rounded-full transition-colors ${isActive('/churrasco')
+                      ? 'bg-black/20 text-orange-100'
+                      : 'bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/80'
+                      }`}
+                  >
+                    4,50€
+                  </span>
                 </Link>
               )}
             </nav>
@@ -629,19 +651,19 @@ const Header: React.FC = () => {
                   setIsMenuOpen(false);
                   jumpToPageTop('/churrasco');
                 }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-base font-bold transition-all duration-200 ${isActive('/churrasco')
-                  ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-white shadow-md shadow-orange-500/25'
-                  : 'bg-gradient-to-r from-orange-500/10 via-amber-500/15 to-orange-500/10 dark:from-orange-500/20 dark:via-amber-500/25 dark:to-orange-500/20 text-orange-600 dark:text-orange-300 border border-orange-200 dark:border-orange-500/30'
+                className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-xl text-base font-semibold transition-all duration-200 overflow-hidden ${isActive('/churrasco')
+                  ? 'bg-gradient-to-r from-orange-600 via-amber-600 to-red-600 text-white shadow-md shadow-orange-500/25'
+                  : 'bg-orange-500/8 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-500/30'
                   }`}
               >
                 <div className="flex items-center gap-2">
                   <Flame
                     size={18}
-                    className={isActive('/churrasco') ? 'text-white' : 'text-orange-500 dark:text-orange-400'}
+                    className={`animate-ember-flicker ${isActive('/churrasco') ? 'text-amber-200' : 'text-orange-500 dark:text-orange-400'}`}
                   />
                   <span>Churrasco NEEI</span>
                 </div>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-orange-500 text-white font-extrabold">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${isActive('/churrasco') ? 'bg-black/25 text-white' : 'bg-orange-100 dark:bg-orange-900/60 text-orange-700 dark:text-orange-300'}`}>
                   4,50€
                 </span>
               </Link>

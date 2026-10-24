@@ -51,9 +51,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const navItems: AdminNavItemConfig[] = [
     {
       id: 'activities',
-      label: 'Atividades & Inscrições',
+      label: 'Atividades',
       shortLabel: 'Atividades',
-      description: 'Calendário, participantes e presenças',
+      description: 'Calendário e participantes',
       category: 'Gestão de Conteúdo',
       icon: <Calendar size={18} />,
       badge: {
@@ -65,9 +65,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     },
     {
       id: 'collaborators',
-      label: 'Pedidos de Colaborador',
+      label: 'Colaboradores',
       shortLabel: 'Colaboradores',
-      description: 'Candidaturas à equipa e voluntariado',
+      description: 'Candidaturas à equipa',
       category: 'Gestão de Conteúdo',
       icon: <UserPlus size={18} />,
       badge: {
@@ -79,9 +79,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     },
     {
       id: 'jobs',
-      label: 'Vagas & Oportunidades',
-      shortLabel: 'Vagas',
-      description: 'Estágios e propostas de empresas',
+      label: 'Oportunidades',
+      shortLabel: 'Oportunidades',
+      description: 'Estágios e propostas',
       category: 'Gestão de Conteúdo',
       icon: <Briefcase size={18} />,
       badge: {
@@ -95,7 +95,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'shop',
       label: 'Sweats & Loja',
       shortLabel: 'Loja',
-      description: 'Catálogo de artigos, packs e encomendas',
+      description: 'Catálogo de artigos',
       category: 'Operações & Loja',
       icon: <ShoppingBag size={18} />,
     },
@@ -103,7 +103,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'churrasco',
       label: 'Churrasco NEEI',
       shortLabel: 'Churrasco',
-      description: 'Vendas de passes, check-in e visibilidade',
+      description: 'Vendas de passes e check-in',
       category: 'Operações & Loja',
       icon: <Flame size={18} className="text-orange-500" />,
     },
