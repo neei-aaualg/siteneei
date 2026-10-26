@@ -604,7 +604,7 @@ export const Admin: React.FC = () => {
 
         {activeTab === 'shop' && (
           <div className="animate-fadeIn">
-            <AdminShopPanel token={token} />
+            <AdminShopPanel token={token} showFeedback={showFeedback} />
           </div>
         )}
 

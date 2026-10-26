@@ -280,22 +280,22 @@ describe('Admin', () => {
     expect(await screen.findByText('Painel de Administração')).toBeInTheDocument();
 
     // Navega para Pedidos de Colaborador através da sidebar
-    const collabTabBtn = screen.getByRole('button', { name: /Pedidos de Colaborador/ });
-    await user.click(collabTabBtn);
+    const collabTabBtns = screen.getAllByRole('button', { name: /Colaboradores/ });
+    await user.click(collabTabBtns[collabTabBtns.length - 1]);
 
     expect(await screen.findByText('Maria João')).toBeInTheDocument();
     expect(screen.getByText('Quero ajudar no núcleo')).toBeInTheDocument();
 
     // Navega para Vagas & Oportunidades através da sidebar
-    const jobsTabBtn = screen.getByRole('button', { name: /Vagas & Oportunidades/ });
-    await user.click(jobsTabBtn);
+    const jobsTabBtns = screen.getAllByRole('button', { name: /Oportunidades/ });
+    await user.click(jobsTabBtns[jobsTabBtns.length - 1]);
 
     expect(await screen.findByText('Estágio Frontend')).toBeInTheDocument();
     expect(screen.getByText('Tech Algarve')).toBeInTheDocument();
 
     // Navega de volta para Atividades
-    const activitiesTabBtn = screen.getByRole('button', { name: /Atividades & Inscrições/ });
-    await user.click(activitiesTabBtn);
+    const activitiesTabBtns = screen.getAllByRole('button', { name: /Atividades/ });
+    await user.click(activitiesTabBtns[activitiesTabBtns.length - 1]);
 
     expect(screen.getByText('Atividades Registadas (0)')).toBeInTheDocument();
   });

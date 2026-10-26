@@ -44,7 +44,7 @@ import { ShopProfitPanel } from './shop/ShopProfitPanel';
 
 interface AdminShopPanelProps {
   token: string;
-  showFeedback: (id: string, message: string) => void;
+  showFeedback?: (id: string, message: string) => void;
 }
 
 export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedback }) => {
@@ -202,7 +202,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
   const handleCopyLink = () => {
     navigator.clipboard.writeText(previewUrl);
     setCopiedLink(true);
-    showFeedback('copy-preview-link', 'Link de teste copiado para a área de transferência!');
+    showFeedback?.('copy-preview-link', 'Link de teste copiado para a área de transferência!');
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
@@ -247,7 +247,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, order_status: newStatus } : o))
       );
-      showFeedback(orderId, 'Estado operacional da encomenda atualizado!');
+      showFeedback?.(orderId, 'Estado operacional da encomenda atualizado!');
     } catch (err: any) {
       alert(err.message || 'Falha ao atualizar estado da encomenda.');
     } finally {
@@ -261,7 +261,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setResendingEmailId(orderId);
       const res = await resendOrderEmail(token, orderId);
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, email_sent: true } : o)));
-      showFeedback(orderId, res.message || 'Email de confirmação reenviado!');
+      showFeedback?.(orderId, res.message || 'Email de confirmação reenviado!');
     } catch (err: any) {
       alert(err.message || 'Falha ao reenviar email.');
     } finally {
@@ -287,7 +287,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
         document.body.appendChild(a);
         a.click();
         a.remove();
-        showFeedback('csv-exported', 'Ficheiro CSV descarregado com sucesso!');
+        showFeedback?.('csv-exported', 'Ficheiro CSV descarregado com sucesso!');
       })
       .catch((err) => {
         alert(err.message || 'Erro ao descarregar ficheiro CSV.');
@@ -329,7 +329,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           selectedOrderIds.includes(o.id) ? { ...o, order_status: bulkStatus } : o
         )
       );
-      showFeedback(
+      showFeedback?.(
         'bulk-update-success',
         `${selectedOrderIds.length} encomenda(s) atualizada(s) com sucesso!`
       );
@@ -497,7 +497,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       if (res?.order) {
         setOrders((prev) => [res.order, ...prev]);
       }
-      showFeedback('manual-order-created', `Encomenda ${res.order?.id || ''} registada com sucesso!`);
+      showFeedback?.('manual-order-created', `Encomenda ${res.order?.id || ''} registada com sucesso!`);
       setIsCreateModalOpen(false);
       setManualForm(initialManualForm);
       fetchAdminShopStats(token).then((st) => setStats(st)).catch(() => {});
@@ -572,7 +572,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
       setProducts((prev) =>
         prev.map((p) => (p.id === prod.id ? { ...p, is_active: newStatus } : p))
       );
-      showFeedback(
+      showFeedback?.(
         prod.id,
         newStatus ? 'Produto ativado na loja pública!' : 'Produto desativado/ocultado na loja pública!'
       );
@@ -599,7 +599,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
           prev.map((p) => (p.id === prod.id ? { ...p, display_order: priorityVal, priority: priorityVal } : p))
         )
       );
-      showFeedback(prod.id, `Prioridade atualizada para #${priorityVal > 0 ? priorityVal : 'Padrão'}`);
+      showFeedback?.(prod.id, `Prioridade atualizada para #${priorityVal > 0 ? priorityVal : 'Padrão'}`);
     } catch (err: any) {
       alert(err.message || 'Erro ao atualizar prioridade');
     }
@@ -612,7 +612,7 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
     try {
       await deleteAdminProduct(token, prod.id);
       setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-      showFeedback('product-deleted', 'Produto eliminado com sucesso!');
+      showFeedback?.('product-deleted', 'Produto eliminado com sucesso!');
     } catch (err: any) {
       alert(err.message || 'Erro ao eliminar produto');
     }
@@ -694,11 +694,11 @@ export const AdminShopPanel: React.FC<AdminShopPanelProps> = ({ token, showFeedb
             prev.map((p) => (p.id === editingProduct.id ? res.product : p))
           )
         );
-        showFeedback(editingProduct.id, 'Produto e características atualizados com sucesso!');
+        showFeedback?.(editingProduct.id, 'Produto e características atualizados com sucesso!');
       } else {
         const res = await createAdminProduct(token, payload);
         setProducts((prev) => sortProductsByPriority([res.product, ...prev]));
-        showFeedback('product-created', 'Novo produto adicionado à loja com sucesso!');
+        showFeedback?.('product-created', 'Novo produto adicionado à loja com sucesso!');
       }
       setIsProductModalOpen(false);
     } catch (err: any) {
